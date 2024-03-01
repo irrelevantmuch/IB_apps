@@ -1,0 +1,6 @@
+data/*
+data/downloads/*
+data/stock_lists/*
+junkFolder/*
+**/__pycache__/
+.DS_Store

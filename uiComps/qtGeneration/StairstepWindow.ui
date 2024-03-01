@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Momentum</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="2" column="0">
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>1</number>
+      </property>
+      <widget class="QWidget" name="tab_3">
+       <attribute name="title">
+        <string>StairStep</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_3">
+        <item row="0" column="0">
+         <widget class="QTableWidget" name="step_table">
+          <column>
+           <property name="text">
+            <string>Stock</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Price</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>5m</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>15m</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>1h</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>4h</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>1d</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>5m</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>15m</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>1h</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>4h</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>1d</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_4">
+       <attribute name="title">
+        <string>RSI</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_2">
+        <item row="0" column="0">
+         <widget class="QTableWidget" name="rsi_table">
+          <column>
+           <property name="text">
+            <string>Stock</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Price</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>5m</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>15m</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>1h</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>4h</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>1d</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>List</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="list_selector"/>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="fetch_button">
+        <property name="text">
+         <string>Fetch!</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

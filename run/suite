@@ -1,0 +1,26 @@
+clear
+
+if [ "$1" == "regen-ui" ]; then
+	echo "We rebuild the gui"
+	pyuic5 -x UIComps/QTGeneration/AppLauncher.ui -o UIComps/QTGeneration/AppLauncher_UI.py
+	pyuic5 UIComps/QTGeneration/StockPositionWindow.ui -o UIComps/QTGeneration/StockPosition_UI.py
+	pyuic5 UIComps/QTGeneration/StockListTab.ui -o UIComps/QTGeneration/StockListTab_UI.py
+	pyuic5 UIComps/QTGeneration/MoversWindow.ui -o UIComps/QTGeneration/Movers_UI.py
+	pyuic5 UIComps/QTGeneration/StairstepWindow.ui -o UIComps/QTGeneration/Stairstep_UI.py
+	pyuic5 UIComps/QTGeneration/PositionWindow.ui -o UIComps/QTGeneration/Position_UI.py
+	pyuic5 UIComps/QTGeneration/OptionsTab.ui -o UIComps/QTGeneration/OptionsTab_UI.py
+	pyuic5 UIComps/QTGeneration/SpecOptionsTab.ui -o UIComps/QTGeneration/SpecOptionsTab_UI.py
+	pyuic5 UIComps/QTGeneration/ListEditor.ui -o UIComps/QTGeneration/ListEditor_UI.py
+	pyuic5 UIComps/QTGeneration/TradingWindow.ui -o UIComps/QTGeneration/TradingWindow_UI.py
+	pyuic5 UIComps/QTGeneration/TradeRunnerWindow.ui -o UIComps/QTGeneration/TradeRunnerWindow_UI.py
+	pyuic5 UIComps/QTGeneration/BayesianFittingWindow.ui -o UIComps/QTGeneration/BayesianFitting_UI.py
+	pyuic5 UIComps/QTGeneration/TreeFittingWindow.ui -o UIComps/QTGeneration/TreeFittingWindow_UI.py
+	pyuic5 UIComps/QTGeneration/DataDownloader.ui -o UIComps/QTGeneration/DataDownloader_UI.py
+	pyuic5 UIComps/QTGeneration/DataDetailsWindow.ui -o UIComps/QTGeneration/DataDetails_UI.py
+	pyuic5 UIComps/QTGeneration/DataAnalysisWindow.ui -o UIComps/QTGeneration/DataAnalysis_UI.py
+	pyuic5 UIComps/QTGeneration/ComparisonWindow.ui -o UIComps/QTGeneration/Comparison_UI.py
+	pyuic5 UIComps/QTGeneration/VisualizationWindow.ui -o UIComps/QTGeneration/Visualization_UI.py
+	pyuic5 UIComps/QTGeneration/AlertWindow.ui -o UIComps/QTGeneration/Alert_UI.py
+fi
+
+python appLauncher.py
