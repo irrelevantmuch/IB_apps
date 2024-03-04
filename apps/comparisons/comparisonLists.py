@@ -37,11 +37,12 @@ class ComparisonList(ComparisonWindow):
     fetch_latest_signal = pyqtSignal()
     cancel_update_signal = pyqtSignal()
     set_stock_list_signal = pyqtSignal(dict)
-    update_stock_list_signal = pyqtSignal(bool)
+    update_stock_list_signal = pyqtSignal(str, bool)
     check_list_signal = pyqtSignal(dict)
     update_property_signal = pyqtSignal(dict)
     
     bar_types = MAIN_BAR_TYPES
+    selected_bar_type = Constants.FIVE_MIN_BAR
     data_processor = None
     tops_and_bottoms = True
 
@@ -261,7 +262,8 @@ class ComparisonList(ComparisonWindow):
     
     def changeBarType(self, new_index):
         print("ComparisonList.changeBarType")
-        self.update_property_signal.emit({"bar_change_type": self.bar_types[new_index]})
+        self.selected_bar_type = self.bar_types[new_index]
+        self.update_property_signal.emit({"bar_change_type": self.selected_bar_type})
         print(self.bar_types)
         if self.bar_types[new_index] == Constants.DAY_BAR:
             self.plot_period_selector.setCurrentText('Max')
@@ -321,7 +323,7 @@ class ComparisonList(ComparisonWindow):
 
     def keepUpToDate(self, value):
         if value:
-            self.update_stock_list_signal.emit(True)
+            self.update_stock_list_signal.emit(self.selected_bar_type, True)
         else:
             print("WE CALL FOR CANCELATION comp")
             self.cancel_update_signal.emit()

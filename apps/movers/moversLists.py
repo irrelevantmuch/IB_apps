@@ -87,7 +87,7 @@ class MoversList(MoversWindow):
         self.set_stock_list_signal.connect(self.data_processor.setStockList, Qt.QueuedConnection)
         self.cancel_update_signal.connect(self.data_processor.buffered_manager.cancelUpdates, Qt.QueuedConnection)
         self.data_processor.buffered_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
-        self.update_stock_list_signal.connect(self.data_processor.requestUpdatesSlot, Qt.QueuedConnection)
+        self.update_stock_list_signal.connect(self.data_processor.buffered_manager.requestUpdates, Qt.QueuedConnection)
         self.period_update_signal.connect(self.data_processor.updatePeriodSelection, Qt.QueuedConnection)
         self.index_selection_signal.connect(self.data_processor.compSelection, Qt.QueuedConnection)
         self.gui_change_signal.connect(self.data_processor.guiSelectionChange, Qt.QueuedConnection)
@@ -274,7 +274,7 @@ class MoversList(MoversWindow):
 
     def keepUpToDate(self, value):
         if value:
-            self.update_stock_list_signal.emit(Constants.ONE_MIN_BAR, True)
+            self.update_stock_list_signal.emit(Constants.ONE_MIN_BAR, value)
         else:
             print("WE CALL FOR CANCELATION")
             self.cancel_update_signal.emit()

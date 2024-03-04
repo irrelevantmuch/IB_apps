@@ -54,10 +54,6 @@ class DataProcessor(QObject):
         self.buffered_manager.fetchLatestStockData()
 
 
-    @pyqtSlot(str, bool)
-    def requestUpdatesSlot(self, base_bar_type, keep_up_to_date=False):
-        self.buffered_manager.requestUpdates(keep_up_to_date=keep_up_to_date)
-
 
     @pyqtSlot(dict)
     def setStockList(self, stock_list):

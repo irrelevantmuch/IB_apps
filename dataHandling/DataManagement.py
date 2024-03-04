@@ -14,6 +14,7 @@ from dataHandling.IBConnectivity import IBConnectivity
 class DataManager(QObject):
 
     api_updater = pyqtSignal(str, dict)
+    ib_request_signal = pyqtSignal(dict)
 
     snapshot = False
     priceReqIsActive = False
@@ -22,7 +23,6 @@ class DataManager(QObject):
     price = 0.0
 
     run_ib_client_signal = pyqtSignal()
-    req_mkt_data_signal = pyqtSignal(int, Contract, bool, bool)
 
     finished = pyqtSignal()
     
@@ -82,9 +82,9 @@ class DataManager(QObject):
 
     def connectSignalsToSlots(self):
         print("SIGNAL CONNECTED TO SLOTS")
+        self.ib_request_signal.connect(self.ib_interface.makeRequest, Qt.QueuedConnection)
         self.ib_interface.connection_signal.connect(self.relayConnectionStatus, Qt.QueuedConnection)
         self.ib_interface.latest_price_signal.connect(self.returnLatestPrice, Qt.QueuedConnection)
-        self.req_mkt_data_signal.connect(self.ib_interface.reqMktData, Qt.QueuedConnection)
 
 
     @pyqtSlot(DetailObject)
@@ -110,7 +110,13 @@ class DataManager(QObject):
             contract.currency = Constants.USD
         
         contract.exchange = Constants.SMART
-        self.req_mkt_data_signal.emit(Constants.STK_PRICE_REQID, contract, self.snapshot, False)
+        request = dict()
+        request['type'] = 'reqMktData'
+        request['req_id'] = Constants.STK_PRICE_REQID
+        request['contract'] = contract
+        request['snapshot'] = self.snapshot
+        request['reg_snapshot'] = False
+        self.ib_request_signal.emit(request)
         self.priceReqIsActive = True
 
 

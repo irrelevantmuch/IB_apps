@@ -51,6 +51,7 @@ class LiveTickerProcessor(QObject):
         self.ticker_inf = ticker_inf
         self.buffered_manager.setStockTracker(ticker_inf[0], ticker_inf[1], self.selected_bar_type, do_not_remove)
         details = DetailObject(symbol=self.ticker_inf[1][Constants.SYMBOL], exchange=self.ticker_inf[1]['exchange'], numeric_id=self.ticker_inf[0], currency=self.ticker_inf[1]['currency'])
+        
         self.price_request_signal.emit(details)
 
 

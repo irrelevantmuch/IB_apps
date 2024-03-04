@@ -272,7 +272,7 @@ class DataBuffers(QObject):
                     
 
     def processUpdates(self, min_data):
-        print("DataBuffer.processUpdates")
+        # print("DataBuffer.processUpdates")
 
             #we want to reuse these so names for clarity
         curr_bar_type = min_data['bar type']
@@ -310,7 +310,7 @@ class DataBuffers(QObject):
         
 
     def incoorporateUpdates(self, uid, from_bar_type, to_bar_type, new_range, update_full=True):
-        print(f"DataBuffer.incoorporateUpdates {uid} {from_bar_type} {to_bar_type} {new_range}")
+        # print(f"DataBuffer.incoorporateUpdates {uid} {from_bar_type} {to_bar_type} {new_range}")
             # we ensure the origin data exists
         if self.bufferExists(uid, from_bar_type):
             from_frame = self.getBufferFor(uid, from_bar_type)
@@ -323,9 +323,9 @@ class DataBuffers(QObject):
                 else:
                     new_first_index = to_frame.index[0]
                 origin_bars = from_frame.loc[new_first_index:]
-                print(new_first_index)
-                print(origin_bars)
-                print(self.resampleFrame[to_bar_type])
+                # print(new_first_index)
+                # print(origin_bars)
+                # print(self.resampleFrame[to_bar_type])
                 updated_bars = origin_bars.resample(self.resampleFrame[to_bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
                 self.addToBuffer(uid, to_bar_type, updated_bars, new_range)
             else:

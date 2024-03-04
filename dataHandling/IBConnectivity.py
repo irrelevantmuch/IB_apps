@@ -11,6 +11,8 @@ import inspect
 
 import time
 
+from queue import Queue
+
 from dataHandling.DataStructures import DetailObject
 from dataHandling.Constants import Constants
 from pubsub import pub
@@ -64,6 +66,8 @@ class IBConnectivity(EClient, EWrapper, QObject):
         self.local_address = local_address
         self.trading_socket = trading_socket
         self.client_id = client_id
+        self.name = name
+        self.request_queue = Queue()
         
         EClient.__init__(self, self)
         QObject.__init__(self)
@@ -119,13 +123,13 @@ class IBConnectivity(EClient, EWrapper, QObject):
         super().connectionClosed()
         self.connection_status = Constants.CONNECTION_CLOSED
         self.connection_signal.emit(Constants.CONNECTION_CLOSED)
+        pub.sendMessage('log', message=f"Connection for {self.name} ({self.client_id}) closed")
         #QMetaObject.invokeMethod(self.delegate, 'relayConnectionStatus', Qt.QueuedConnection, Q_ARG(str, Constants.CONNECTION_CLOSED))
 
 
     def contractDetails(self, req_id, contract_details):
         contract = contract_details.contract
         #print(f"IBConnectivity.contractDetails {req_id} {contract.right} {contract.lastTradeDateOrContractMonth} {contract.strike}")
-        
         
         if self.isOptionInfRequest(req_id):
             self.relay_contract_id_signal.emit(contract.right, contract.strike, contract.lastTradeDateOrContractMonth, contract.conId)
@@ -150,9 +154,49 @@ class IBConnectivity(EClient, EWrapper, QObject):
             self.contract_details_finished_signal.emit()
 
 
-    @pyqtSlot(int, Contract)
-    def reqContractDetails(self, req_id, contract):
-        super().reqContractDetails(req_id, contract)
+    @pyqtSlot(dict)
+    def makeRequest(self, request):
+        self.request_queue.put(request)
+        if not self.timer.isActive():
+            self.turnOnQueueProcessing()
+
+
+    def turnOnQueueProcessing(self, interval=50):
+        self.timer.start(interval)
+
+
+    def processQueue(self):
+        if not self.request_queue.empty():
+            request = self.request_queue.get_nowait()
+            self.processRequest(request)
+            self.request_queue.task_done()
+        else:
+            self.timer.stop()  # Stop the timer if the queue is empty
+
+
+    def processRequest(self, request):
+        print(f"IBConnectivity.processRequest {request}")
+        req_type = request['type']
+
+        if req_type == 'reqHistoricalData':
+            self.reqHistoricalData(request['req_id'], request['contract'], request['end_date'], request['duration'], request['bar_type'], Constants.TRADES, False, 1, request['keep_up_to_date'], [])
+        elif req_type == 'cancelHistoricalData':
+            self.cancelHistoricalData(request['req_id'])
+        elif req_type == 'reqHeadTimeStamp':
+            self.reqHeadTimeStamp(request['req_id'], request['contract'], request['data_type'], request['use_rth'], request['format_date'])
+        elif req_type == 'reqOpenOrders':
+            self.reqOpenOrders()
+        elif req_type == 'reqAutoOpenOrders':
+            self.reqAutoOpenOrders(request['reqAutoOpenOrders'])
+        elif req_type == 'reqIds':
+            self.reqIds(request['num_ids'])
+        elif req_type == 'reqMktData':
+            self.reqMktData(request['req_id'], request['contract'], "", request['snapshot'], request['reg_snapshot'], [])
+        elif req_type == 'reqContractDetails':
+            self.reqContractDetails(request['req_id'], request['contract'])
+        
+        if 'req_id' in request:
+            self._active_requests.add(request['req_id'])
 
         
     def startConnection(self):
@@ -162,7 +206,10 @@ class IBConnectivity(EClient, EWrapper, QObject):
         def target():
             self.connect(self.local_address, self.trading_socket, self.client_id)
             self.run()
-            
+        
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.processQueue)
+        
         self.tws_thread = Thread(target=target)
         self.tws_thread.start()
     
@@ -172,13 +219,11 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
 
     @pyqtSlot(int, Contract, bool, bool)
-    def reqMktData(self, req_id, contract: Contract, snapshot: bool, regulatorySnapshot: bool):
+    def reqMktData(self, req_id, contract: Contract, genericTickList: str, snapshot: bool, regulatorySnapshot: bool, mktDataOptions):
         print(f"IBConnectivity.reqMktData {self.client_id}")
-        self.markNewRequest()
         if self.isPriceRequest(req_id):
             self.price_returned = False
         super().reqMktData(req_id, contract, "", snapshot, regulatorySnapshot, [])
-        self._active_requests.add(req_id)
         
 
     def tickSnapshotEnd(self, req_id: int):
@@ -188,46 +233,36 @@ class IBConnectivity(EClient, EWrapper, QObject):
         self.snapshot_end_signal.emit(req_id)
         
 
-    pyqtSlot(int,Contract,str,str,str,str,int,int,bool,list)
+    # pyqtSlot(int,Contract,str,str,str,str,int,int,bool,list)
     def reqHistoricalData(self, req_id, contract, endDateTime, durationStr, barSizeSetting, whatToShow, useRTH, formatDate, keepUpToDate, chartOptions):
         print(f"IBConnectivity.reqHistoricalData {self.client_id}")
-        print(contract.symbol)
-        print(f"{endDateTime} {durationStr} {barSizeSetting} {whatToShow} {useRTH} {keepUpToDate}")
-        self.markNewRequest()
+    #     print(contract.symbol)
+    #     print(f"{endDateTime} {durationStr} {barSizeSetting} {whatToShow} {useRTH} {keepUpToDate}")
         super().reqHistoricalData(req_id, contract, endDateTime, durationStr, barSizeSetting, whatToShow, useRTH, formatDate, keepUpToDate, chartOptions)
-        self._active_requests.add(req_id)
         
 
-    def markNewRequest(self):
-        curr_time = QDateTime.currentMSecsSinceEpoch()
-        delta_time = curr_time - self.last_req_time
-        print(f"****************** {delta_time} {curr_time} {self.last_req_time}")
-        self.last_req_time = curr_time
-        
-
-
-    pyqtSlot(int)
-    def cancelHistoricalData(self, req_id: int):
-        print(f"IBConnectivity.cancelHistoricalData {req_id}")
-        self.markNewRequest()
-        super().cancelHistoricalData(req_id)
+    # pyqtSlot(int)
+    # def cancelHistoricalData(self, req_id: int):
+    #     print(f"IBConnectivity.cancelHistoricalData {req_id}")
+    #     self.markNewRequest()
+    #     super().cancelHistoricalData(req_id)
         
     
-    @pyqtSlot(int, Contract, str, int, int)
-    def reqHeadTimeStamp(req_id, contract, data_type, useRTH: int, formatDate: int):
-        print("IBConnectivity.reqHeadTimeStamp")
-        self.markNewRequest()
-        super().reqHeadTimeStamp(req_id, contract, data_type, formatDate)
+    # @pyqtSlot(int, Contract, str, int, int)
+    # def reqHeadTimeStamp(req_id, contract, data_type, useRTH: int, formatDate: int):
+    #     print("IBConnectivity.reqHeadTimeStamp")
+    #     self.markNewRequest()
+    #     super().reqHeadTimeStamp(req_id, contract, data_type, formatDate)
 
 
 
     @pyqtSlot()
     def trackAndBindOpenOrders(self):
         print(f"IBConnectivity.trackAndBindOpenOrders {self.client_id}")
-        self.markNewRequest()
-        self.reqOpenOrders()
-        self.reqAutoOpenOrders(True)
-
+        # self.markNewRequest()
+        self.makeRequest({'type': 'reqOpenOrders'})
+        self.makeRequest({'type': 'reqAutoOpenOrders', 'reqAutoOpenOrders': True})
+    
 
     def orderStatus(self, orderId: int, status: str, filled: float, remaining: float, avgFillPrice: float, permId: int, parentId: int, lastFillPrice: float, clientId: int, whyHeld: str, mktCapPrice: float):
         super().orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice) 

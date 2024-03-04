@@ -293,7 +293,11 @@ class OptionChainManager(DataManager):
                 #contract.lastTradeDateOrContractMonth = for_exp
             contract.strike = for_strike
             print(f"DID THIS DIE? {req_id} {contract}")
-            self.ib_interface.reqContractDetails(req_id, contract)
+            request = dict()
+            request['type'] = 'reqContractDetails'
+            request['req_id'] = req_id
+            request['contract'] = contract
+            self.ib_request_signal.emit(request)
             #self.contract_detail_request.emit(req_id, contract)
             
 
@@ -337,7 +341,6 @@ class OptionChainManager(DataManager):
         self.ib_interface.report_expirations_signal.connect(self.reportBackExpirations, Qt.QueuedConnection)
         self.ib_interface.relay_contract_id_signal.connect(self.relayOptionContractID, Qt.QueuedConnection)
         self.ib_interface.option_error_signal.connect(self.optReqError, Qt.QueuedConnection)
-        self.contract_detail_request.connect(self.ib_interface.reqContractDetails, Qt.QueuedConnection)
 
 
     # @pyqtSlot(str)
@@ -624,6 +627,7 @@ class OptionChainManager(DataManager):
             if self.ib_interface.getActiveReqCount() < self.queue_cap:
                 opt_req = self.request_buffer.pop(0)
                 #print(f"We submit {opt_req.req_id},  {opt_req.contract.symbol}, {opt_req.contract.strike}, {opt_req.contract.lastTradeDateOrContractMonth}")
+                print("THIS SHOULD NOT DIRECTLY CALL reqMMktData")
                 self.ib_interface.reqMktData(opt_req.req_id, opt_req.contract, "",  opt_req.keep_updating, False, []) #(not self.live_data_on)
         if len(self.request_buffer) == 0:
             print("All requests have been submitted")
