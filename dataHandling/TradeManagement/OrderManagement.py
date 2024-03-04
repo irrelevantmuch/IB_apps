@@ -61,6 +61,16 @@ class OpenOrderBuffer(QObject):
         self.order_buffer_signal.emit(Constants.DATA_DID_CHANGE, order_id)
 
 
+    def getPropTypeForColumn(self, colummn_name):
+            if colummn_name == 'Count':
+                return 'Count'
+            elif colummn_name == 'Limit':
+                return 'Limit'
+            elif colummn_name == 'Stop level':
+                return 'Trigger'
+            return ''
+
+
     def getDataForColumn(self, index, colummn_name):
         order_id = list(self._orders.keys())[index]
 
@@ -141,14 +151,19 @@ class OpenOrderBuffer(QObject):
 
     @pyqtSlot(int, dict)
     def orderUpdate(self, order_id, detail_object):
+        print(f"OpenOrderBuffer.orderUpdate {order_id}")
+        print(detail_object)
         if detail_object['status'] == 'Cancelled':
             self.removeOrder(order_id)
+        elif detail_object['status'] == 'Filled' and ('remaining' in detail_object) and (detail_object['remaining'] == 0):
+            self.removeOrder(order_id)
         elif 'order' in detail_object and 'contract' in detail_object:
+            print(f"What is the parentId {detail_object['order'].parentId}")
             self.setOrder(order_id, detail_object['order'], detail_object['contract'])
 
 
     def removeOrder(self, order_id):
-        print(f"OrderManager.removeOrder {order_id}")
+        print(f"OpenOrderBuffer.removeOrder {order_id}")
         if order_id in self._orders:
             self.order_buffer_signal.emit(Constants.DATA_WILL_CHANGE, order_id)
 
@@ -348,11 +363,11 @@ class OrderManager(DataManager):
 
 
 
-    @pyqtSlot(Contract, str, int, str)
-    def openStairTrade(self, contract, entry_action, count, bar_type):
+    @pyqtSlot(Contract, str, str)
+    def openStairTrade(self, contract, entry_action, bar_type):
         print("OrderManager.openStairTrade")
         uid = contract.conId
-        stair_step = self.stair_tracker.createNewStairstep(uid, bar_type, entry_action, count, contract)
+        stair_step = self.stair_tracker.createNewStairstep(uid, bar_type, entry_action, contract)
 
         print("OrderManager.openStairTrade 1")
         if (stair_step is not None):
@@ -403,7 +418,8 @@ class OrderManager(DataManager):
 
     @pyqtSlot(int, dict)
     def orderEdit(self, order_id, properties):
-        print("What is this again?")
+        print(f"OrderManager.orderEdit {order_id}")
+        print(properties)
         order, contract = self.open_orders.getOrderContract(order_id)
 
         for prop_type, prop_value in properties.items():
@@ -429,7 +445,7 @@ class StairManager(QObject):
     step_hist_count = 3
 
 
-    def createNewStairstep(self, uid, bar_type, entry_action, count, contract):
+    def createNewStairstep(self, uid, bar_type, entry_action, contract):
         print("OrderManager.createNewStairstep")
         if self.data_buffers.bufferExists(uid, bar_type):
             
@@ -446,6 +462,7 @@ class StairManager(QObject):
             self.stair_buffer_signal.emit(Constants.DATA_WILL_CHANGE)
                 
             key = (uid, bar_type)
+            count = self._current_property_object['count']
             self._current_key = key
             
             self.initializeStairObject(key, {'status': 'Tracking', 'contract': contract, 'bar_type': bar_type, 'count': count, 'entry_action': entry_action})    
@@ -818,6 +835,7 @@ class StairManager(QObject):
 
     @pyqtSlot(dict)
     def updateCurrentStepProperty(self, new_property):
+        print(f"OrderManager.updateCurrentStepProperty {new_property}")
         self._current_property_object.update(new_property)
         if self._current_key is not None:
             self.updateStepProperty(self._current_key, self._current_property_object)

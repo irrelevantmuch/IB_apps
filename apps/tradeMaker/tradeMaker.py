@@ -47,7 +47,7 @@ class TradeMaker(TradingWindow):
     set_bar_signal = pyqtSignal(str)
     place_complex_signal = pyqtSignal(Contract, str, int, float, dict)
     place_combo_signal = pyqtSignal(Contract, str, int, float, float, float)
-    place_stair_order = pyqtSignal(Contract, str, int, str)
+    place_stair_order = pyqtSignal(Contract, str, str)
     kill_stair_order = pyqtSignal()
 
 
@@ -346,8 +346,7 @@ class TradeMaker(TradingWindow):
         if not self.is_tracking_steps:
             contract = self.getCurrentContract()
             action = self.step_action_type
-            count = self.step_count_field.value()
-            self.place_stair_order.emit(contract, action, count, self.selected_bar_type)
+            self.place_stair_order.emit(contract, action, self.selected_bar_type)
         else:
             self.order_manager.killStairTrade()
 
@@ -403,20 +402,20 @@ class TradeMaker(TradingWindow):
         else:
             limit_price = self.latest_trade
         
-
         self.limit_field.setValue(limit_price)
-        if self.action_type == Constants.BUY:
-            price_offset = 1
-        else:
-            price_offset = -1
-        
-        self.profit_limit_field.setValue(limit_price+price_offset)
-        self.stop_trigger_field.setValue(limit_price-price_offset)
-        self.stop_limit_field.setValue(limit_price-(price_offset*2))
 
-        self.combo_limit_field.setValue(limit_price+price_offset)
-        self.combo_sl_trigger_field.setValue(limit_price-price_offset)
-        self.combo_stop_limit_field.setValue(limit_price-(price_offset*2))
+        # if self.action_type == Constants.BUY:
+        #     price_offset = 1
+        # else:
+        #     price_offset = -1
+        
+        # # self.profit_limit_field.setValue(limit_price+price_offset)
+        # self.stop_trigger_field.setValue(limit_price-price_offset)
+        # self.stop_limit_field.setValue(limit_price-(price_offset*2))
+
+        # self.combo_limit_field.setValue(limit_price+price_offset)
+        # self.combo_sl_trigger_field.setValue(limit_price-price_offset)
+        # self.combo_stop_limit_field.setValue(limit_price-(price_offset*2))
         
 
     @pyqtSlot(QAbstractButton, bool)

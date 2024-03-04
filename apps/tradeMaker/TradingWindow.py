@@ -129,6 +129,7 @@ class TradingWindow(QMainWindow, TradingWindow_UI, SymbolFinderImplementation): 
     
         self.step_entry_trigger_offset_box.valueChanged.connect(lambda new_value: self.stepLevelChange(new_value, "entry_trigger_offset"))
         self.step_entry_limit_offset_box.valueChanged.connect(lambda new_value: self.stepLevelChange(new_value, "entry_limit_offset"))
+        self.step_count_field.valueChanged.connect(lambda new_value: self.stepLevelChange(new_value, "count"))
         self.step_stop_trigger_offset_box.valueChanged.connect(lambda new_value: self.stepLevelChange(new_value, "stop_trigger_offset"))
         self.step_stop_limit_offset_box.valueChanged.connect(lambda new_value: self.stepLevelChange(new_value, "stop_limit_offset"))
         self.step_profit_factor_spin.valueChanged.connect(lambda new_value: self.stepLevelChange(new_value, "profit_factor_level"))

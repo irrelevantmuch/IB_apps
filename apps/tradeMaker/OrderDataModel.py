@@ -152,7 +152,8 @@ class OrderDataModel(QAbstractTableModel):
     def setData(self, index, value, role=Qt.EditRole):
         column_name = self._header_labels[index.column()]
         if role == Qt.EditRole:
-            self.order_edit_update.emit(self._order_data.getOrderId(index.row()), {column_name: value})
+            prop_type = self._order_data.getPropTypeForColumn(column_name)
+            self.order_edit_update.emit(self._order_data.getOrderId(index.row()), {prop_type: value})
             return True
         return False
 
