@@ -219,8 +219,8 @@ class MoversProcessor(DataProcessor):
     def updatePrices(self, uid_list=None):
         for uid in uid_list:
             if self.data_buffers.bufferExists(uid, Constants.FIVE_MIN_BAR):
-                last_five_min_price = self.data_buffers.getColumnValueForPos(uid, Constants.FIVE_MIN_BAR, Constants.CLOSE, -1)
-                self.data_wrapper.updateValueFor(uid, Constants.PRICE, last_five_min_price)
+                latest_available_price = self.data_buffers.getLatestPrice(uid)
+                self.data_wrapper.updateValueFor(uid, Constants.PRICE, latest_available_price)
 
 
     def computeSteps(self, updated_pairs=None):

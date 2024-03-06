@@ -84,18 +84,18 @@ class HistoricalDataManager(DataManager):
     @pyqtSlot(str)
     def stopTracking(self, uid):
         delay = 1_000
-        print(f"HistoricalDataManager.cancelActiveRequests {int(QThread.currentThreadId())}")
+        # print(f"HistoricalDataManager.cancelActiveRequests {int(QThread.currentThreadId())}")
         relevant_requests = [req_id for req_id, track_uid in self._uid_by_req.items() if track_uid == uid]
 
         for req_id in relevant_requests:
             if req_id in self._is_updating:
-                self.ib_request_signal.emit({'type': 'cancelHistoricalData' 'req_id': req_id})
+                self.ib_request_signal.emit({'type': 'cancelHistoricalData', 'req_id': req_id})
                 self._is_updating.remove(req_id)
             if req_id in self._update_requests:
-                self.ib_request_signal.emit({'type': 'cancelHistoricalData' 'req_id': req_id})
+                self.ib_request_signal.emit({'type': 'cancelHistoricalData', 'req_id': req_id})
                 self._update_requests.remove(req_id)
             if req_id in self._hist_buffer_reqs:
-                self.ib_request_signal.emit({'type': 'cancelHistoricalData' 'req_id': req_id})
+                self.ib_request_signal.emit({'type': 'cancelHistoricalData', 'req_id': req_id})
                 self._hist_buffer_reqs.remove(req_id)
 
         self.performUidCleanupFor(uid)
@@ -161,17 +161,17 @@ class HistoricalDataManager(DataManager):
         cancelled_ids = []
         for req_id in self._is_updating:
             cancelled_ids.append(req_id)
-            self.ib_request_signal.emit({'type': 'cancelHistoricalData' 'req_id': req_id})
+            self.ib_request_signal.emit({'type': 'cancelHistoricalData', 'req_id': req_id})
         self._is_updating = set()
 
         for req_id in self._update_requests:
             cancelled_ids.append(req_id)
-            self.ib_request_signal.emit({'type': 'cancelHistoricalData' 'req_id': req_id})
+            self.ib_request_signal.emit({'type': 'cancelHistoricalData', 'req_id': req_id})
         self._update_requests = set()
 
         for req_id in self._hist_buffer_reqs:
             cancelled_ids.append(req_id)
-            self.ib_request_signal.emit({'type': 'cancelHistoricalData' 'req_id': req_id})
+            self.ib_request_signal.emit({'type': 'cancelHistoricalData', 'req_id': req_id})
         self._hist_buffer_reqs = set()
 
 
@@ -180,7 +180,7 @@ class HistoricalDataManager(DataManager):
 
     @pyqtSlot(DetailObject, datetime, datetime, str)
     def createRequestsForContract(self, contract_details, start_date, end_date, bar_type):
-        print(f"HistoryManagement.createRequestsForContract {contract_details.symbol} {bar_type}")
+        # print(f"HistoryManagement.createRequestsForContract {contract_details.symbol} {bar_type}")
         weeks, days, seconds = self.getTimeSplits(start_date, end_date)
         contract = self.getContractFor(contract_details)
         requests = self.createBufferRequests(contract, end_date, bar_type, weeks, days, seconds)
@@ -225,7 +225,7 @@ class HistoricalDataManager(DataManager):
 
     @pyqtSlot(str)
     def groupCurrentRequests(self, for_uid):
-        print(f"HistoricalDataManager.groupCurrentRequests")
+        # print(f"HistoricalDataManager.groupCurrentRequests")
         self._group_reqs_by_uid[for_uid] = set()
         for request in self._request_buffer:
             if self._uid_by_req[request.req_id] == for_uid:
@@ -239,7 +239,7 @@ class HistoricalDataManager(DataManager):
         self.addUIDbyReq(contract.conId, req_id)
         self._bar_type_by_req[req_id] = bar_type
         requests.append(HistoryRequest(req_id, contract, end_date, period, bar_type))
-        print(f"HistoricalDataManager.addRequest {req_id} {end_date} {period} {bar_type}")
+        # print(f"HistoricalDataManager.addRequest {req_id} {end_date} {period} {bar_type}")
         return requests
 
 
@@ -264,8 +264,8 @@ class HistoricalDataManager(DataManager):
     @pyqtSlot(dict, str, bool)
     @pyqtSlot(dict, str, bool, bool)
     def requestUpdates(self, stock_list, bar_type, keep_up_to_date, prioritize_uids=False):
-        print(f"HistoryManagement.requestUpdates {keep_up_to_date}")
-        print([stock_inf[Constants.SYMBOL] for _, stock_inf in stock_list.items()])
+        # print(f"HistoryManagement.requestUpdates {keep_up_to_date}")
+        # print([stock_inf[Constants.SYMBOL] for _, stock_inf in stock_list.items()])
 
         for uid, stock_inf in stock_list.items():
                 
@@ -283,7 +283,7 @@ class HistoricalDataManager(DataManager):
 
 
     def createUpdateRequests(self, contract_details, bar_type, time_in_sec, keep_up_to_date=True):
-        print("HistoricalDataManager.createUpdateRequests")
+        # print("HistoricalDataManager.createUpdateRequests")
         req_id = self.getNextBufferReqID()
         uid = contract_details.numeric_id
         contract = self.getContractFor(contract_details)
@@ -322,9 +322,10 @@ class HistoricalDataManager(DataManager):
 
     def addUIDbyReq(self, uid, req_id):
         if req_id in self._uid_by_req:
-            print("*****" * 30)
-            print(f"CRASH BECAUSE {req_id} IS TAKEN")
-            print("*****" * 30)
+            for _ in range(20):
+                print("*****" * 30)
+                print(f"CRASH BECAUSE {req_id} IS TAKEN")
+                print("*****" * 30)
             sys.exit()
         
         self._uid_by_req[req_id] = uid
@@ -374,7 +375,7 @@ class HistoricalDataManager(DataManager):
 
     @pyqtSlot(int)
     def iterateHistoryRequests(self, delay=11_000):
-        print(f"HistoricalDataManager on thread: {int(QThread.currentThreadId())}")
+        # print(f"HistoricalDataManager on thread: {int(QThread.currentThreadId())}")
         if self.hasQueuedRequests():
             self.history_exec_timer = QTimer()
             self.history_exec_timer.timeout.connect(self.executeHistoryRequest)
@@ -384,9 +385,9 @@ class HistoricalDataManager(DataManager):
 
     @pyqtSlot()
     def executeHistoryRequest(self):
-        print(f"HistoricalDataManager.executeHistoryRequest on thread: {int(QThread.currentThreadId())}")
+        # print(f"HistoricalDataManager.executeHistoryRequest on thread: {int(QThread.currentThreadId())}")
         if self.hasQueuedRequests():
-            print("WHAT NOW?")
+            # print("WHAT NOW?")
             if self.ib_interface.getActiveReqCount() < self.queue_cap:
                 hr = self.getNextHistoryRequest()
                 self._historicalDFs[hr.req_id] = pd.DataFrame(columns=[Constants.OPEN, Constants.HIGH, Constants.LOW, Constants.CLOSE, Constants.VOLUME])
@@ -525,7 +526,7 @@ class HistoricalDataManager(DataManager):
 
     @pyqtSlot(int)
     def historyError(self, req_id):
-        print(f"HistoricalDataManager.historyError {req_id}")
+        # print(f"HistoricalDataManager.historyError {req_id}")
         if req_id in self._uid_by_req:
             uid = self._uid_by_req[req_id]
             
@@ -537,7 +538,7 @@ class HistoricalDataManager(DataManager):
 
 
     def processGroupSignal(self, req_id, uid):
-        print(f"HistoricalDataManager.processGroupSignal {req_id} {uid}")
+        # print(f"HistoricalDataManager.processGroupSignal {req_id} {uid}")
         if uid in self._group_reqs_by_uid:
             if req_id in self._group_reqs_by_uid[uid]:
                 self._group_reqs_by_uid[uid].remove(req_id)
@@ -548,7 +549,7 @@ class HistoricalDataManager(DataManager):
 
     @pyqtSlot(int, str, str)
     def signalHistoryDataComplete(self, req_id, start, end):
-        print(f"HistoricalDataManager.signalHistoryDataComplete")
+        # print(f"HistoricalDataManager.signalHistoryDataComplete")
         if req_id in self._hist_buffer_reqs:
             self._hist_buffer_reqs.remove(req_id)
             completed_req = self.getCompletedHistoryObject(req_id, start, end)

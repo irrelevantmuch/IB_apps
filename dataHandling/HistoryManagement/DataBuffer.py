@@ -75,11 +75,7 @@ class DataBuffers(QObject):
         if new_range is not None:
             self._date_ranges[uid, bar_type].append(new_range)            
             self._date_ranges[uid, bar_type] = self.mergeAdjRanges(self._date_ranges[uid, bar_type])
-            if bar_type == Constants.FIVE_MIN_BAR:
-                print(f"Merged ranges: {uid}")
-
-                self.printRanges(self._date_ranges[uid, bar_type])
-
+            
         self._locks[uid, bar_type].unlock()
         
 
@@ -122,7 +118,7 @@ class DataBuffers(QObject):
         if smallest_bar_type is not None:
             self._locks[uid, smallest_bar_type].lockForRead()
             try:
-                return self._buffers[uid, smallest_bar_type].loc[index:].copy()
+                return self._buffers[uid, smallest_bar_type].iloc[-1][Constants.CLOSE].copy()
             finally:
                 self._locks[uid, smallest_bar_type].unlock()
         else:

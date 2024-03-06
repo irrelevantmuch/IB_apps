@@ -67,7 +67,6 @@ class BufferedDataManager(QObject):
         self._tracking_stocks.update({uid: stock_inf})
 
         self.fetchBasebars(uid, stock_inf, primary_bar=bar_selection)
-        time.sleep(0.05)
         self.requestTrackingUpdates(uid, stock_inf)
 
 
@@ -128,7 +127,6 @@ class BufferedDataManager(QObject):
 
         for bar_type in to_fetch_bars:
             begin_date = self.standardBeginDateFor(end_date, bar_type)
-            time.sleep(0.05)
             self.create_request_signal.emit(details, begin_date, end_date, bar_type)
 
         self.group_request_signal.emit(uid)

@@ -47,13 +47,6 @@ class DataProcessor(QObject):
 ############## DATA PROCESSING
 
 
-    @pyqtSlot()
-    def fetchLatestStockData(self):
-        # print(f"This should be the data_processor THREAD: {int(QThread.currentThreadId())}")
-        self.updated_uids = []
-        self.buffered_manager.fetchLatestStockData()
-
-
 
     @pyqtSlot(dict)
     def setStockList(self, stock_list):

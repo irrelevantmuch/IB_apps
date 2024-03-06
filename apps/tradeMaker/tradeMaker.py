@@ -38,6 +38,7 @@ class TradeMaker(TradingWindow):
     latest_trade = 0
 
     is_tracking_steps = False
+    fields_need_updating = True
 
     cancel_all_signal = pyqtSignal()
     cancel_order_by_row = pyqtSignal(int)
@@ -81,8 +82,7 @@ class TradeMaker(TradingWindow):
         self.setBaseGuiValues()
         self.processor_thread.start()
         
-        self.order_manager.open_order_request.emit()
-        time.sleep(0.1)
+        # self.order_manager.open_order_request.emit()
         self.tickerSelection(0)
 
 
@@ -177,7 +177,9 @@ class TradeMaker(TradingWindow):
                     bars = self.data_buffers.getBufferFor(self.selected_key, self.selected_bar_type)
                     self.trade_plot.setHistoricalData(bars.iloc[:-1])
                     self.trade_plot.addNewBars(bars.iloc[[-1]], bars.index[-1])
-                    self.fillOutPriceFields()
+                    if self.fields_need_updating:
+                        self.fillOutPriceFields(include_profit_loss=True)
+                        self.fields_need_updating = False
             elif signal == Constants.HAS_NEW_DATA:
                 if self.data_buffers.bufferExists(self.selected_key, self.selected_bar_type):
                     if self.selected_bar_type in sub_signal['updated_from']:
@@ -210,6 +212,7 @@ class TradeMaker(TradingWindow):
             self.product_label.setText(self.current_selection.long_name)
             self.set_ticker_signal.emit((self.selected_key, stock_inf), self.getActiveUids())
             self.updateTracking()
+            self.fields_need_updating = True
 
 
     def tickerSelection(self, value):
@@ -219,6 +222,7 @@ class TradeMaker(TradingWindow):
         self.selected_symbol = self.stock_list[self.selected_key][Constants.SYMBOL]
         self.product_label.setText(self.stock_list[self.selected_key]['long_name'])
         self.set_ticker_signal.emit((self.selected_key, self.stock_list[self.selected_key]), self.getActiveUids())
+        self.fields_need_updating = True
 
 
     def updateTracking(self):
@@ -230,7 +234,6 @@ class TradeMaker(TradingWindow):
             self.is_tracking_steps = False
             self.step_button.setText("Open Stair")
         
-
 
     def getActiveUids(self):
         active_keys = self.stair_tracker.getActiveKeys()
@@ -393,7 +396,7 @@ class TradeMaker(TradingWindow):
             self.step_profit_price_radio.setChecked(True)
 
 
-    def fillOutPriceFields(self, button=None):
+    def fillOutPriceFields(self, button=None, include_profit_loss=False):
             
         if button == self.ask_price_button:
             limit_price = self.latest_ask
@@ -404,18 +407,19 @@ class TradeMaker(TradingWindow):
         
         self.limit_field.setValue(limit_price)
 
-        # if self.action_type == Constants.BUY:
-        #     price_offset = 1
-        # else:
-        #     price_offset = -1
-        
-        # # self.profit_limit_field.setValue(limit_price+price_offset)
-        # self.stop_trigger_field.setValue(limit_price-price_offset)
-        # self.stop_limit_field.setValue(limit_price-(price_offset*2))
+        if include_profit_loss:
+            if self.action_type == Constants.BUY:
+                price_offset = 1
+            else:
+                price_offset = -1
+            
+            self.profit_limit_field.setValue(limit_price+price_offset)
+            self.stop_trigger_field.setValue(limit_price-price_offset)
+            self.stop_limit_field.setValue(limit_price-(price_offset*2))
 
-        # self.combo_limit_field.setValue(limit_price+price_offset)
-        # self.combo_sl_trigger_field.setValue(limit_price-price_offset)
-        # self.combo_stop_limit_field.setValue(limit_price-(price_offset*2))
+            self.combo_limit_field.setValue(limit_price+price_offset)
+            self.combo_sl_trigger_field.setValue(limit_price-price_offset)
+            self.combo_stop_limit_field.setValue(limit_price-(price_offset*2))
         
 
     @pyqtSlot(QAbstractButton, bool)
@@ -444,14 +448,12 @@ class TradeMaker(TradingWindow):
         print("TradeMMaker.stepBuySellSelection")
 
         if button == self.step_buy_radio and value:
-            print("We go for setting buy")
             self.step_action_type = Constants.BUY
             self.step_entry_trigger_offset_box.setValue(0.01)
             self.step_entry_limit_offset_box.setValue(0.1)
             self.step_stop_trigger_offset_box.setValue(-0.1)
             self.step_stop_limit_offset_box.setValue(-0.1)
         elif button == self.step_sell_radio and value:
-            print("We go for setting sell")
             self.step_action_type = Constants.SELL
             self.step_entry_trigger_offset_box.setValue(-0.01)
             self.step_entry_limit_offset_box.setValue(-0.1)

@@ -150,7 +150,6 @@ class PremiumPlotWidget(OptionPlotWidget):
 
 
     def addPriceLine(self):
-        print("How many pricelines do we add?")
         self.price_line = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(200,200,200), width=3, style=QtCore.Qt.DashLine),movable=False)
         self.addItem(self.price_line)
 

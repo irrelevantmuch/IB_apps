@@ -83,7 +83,7 @@ class MoversList(MoversWindow):
 
 
     def connectSignalToSlots(self):
-        self.fetch_latest_signal.connect(self.data_processor.fetchLatestStockData, Qt.QueuedConnection)
+        self.fetch_latest_signal.connect(self.data_processor.buffered_manager.fetchLatestStockData, Qt.QueuedConnection)
         self.set_stock_list_signal.connect(self.data_processor.setStockList, Qt.QueuedConnection)
         self.cancel_update_signal.connect(self.data_processor.buffered_manager.cancelUpdates, Qt.QueuedConnection)
         self.data_processor.buffered_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)

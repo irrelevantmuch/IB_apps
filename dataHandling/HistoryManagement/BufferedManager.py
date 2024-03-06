@@ -104,6 +104,7 @@ class BufferedDataManager(QObject):
         self.reset_signal.emit()
         
 
+    @pyqtSlot()
     @pyqtSlot(list)
     def fetchLatestStockData(self, bar_types=DT_BAR_TYPES, needs_disconnect=False):
         print(f"BufferedManager.fetchLatestStockData on thread: {int(QThread.currentThreadId())}")

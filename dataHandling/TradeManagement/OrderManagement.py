@@ -131,6 +131,7 @@ class OpenOrderBuffer(QObject):
         finally:
             self._locks[order_id].unlock()
 
+
     def getOrderCount(self):
         return len(self._orders)
 
@@ -151,19 +152,19 @@ class OpenOrderBuffer(QObject):
 
     @pyqtSlot(int, dict)
     def orderUpdate(self, order_id, detail_object):
-        print(f"OpenOrderBuffer.orderUpdate {order_id}")
-        print(detail_object)
+        # print(f"OpenOrderBuffer.orderUpdate {order_id}")
+        # print(detail_object)
         if detail_object['status'] == 'Cancelled':
             self.removeOrder(order_id)
         elif detail_object['status'] == 'Filled' and ('remaining' in detail_object) and (detail_object['remaining'] == 0):
             self.removeOrder(order_id)
         elif 'order' in detail_object and 'contract' in detail_object:
-            print(f"What is the parentId {detail_object['order'].parentId}")
+            # print(f"What is the parentId {detail_object['order'].parentId}")
             self.setOrder(order_id, detail_object['order'], detail_object['contract'])
 
 
     def removeOrder(self, order_id):
-        print(f"OpenOrderBuffer.removeOrder {order_id}")
+        # print(f"OpenOrderBuffer.removeOrder {order_id}")
         if order_id in self._orders:
             self.order_buffer_signal.emit(Constants.DATA_WILL_CHANGE, order_id)
 
@@ -206,7 +207,6 @@ class OrderManager(DataManager):
         super().connectSignalsToSlots()
         self.ib_interface.order_update_signal.connect(self.open_orders.orderUpdate, Qt.QueuedConnection)
         self.ib_interface.order_update_signal.connect(self.stair_tracker.orderUpdate, Qt.QueuedConnection)
-        # self.ib_interface.order_buffer_signal.connect(self.open_orders.orderUpdate, Qt.QueuedConnection)
         self.open_order_request.connect(self.ib_interface.trackAndBindOpenOrders, Qt.QueuedConnection)
 
 
@@ -214,6 +214,11 @@ class OrderManager(DataManager):
         self.data_buffers = data_buffers
         self.stair_tracker.setDataObject(data_buffers)
 
+    
+    # @pyqtSlot()
+    # def run(self):
+    #     super().run()
+        # self.ib_request_signal.emit({'type': 'reqIds', 'num_ids': -1})
 
 ##########################################
 
@@ -221,7 +226,12 @@ class OrderManager(DataManager):
     @pyqtSlot(list, Contract)
     def placeBracketOrder(self, bracket_order, contract):
         for order in bracket_order:
-            self.ib_interface.placeOrder(order.orderId, contract, order)
+            request = dict()
+            request['type'] = 'placeOrder'
+            request['order_id'] = order.orderId
+            request['contract'] = contract
+            request['order'] = order
+            self.ib_request_signal.emit(request)
 
 
     def createLimitOrder(self, order_id, action, quantity, limit_price, parent_id=None):
@@ -245,21 +255,15 @@ class OrderManager(DataManager):
 
 
     def getNextOrderIDs(self, count=1):
-        print("OrderManager.getNextOrderIDs")
-        self.ib_interface.reqIds(-1)
-        print("OrderManager.getNextOrderIDs 1")
-        self.ib_interface.next_id_event.wait()
-        # next_order_id_prev = self.ib_interface.next_order_ID
-        # print("OrderManager.getNextOrderIDs 2")
-        # self.ib_interface.reqIds(-1)
-        # print("OrderManager.getNextOrderIDs 3")
-        # self.ib_interface.next_id_event.wait()
-        print("OrderManager.getNextOrderIDs 4")
         next_order_id = self.ib_interface.next_order_ID
+        # print("OrderManager.getNextOrderIDs")
+        
+        # print("OrderManager.getNextOrderIDs 1")
         if next_order_id < Constants.BASE_ORDER_REQID:
             next_order_id = Constants.BASE_ORDER_REQID
         order_id_list = [x + next_order_id for x in range(0, count)]
-        self.ib_interface.reqIds(-1)
+        # print("OrderManager.getNextOrderIDs 4")
+
         return order_id_list
 
 
@@ -302,9 +306,8 @@ class OrderManager(DataManager):
 
 
     def cancelAllOrders(self):
-        print("OrderManager.cancelAllOrders")
-        self.ib_interface.reqGlobalCancel()
-
+        # print("OrderManager.cancelAllOrders")
+        self.ib_request_signal({'type': 'reqGlobalCancel'})
 
 
 ##########################################
@@ -365,21 +368,16 @@ class OrderManager(DataManager):
 
     @pyqtSlot(Contract, str, str)
     def openStairTrade(self, contract, entry_action, bar_type):
-        print("OrderManager.openStairTrade")
         uid = contract.conId
         stair_step = self.stair_tracker.createNewStairstep(uid, bar_type, entry_action, contract)
 
-        print("OrderManager.openStairTrade 1")
         if (stair_step is not None):
-            print("OrderManager.openStairTrade 2")
             order_ids = self.getNextOrderIDs(stair_step['order_count'])
 
-            print("OrderManager.openStairTrade 3")
             open_order_id = order_ids.pop(0)
             stop_open = self.createStopOrder(open_order_id, stair_step['entry_action'], stair_step['count'], stair_step['entry_trigger'], stop_limit=stair_step['entry_limit'])
             self.stair_tracker.updateStairprops((uid, bar_type), {'main_id': open_order_id})
             order_list = [stop_open]
-            print("OrderManager.openStairTrade 4")
             if 'stop_trigger' in stair_step:
                 stop_loss_id = order_ids.pop(0)
                 self.stair_tracker.updateStairprops((uid, bar_type), {'stop_id': stop_loss_id})
@@ -392,8 +390,6 @@ class OrderManager(DataManager):
                 profit_limit_order = self.createLimitOrder(profit_order_id, stair_step['exit_action'], stair_step['profit_count'], limit_price=stair_step['profit_limit'], parent_id=open_order_id)
                 order_list.append(profit_limit_order)
             
-            print("OrderManager.openStairTrade 5")
-
             order_list[-1].transmit = True
             self.placeBracketOrder(order_list, contract)
             self.tracking_updater.emit("Stair Opened", {'uid': uid, 'bar_type': bar_type})
@@ -409,29 +405,35 @@ class OrderManager(DataManager):
 
         current_uid = self.stair_tracker.getCurrentKey()
         current_ids = self.stair_tracker.getOrderIdsFor(current_uid)
-        print(f"OrderManager.killStairTrade {current_ids}")
+        # print(f"OrderManager.killStairTrade {current_ids}")
         if len(current_ids) > 0:
             for order_id in current_ids:
-                self.ib_interface.cancelOrder(order_id, "")
-
+                self.ib_request_signal.emit({'type': 'cancelOrder', 'order_id': order_id})
 
 
     @pyqtSlot(int, dict)
     def orderEdit(self, order_id, properties):
-        print(f"OrderManager.orderEdit {order_id}")
-        print(properties)
-        order, contract = self.open_orders.getOrderContract(order_id)
+        # print(f"OrderManager.orderEdit {order_id} {properties}")
+        # print(properties)
+        if self.open_orders.isOpenOrder(order_id):
+            order, contract = self.open_orders.getOrderContract(order_id)
 
-        for prop_type, prop_value in properties.items():
-            if prop_type == 'Limit':
-                order.lmtPrice = prop_value
-            elif prop_type == 'Trigger':
-                order.auxPrice = prop_value
-            elif prop_type == 'Count':
-                order.totalQuantity = prop_value
+            for prop_type, prop_value in properties.items():
+                if prop_type == 'Limit':
+                    order.lmtPrice = prop_value
+                elif prop_type == 'Trigger':
+                    order.auxPrice = prop_value
+                elif prop_type == 'Count':
+                    order.totalQuantity = prop_value
 
-        order.transmit = True
-        self.ib_interface.placeOrder(order_id, contract, order)
+            order.transmit = True
+
+            request = dict()
+            request['type'] = 'placeOrder'
+            request['order_id'] = order_id
+            request['contract'] = contract
+            request['order'] = order
+            self.ib_request_signal.emit(request)
 
 
 class StairManager(QObject):
@@ -446,7 +448,7 @@ class StairManager(QObject):
 
 
     def createNewStairstep(self, uid, bar_type, entry_action, contract):
-        print("OrderManager.createNewStairstep")
+        # print("OrderManager.createNewStairstep")
         if self.data_buffers.bufferExists(uid, bar_type):
             
             latest_bars = self.data_buffers.getBarsFromIntIndex(uid, bar_type, -self.step_hist_count)
@@ -519,10 +521,8 @@ class StairManager(QObject):
             print("We stop tracking")
 
 
-
     def getCurrentKey(self):
         return self._current_key
-
 
 
     def getActiveKeys(self):
@@ -835,9 +835,9 @@ class StairManager(QObject):
 
     @pyqtSlot(dict)
     def updateCurrentStepProperty(self, new_property):
-        print(f"OrderManager.updateCurrentStepProperty {new_property}")
+        # print(f"OrderManager.updateCurrentStepProperty {new_property}")
         self._current_property_object.update(new_property)
-        if self._current_key is not None:
+        if (self._current_key is not None) and (self._current_key in self._active_stairsteps):
             self.updateStepProperty(self._current_key, self._current_property_object)
         
 
@@ -851,39 +851,23 @@ class StairManager(QObject):
 
     @pyqtSlot(int, dict)
     def orderUpdate(self, order_id, detail_object):
-        # print(f"StairManager.orderUpdate {detail_object.keys()}")
+        # print(f"StairManager.orderUpdate {detail_object['status']} {detail_object.keys()}")
         # print(f"For {order_id} we get an update of")
         # print(detail_object)
         status = detail_object['status']
-        if 'contract' in detail_object:
-            order = detail_object['order']
 
-            for key in self._active_stairsteps.keys():
-                self._locks[key].lockForWrite()
-
-                if detail_object['status'] == 'Cancelled':
-                    self.stair_buffer_signal.emit(Constants.DATA_WILL_CHANGE, order_id)
+        for key, stair_step in self._active_stairsteps.items():
+            self._locks[key].lockForWrite()
+            
+            if (self._active_stairsteps[key]['main_id'] == order_id):
+                if status == "Cancelled":
+                    self.stair_buffer_signal.emit(Constants.DATA_WILL_CHANGE)
                     del self._active_stairsteps[key]
-                    self.stair_buffer_signal.emit(Constants.DATA_STRUCTURE_CHANGED, order_id)
-                    self.stair_buffer_signal.emit(Constants.DATA_DID_CHANGE, order_id)
-                elif detail_object['status'] == 'PreSubmitted':
-                    pass
-                    # if 'main_id' in self._active_stairsteps[key]:
-                    #     if self._active_stairsteps[key]['main_id'] == order_id:
-                    #         self._active_stairsteps[key]['entry_order'] = order
-                    # if 'stop_id' in self._active_stairsteps[key]:
-                    #     if self._active_stairsteps[key]['stop_id'] == order_id:
-                    #         self._active_stairsteps[key]['stop_order'] = order
-                    # if 'profit_id' in self._active_stairsteps[key]:
-                    #     if self._active_stairsteps[key]['profit_id'] == order_id:
-                    #         self._active_stairsteps[key]['profit_order'] = order
-
-                self._locks[key].unlock()
-        else:
-            print("OrderManager.orderUpdate")
-            print(detail_object)
-            for key, stair_step in self._active_stairsteps.items():
-                if (self._active_stairsteps[key]['main_id'] == order_id) and (status == "Filled"):
-                    print("THE STAIRSTEP IS OPEN!!!!")
+                    self.stair_buffer_signal.emit(Constants.DATA_STRUCTURE_CHANGED)
+                    self.stair_buffer_signal.emit(Constants.DATA_DID_CHANGE)
+                elif status == "Filled":
                     self._active_stairsteps[key]['status'] = 'Opened'
+
+            self._locks[key].unlock()
+
 

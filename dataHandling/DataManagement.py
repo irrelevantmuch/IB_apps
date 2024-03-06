@@ -91,8 +91,7 @@ class DataManager(QObject):
     def requestMarketData(self, contractDetails):
         print(f"Datamanagement.requestMarketData {contractDetails.symbol}")
         if self.priceReqIsActive:
-            print("************************ WE CANCEL!!!!!!!")
-            self.ib_interface.cancelMktData(Constants.STK_PRICE_REQID)
+            self.ib_request_signal.emit({'type': 'cancelMktData', 'req_id': Constants.STK_PRICE_REQID})
 
         contract = Contract()
         contract.symbol = contractDetails.symbol

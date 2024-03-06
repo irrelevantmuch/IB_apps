@@ -3,7 +3,7 @@ from PyQt5 import QtWidgets
 from dataHandling.Constants import Constants
 from AppLauncherWindow import AppLauncherWindow
 from TelegramBot import TelegramBot
-import sys, os
+import sys, os, time
 from uiComps.Logging import Logger
 import yappi
 import asyncio
@@ -24,7 +24,6 @@ from apps.bayesianFitter.bayesianFitter import BayesianFitter
 from apps.movers.moversLists import MoversList
 from apps.positionManaging.positionManager import PositionManager
 from IBConnector import IBConnector
-
 
 QtWidgets.QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
 QtWidgets.QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
@@ -76,6 +75,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
         elif self.custom_button.isChecked():
             self.setTradingOptions(Constants.LOCAL_ADDRESS, Constants.TRADING_IBG_SOCKET, True)
 
+
     def dataSelection(self):
         if self.ib_data_radio.isChecked():
             self.data_source = "IBKR"
@@ -122,9 +122,9 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
     def openAlertApp(self):
         history_manager = self.getHistoryManager()
-        self.alert_app = AlertManager(self, history_manager, self.telegram_bot.telegram_signal)
-        self.running_apps.append(self.alert_app)
-        self.alert_app.show()
+        alert_app = AlertManager(self, history_manager, self.telegram_bot.telegram_signal)
+        self.running_apps.append(alert_app)
+        alert_app.show()
 
 
     def openAnalysisApp(self):
@@ -175,7 +175,6 @@ class AppLauncher(AppLauncherWindow, IBConnector):
                 break
 
     def openFittingApp(self):
-
         new_app = TreeFitter()
         self.running_apps.append(new_app)
         new_app.show()
@@ -183,7 +182,6 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
     def openComparisonApp(self):
         history_manager = self.getHistoryManager()
-
         new_app = ComparisonList(history_manager)
         self.running_apps.append(new_app)
         new_app.show()
@@ -198,7 +196,6 @@ class AppLauncher(AppLauncherWindow, IBConnector):
         new_app.show()
 
 
-
     def historyUpdates(self, signal):
         print(f"AppLauncher.historyUpdates: {signal}")
 
@@ -207,26 +204,9 @@ class AppLauncher(AppLauncherWindow, IBConnector):
         downloadShortData("data/")
 
 
-    # @pyqtSlot(str)
-    # def printToConsole(self, line):
-    #     self.log_window.appendPlainText(line)
-
-
-    # def request(self, command, params):
-    #     for app in self.running_apps:
-    #         if command == "/commands":
-    #             return app.getAvailabeCommands()
-    #         elif command == "/start":
-    #             return {"text": "Welcome, type a request or /commands for an overview of the options"}
-    #         elif app.accepts(command):
-    #             return app.process(command, params)
-    #     return None
-
-
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
         if signal == Constants.CONNECTION_STATUS_CHANGED:
-            print(sub_signal['connection_status'])
             self.updateConnectionStatus(sub_signal['connection_status'])
  
 

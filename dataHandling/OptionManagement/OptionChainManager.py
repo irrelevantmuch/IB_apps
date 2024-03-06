@@ -239,7 +239,13 @@ class OptionChainManager(DataManager):
     def fetchOptionContracts(self):
         print(f"OptionChainManager.fetchOptionContracts")
         self._contract_ids = dict()
-        self.ib_interface.reqSecDefOptParams(1, self.contractDetails.symbol, "", Constants.STOCK, self.contractDetails.numeric_id)
+
+        request = dict()
+        request['type'] = 1
+        request['req_id'] = Constants.SEC_DEF_OPTION_PARAM_REQID
+        request['symbol'] = self.contractDetails.symbol
+        request["equity_type"] = Constants.STOCK
+        request["numeric_id"] = self.contractDetails.numeric_id
 
     
     def setExpirationsFrom(self, expirations_ib_str):
@@ -388,12 +394,12 @@ class OptionChainManager(DataManager):
         print("TODO: FIX THIS ONCE WE HAVE SORTED WHAT WE WANTEd")
         if for_type is None or for_type == Constants.OPTION_DATA_STRIKE:
             for req_id in self._strike_option_reqs:
-                self.ib_interface.cancelMktData(req_id)
+                self.ib_request_signal.emit({'type': 'cancelMktData', 'req_id': req_id})
             self._strike_option_reqs = set()
 
         if for_type is None or for_type == Constants.OPTION_DATA_EXP:
             for req_id in self._exp_option_reqs:
-                self.ib_interface.cancelMktData(req_id)
+                self.ib_request_signal.emit({'type': 'cancelMktData', 'req_id': req_id})
             self._exp_option_reqs = set()
     
 
@@ -628,7 +634,15 @@ class OptionChainManager(DataManager):
                 opt_req = self.request_buffer.pop(0)
                 #print(f"We submit {opt_req.req_id},  {opt_req.contract.symbol}, {opt_req.contract.strike}, {opt_req.contract.lastTradeDateOrContractMonth}")
                 print("THIS SHOULD NOT DIRECTLY CALL reqMMktData")
-                self.ib_interface.reqMktData(opt_req.req_id, opt_req.contract, "",  opt_req.keep_updating, False, []) #(not self.live_data_on)
+                request = dict()
+                request['type'] = 'reqMktData'
+                request['snapshot'] = True #self.snapshot
+                request['reg_snapshot'] = False
+                request['req_id'] = opt_req.req_id
+                request['contract'] = opt_req.contract
+                request['keep_up_to_date'] = opt_req.keep_updating
+                self.ib_request_signal.emit(request)
+                # self.ib_interface.reqMktData(, , "",  , False, []) #()
         if len(self.request_buffer) == 0:
             print("All requests have been submitted")
             self.timer.stop()

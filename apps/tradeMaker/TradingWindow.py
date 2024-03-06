@@ -91,10 +91,8 @@ class TradingWindow(QMainWindow, TradingWindow_UI, SymbolFinderImplementation): 
 
     def forceEmitToggleRadio(self, radio_button, radio_group):
         if radio_button.isChecked():
-            print("DO WE NOT GET EMIT FOUR TIMES??")
             radio_group.buttonToggled.emit(radio_button, True)
         else:
-            print(f"DO WE We set {radio_button} to checked!")
             radio_button.setChecked(True)
 
 
