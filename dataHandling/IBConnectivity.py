@@ -205,33 +205,33 @@ class IBConnectivity(EClient, EWrapper, QObject):
     def makeRequest(self, request):
         print(f"IBConnectivity.makeRequest {self.name}({self.client_id}) {int(QThread.currentThreadId())} {self.queue_timer.isActive()}")
         self.request_queue.put(request)
-        print("------- CHECK IF WE NEED TO START")
+        # print("------- CHECK IF WE NEED TO START")
         if (not (self.queue_timer.isActive())) and self.readyForRequests():
-            print(f"------- WE START {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
+            # print(f"------- WE START {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
             self.restart_timer.emit()
 
 
     @pyqtSlot()
     def startProcessingQueue(self, interval=50):
-        print(f"IBConnectivity.startProcessingQueue {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
+        # print(f"IBConnectivity.startProcessingQueue {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
         self.queue_timer.start(interval)
 
 
     @pyqtSlot()
     def processQueue(self):
-        print(f"IBConnectivity.processQueue {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
+        # print(f"IBConnectivity.processQueue {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
         if not self.request_queue.empty():
             request = self.request_queue.get_nowait()
             self.processRequest(request)
             self.request_queue.task_done()
         
         if self.request_queue.empty():
-            print(f"------- WE STOP THE TIMER {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
+            # print(f"------- WE STOP THE TIMER {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
             self.queue_timer.stop()
 
 
     def processRequest(self, request):
-        print(f"IBConnectivity.processRequest {request}")
+        # print(f"IBConnectivity.processRequest {request}")
         req_type = request['type']
 
         if req_type == 'reqHistoricalData':
@@ -248,6 +248,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
             self.reqIds(request['num_ids'])
         elif req_type == 'reqSecDefOptParams':
             self.reqSecDefOptParams(request['req_id'], request['symbol'], "", request['equity_type'], request['numeric_id'])
+            # self.ib_interface.reqSecDefOptParams(1, self.contractDetails.symbol, "", Constants.STOCK, self.contractDetails.numeric_id)
         elif req_type == 'cancelMktData':
             self.cancelMktData(request['req_id'])
         elif req_type == 'reqGlobalCancel':

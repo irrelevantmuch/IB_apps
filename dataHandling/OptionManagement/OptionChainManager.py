@@ -241,11 +241,13 @@ class OptionChainManager(DataManager):
         self._contract_ids = dict()
 
         request = dict()
-        request['type'] = 1
+        request['type'] = 'reqSecDefOptParams'
         request['req_id'] = Constants.SEC_DEF_OPTION_PARAM_REQID
         request['symbol'] = self.contractDetails.symbol
         request["equity_type"] = Constants.STOCK
         request["numeric_id"] = self.contractDetails.numeric_id
+        self.ib_request_signal.emit(request)
+        # self.ib_interface.reqSecDefOptParams(1, self.contractDetails.symbol, "", Constants.STOCK, self.contractDetails.numeric_id)
 
     
     def setExpirationsFrom(self, expirations_ib_str):
@@ -629,6 +631,7 @@ class OptionChainManager(DataManager):
 
 
     def executeHistoryRequest(self):
+        print(f"OptionChainManager.executeHistoryRequest {self.hasQueuedRequests()}")
         if self.hasQueuedRequests():
             if self.ib_interface.getActiveReqCount() < self.queue_cap:
                 opt_req = self.request_buffer.pop(0)
