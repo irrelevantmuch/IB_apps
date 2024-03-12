@@ -6,7 +6,7 @@ from pytz import timezone
 import time
 from dataHandling.DataStructures import DetailObject
 import itertools
-from dataHandling.HistoryManagement.LiveBufferedManager import BufferedDataManager
+from dataHandling.HistoryManagement.LiveBufferedManager import LiveDataManager
 
 class LiveTickerProcessor(QObject):
 
@@ -22,7 +22,7 @@ class LiveTickerProcessor(QObject):
         super().__init__()
 
         self.history_manager = history_manager
-        self.buffered_manager = BufferedDataManager(history_manager, name="TickerManager")
+        self.buffered_manager = LiveDataManager(history_manager, name="TickerManager")
         self.connectSignalsToSlots()
         
 

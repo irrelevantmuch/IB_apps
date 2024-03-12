@@ -16,7 +16,7 @@ import pandas as pd
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot, QThread, Qt, QEventLoop
 
 
-class BufferedDataManager(QObject):
+class LiveDataManager(QObject):
 
     api_updater = pyqtSignal(str, dict)
 

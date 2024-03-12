@@ -150,6 +150,10 @@ class OpenOrderBuffer(QObject):
         self._locks[order_id].unlock()
 
 
+    def isOpenOrder(self, order_id):
+        return (order_id in self._orders)
+
+
     @pyqtSlot(int, dict)
     def orderUpdate(self, order_id, detail_object):
         # print(f"OpenOrderBuffer.orderUpdate {order_id}")
@@ -184,7 +188,6 @@ class OrderManager(DataManager):
 
     data_buffers = None
     
-    tracking_updater = pyqtSignal(str, dict)
     open_order_request = pyqtSignal()
     
 
@@ -392,7 +395,6 @@ class OrderManager(DataManager):
             
             order_list[-1].transmit = True
             self.placeBracketOrder(order_list, contract)
-            self.tracking_updater.emit("Stair Opened", {'uid': uid, 'bar_type': bar_type})
             self.data_buffers.buffer_updater.connect(self.stair_tracker.bufferUpdate, Qt.QueuedConnection)
 
         else:
@@ -446,6 +448,8 @@ class StairManager(QObject):
     update_order_signal = pyqtSignal(int, dict)
     step_hist_count = 3
 
+    tracking_updater = pyqtSignal(str, dict)
+
 
     def createNewStairstep(self, uid, bar_type, entry_action, contract):
         # print("OrderManager.createNewStairstep")
@@ -493,6 +497,7 @@ class StairManager(QObject):
             self.stair_buffer_signal.emit(Constants.DATA_DID_CHANGE)
             self._locks[key].unlock()
 
+            self.tracking_updater.emit("Stair Opened", {'uid': uid, 'bar_type': bar_type})
             return self._active_stairsteps[key]
             
             
@@ -849,6 +854,17 @@ class StairManager(QObject):
                     self.adjustStairTradeIfNeeded(key)
 
 
+    def removeStairstepForKey(self, key):
+        self.stair_buffer_signal.emit(Constants.DATA_WILL_CHANGE)
+        self._locks[key].lockForWrite()
+        del self._active_stairsteps[key]
+        self._locks[key].unlock()
+        del self._locks[key]
+        self.stair_buffer_signal.emit(Constants.DATA_STRUCTURE_CHANGED)
+        self.stair_buffer_signal.emit(Constants.DATA_DID_CHANGE)
+        self.tracking_updater.emit("Stair Killed", {'uid': key[0], 'bar_type': key[1]})
+
+
     @pyqtSlot(int, dict)
     def orderUpdate(self, order_id, detail_object):
         # print(f"StairManager.orderUpdate {detail_object['status']} {detail_object.keys()}")
@@ -856,18 +872,16 @@ class StairManager(QObject):
         # print(detail_object)
         status = detail_object['status']
 
-        for key, stair_step in self._active_stairsteps.items():
-            self._locks[key].lockForWrite()
-            
-            if (self._active_stairsteps[key]['main_id'] == order_id):
-                if status == "Cancelled":
-                    self.stair_buffer_signal.emit(Constants.DATA_WILL_CHANGE)
-                    del self._active_stairsteps[key]
-                    self.stair_buffer_signal.emit(Constants.DATA_STRUCTURE_CHANGED)
-                    self.stair_buffer_signal.emit(Constants.DATA_DID_CHANGE)
-                elif status == "Filled":
-                    self._active_stairsteps[key]['status'] = 'Opened'
-
+        stair_keys = list(self._active_stairsteps.keys())
+        for key in stair_keys:
+            self._locks[key].lockForRead()
+            main_order_id = self._active_stairsteps[key]['main_id']
             self._locks[key].unlock()
+            
+            if (main_order_id == order_id):
+                if (status == "Cancelled") or (status == "Filled"):
+                    self.removeStairstepForKey(key)
+                    
+
 
 

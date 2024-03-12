@@ -1,5 +1,5 @@
 import json
-from dataHandling.Constants import Constants, MAIN_BAR_TYPES, DT_BAR_TYPES, MINUTES_PER_BAR
+from dataHandling.Constants import Constants, MAIN_BAR_TYPES, DT_BAR_TYPES, MINUTES_PER_BAR, RESAMPLING_BARS
 import pandas as pd
 from PyQt5.QtCore import pyqtSignal, QThread, QReadWriteLock, QObject
 
@@ -16,9 +16,6 @@ class DataBuffers(QObject):
     buffer_updater = pyqtSignal(str, dict)
 
     bars_to_propagate = DT_BAR_TYPES
-    resampleFrame = {Constants.TWO_MIN_BAR: '2T', Constants.THREE_MIN_BAR: '3T',
-                    Constants.FIVE_MIN_BAR: '5T', Constants.FIFTEEN_MIN_BAR: '15T',
-                    Constants.HOUR_BAR: '1H', Constants.FOUR_HOUR_BAR: '4H', Constants.DAY_BAR: 'D'}
 
 
     ###### read/write protected buffer interactions
@@ -321,13 +318,13 @@ class DataBuffers(QObject):
                 origin_bars = from_frame.loc[new_first_index:]
                 # print(new_first_index)
                 # print(origin_bars)
-                # print(self.resampleFrame[to_bar_type])
-                updated_bars = origin_bars.resample(self.resampleFrame[to_bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+                # print(RESAMPLING_BARS[to_bar_type])
+                updated_bars = origin_bars.resample(RESAMPLING_BARS[to_bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
                 self.addToBuffer(uid, to_bar_type, updated_bars, new_range)
             else:
                     #if no data for the time frame excisted we simply whole frame to update
                 new_first_index = from_frame.index.min()
-                updated_bars = from_frame.resample(self.resampleFrame[to_bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+                updated_bars = from_frame.resample(RESAMPLING_BARS[to_bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
                 self.setBufferFor(uid, to_bar_type, updated_bars, [new_range])
         
         return new_first_index, to_bar_type

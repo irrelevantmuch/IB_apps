@@ -117,7 +117,6 @@ class BufferedDataManager(QObject):
         # print(f"We have {len(self.stocks_to_fetch)} tickers to fetch and {len(self.update_list)} to update")
 
         if len(self.stocks_to_fetch) > 0:
-            self.history_manager._is_buffering = True
             self.fetchNextStock(bar_types=bar_types)
             if len(self.update_list) > 0:
                 self.partial_update = True
@@ -136,7 +135,6 @@ class BufferedDataManager(QObject):
         else:
             self.stocks_to_fetch[selected_uid] = self._buffering_stocks[selected_uid]
         if len(self.stocks_to_fetch) > 0:
-            self.history_manager._is_buffering = True
             self.fetchNextStock(bar_types, full_fetch=True)
             
 
