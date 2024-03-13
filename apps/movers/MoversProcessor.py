@@ -11,7 +11,7 @@ from pytz import timezone
 from dataHandling.Constants import Constants, TableType
 from dataHandling.DataProcessor import DataProcessor
 from .MoversFrame import MoversFrame
-
+from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
 from generalFunctionality.GenFunctions import subtract_days, subtract_weeks, subtract_months, addRSIsEMAs, getLowsHighsCount, calculateCorrelation, calculateRSI
 
 
@@ -53,8 +53,8 @@ class MoversProcessor(DataProcessor):
 
     def __init__(self, history_manager, bar_types, stock_list, index_list=None):
         self.data_wrapper = MoversFrame()
-        super().__init__(history_manager, stock_list, index_list)
-
+        self.buffered_manager = BufferedDataManager(history_manager, name="MoversBuffer")
+        super().__init__(stock_list, index_list)
         self.bar_types = bar_types
         
         if index_list is not None:

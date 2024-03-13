@@ -18,6 +18,7 @@ from generalFunctionality.GenFunctions import calculateCorrelation
 from dataHandling.Constants import Constants, TableType, MINUTES_PER_BAR, RESAMPLING_BARS
 from dataHandling.DataProcessor import DataProcessor
 from .ComparisonDataWrapper import ComparisonDataWrapper
+from dataHandling.HistoryManagement.SpecBufferedManager import SpecBufferedDataManager as BufferedDataManager
 
 
 class ComparisonProcessor(DataProcessor):
@@ -37,13 +38,15 @@ class ComparisonProcessor(DataProcessor):
     focus_list = None
     comparison_list = None
     conversion_type = Constants.INDEXED
-    yesterday_close = True
+    yesterday_close = False
 
     selected_date = date.today()
 
     def __init__(self, history_manager, bar_types, stock_list):
+        self.buffered_manager = BufferedDataManager(history_manager, name="CommparisonBuffer")
+        super().__init__(stock_list)
         self.data_object = ComparisonDataWrapper()
-        super().__init__(history_manager, stock_list)
+        
         self.bar_types = bar_types
         
 
@@ -59,6 +62,14 @@ class ComparisonProcessor(DataProcessor):
     def moveToThread(self, thread):
         self.data_object.moveToThread(thread)
         super().moveToThread(thread)
+
+
+    @pyqtSlot()
+    def fetchStockData(self):
+        start_date = datetime.combine(self.selected_date, time(0,0,0))
+        end_date = datetime.combine(self.getEndDate(), time(23, 59,0))
+        
+        self.buffered_manager.fetchStockDataForPeriod(self.selected_bar_type, start_date, end_date)
 
 
     @pyqtSlot(str, dict)
@@ -157,10 +168,7 @@ class ComparisonProcessor(DataProcessor):
             symbol = self._stock_list[key][Constants.SYMBOL]
             filtered_data_frame = self.getTimeFilteredBars(key, time_indices)
             if filtered_data_frame is not None:
-                if self.yesterday_close and self.data_buffers.bufferExists(key, Constants.DAY_BAR):
-                    base_price = self.getPreviousDayClose(key, self.selected_date)
-                else:
-                    base_price = filtered_data_frame.iloc[0][Constants.CLOSE]
+                base_price = self.getBasePrice(filtered_data_frame, key, self.selected_date)
                 graph_line = self.calculateSingleLine(filtered_data_frame, base_price, time_indices, symbol)
                 if graph_line is not None:
                     self.primary_graph_data[key] = graph_line
@@ -221,7 +229,8 @@ class ComparisonProcessor(DataProcessor):
             graph_line['adapted_low'] = self.convertData(low_data.copy(), base_price=base_price, min_price=min_value, max_price=max_value, to_type=self.conversion_type)
             graph_line['adapted_high'] = self.convertData(high_data.copy(), base_price=base_price, min_price=min_value, max_price=max_value, to_type=self.conversion_type)
             
-            graph_line = self.insertDayBreak(graph_line, time_index_sel)
+            if self.selected_bar_type != Constants.DAY_BAR:
+                graph_line = self.insertDayBreak(graph_line, time_index_sel)
 
             return graph_line
 
@@ -282,7 +291,6 @@ class ComparisonProcessor(DataProcessor):
 
 
     def getTimeIndices(self):
-        print(f"ComparisonProcessor.getTimeIndices {self.selected_date}")
         bar_type = self.selected_bar_type
         
         start_time = pd.Timestamp(self.selected_date).tz_localize('America/New_York')
@@ -290,39 +298,37 @@ class ComparisonProcessor(DataProcessor):
         time_indices = self.generateTimeIndices(start_time, end_time, bar_type)
         nyc_timezone = timezone(Constants.NYC_TIMEZONE)
         # pandas_start_time = to_pandas_datetime(nyc_timezone.localize(start_time))
-        # print(f"ComparisonProcessor.getTimeIndices 111111")
         # pandas_end_time = to_pandas_datetime(nyc_timezone.localize(end_time))
         
         return time_indices
 
 
-    def getPreviousDayClose(self, key, start_date):
-        day_frame = self.data_buffers.getBufferFor(key, Constants.DAY_BAR)
-        
-        datetime_for_start = datetime(start_date.year, start_date.month, start_date.day)
-        nyc_timezone = timezone(Constants.NYC_TIMEZONE)
-        datetime_for_start = nyc_timezone.localize(datetime_for_start)
+    def getBasePrice(self, filtered_data_frame, key, start_date):
+        if self.yesterday_close and self.data_buffers.bufferExists(key, Constants.DAY_BAR):
+            day_frame = self.data_buffers.getBufferFor(key, Constants.DAY_BAR)
+            
+            datetime_for_start = datetime(start_date.year, start_date.month, start_date.day)
+            nyc_timezone = timezone(Constants.NYC_TIMEZONE)
+            datetime_for_start = nyc_timezone.localize(datetime_for_start)
 
-        closest_index = day_frame.index.get_loc(datetime_for_start)
-        closest_label = day_frame.index[closest_index-1]
+            try:
+                closest_index = day_frame.index.get_loc(datetime_for_start)
+                closest_label = day_frame.index[closest_index-1]
+                return day_frame.loc[closest_label, Constants.CLOSE]
+            except KeyError:
+                print("Yesterday's close not present")
+            
+        return filtered_data_frame.iloc[0][Constants.CLOSE]
 
-        return day_frame.loc[closest_label, Constants.CLOSE]
 
 
     def getTimeFilteredBars(self, key, time_indices):
-        print(f"ComparisonProcessor.getTimeFilteredBars {key}")
         if self.data_buffers.bufferExists(key, self.selected_bar_type):
             bar_frame = self.data_buffers.getBufferFor(key, self.selected_bar_type)
-            print(time_indices)
-            print('-----')
-            print(bar_frame.index)
-            print('-----')
             
             filtered_frame = bar_frame[bar_frame.index.isin(time_indices)]
-            print(filtered_frame.index)
             if len(filtered_frame) > 0:
                 return filtered_frame
-
 
         return None
         

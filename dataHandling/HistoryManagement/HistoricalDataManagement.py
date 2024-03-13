@@ -25,7 +25,7 @@ class HistoricalDataManager(DataManager):
     
     _uid_by_req = dict()
     _bar_type_by_req = dict()
-    _group_reqs_by_uid = dict()    
+    _grouped_req_ids = []
     
     _hist_buffer_reqs = set()       #general log of open history requests, allows for creating unique id's
     _update_requests = set()        #open updating requests
@@ -106,13 +106,13 @@ class HistoricalDataManager(DataManager):
     def performUidCleanupFor(self, uid):
         print("HistoricalDataManager.performUidCleanupFor")
         if uid in self._historicalDFs: del self._historicalDFs[uid]
-        if uid in self._group_reqs_by_uid: del self._group_reqs_by_uid[uid]
         if uid in self._last_update_time: del self._last_update_time[uid]
         if uid in self._priority_uids: self._priority_uids.remove(uid)
 
 
 
     def performReqIdCleanupFor(self, req_id):
+        self.processGroupSignal(req_id, supress_signal=True)
         if req_id in self._uid_by_req: del self._uid_by_req[req_id]
         if req_id in self._bar_type_by_req: del self._bar_type_by_req[req_id]
 
@@ -142,7 +142,7 @@ class HistoricalDataManager(DataManager):
         self._is_updating = set()
         self._uid_by_req = dict()
         self._bar_type_by_req = dict()
-        self._group_reqs_by_uid = dict()
+        self._grouped_req_ids = []
         self._last_update_time = dict()
         self._priority_uids = []
 
@@ -223,13 +223,10 @@ class HistoricalDataManager(DataManager):
         return requests
       
 
-    @pyqtSlot(str)
-    def groupCurrentRequests(self, for_uid):
-        # print(f"HistoricalDataManager.groupCurrentRequests")
-        self._group_reqs_by_uid[for_uid] = set()
-        for request in self._request_buffer:
-            if self._uid_by_req[request.req_id] == for_uid:
-                self._group_reqs_by_uid[for_uid].add(request.req_id)
+    @pyqtSlot()
+    def groupCurrentRequests(self):
+        new_group = set([request.req_id for request in self._request_buffer])
+        self._grouped_req_ids.append(new_group)
 
 
     def addRequest(self, requests, contract, bar_type, period, begin_date, end_date):
@@ -385,7 +382,7 @@ class HistoricalDataManager(DataManager):
 
     @pyqtSlot()
     def executeHistoryRequest(self):
-        # print(f"HistoricalDataManager.executeHistoryRequest on thread: {int(QThread.currentThreadId())}")
+        print(f"HistoricalDataManager.executeHistoryRequest on thread: {int(QThread.currentThreadId())}")
         if self.hasQueuedRequests():
             # print("WHAT NOW?")
             if self.ib_interface.getActiveReqCount() < self.queue_cap:
@@ -396,6 +393,7 @@ class HistoricalDataManager(DataManager):
                 request['req_id'] = hr.req_id
                 request['contract'] = hr.contract
                 request['end_date'] = hr.getEndDateString()
+                print(request['end_date'])
                 request['duration'] = hr.period_string
                 request['bar_type'] = hr.bar_type
                 request['regular_hours'] = self.regular_hours
@@ -530,21 +528,23 @@ class HistoricalDataManager(DataManager):
         if req_id in self._uid_by_req:
             uid = self._uid_by_req[req_id]
             
-            self.processGroupSignal(req_id, uid)
+            self.processGroupSignal(req_id)
             if req_id in self._update_requests:
                 self._update_requests.remove(req_id)
             
             del self._uid_by_req[req_id]
 
 
-    def processGroupSignal(self, req_id, uid):
-        # print(f"HistoricalDataManager.processGroupSignal {req_id} {uid}")
-        if uid in self._group_reqs_by_uid:
-            if req_id in self._group_reqs_by_uid[uid]:
-                self._group_reqs_by_uid[uid].remove(req_id)
-                if len(self._group_reqs_by_uid[uid]) == 0:
-                    self.api_updater.emit(Constants.HISTORICAL_GROUP_COMPLETE, {'uid': uid})
-                    del self._group_reqs_by_uid[uid]
+    def processGroupSignal(self, req_id, supress_signal=False):
+        print(f"HistoricalDataManager.processGroupSignal {req_id}")
+        for group_index in range(len(self._grouped_req_ids)):
+            if req_id in self._grouped_req_ids[group_index]:
+                self._grouped_req_ids[group_index].remove(req_id)
+                if len(self._grouped_req_ids[group_index]) == 0:
+                    if not(supress_signal):
+                        self.api_updater.emit(Constants.HISTORICAL_GROUP_COMPLETE, {})
+                    del self._grouped_req_ids[group_index]
+                    return
 
 
     @pyqtSlot(int, str, str)
@@ -562,7 +562,7 @@ class HistoricalDataManager(DataManager):
             self.api_updater.emit(Constants.HISTORICAL_REQUEST_COMPLETED, completed_req)
             uid = completed_req['key']
             
-            self.processGroupSignal(req_id, uid)
+            self.processGroupSignal(req_id)
             if req_id in self._update_requests:
                 self._update_requests.remove(req_id)
                 if req_id in self._is_updating:
@@ -610,6 +610,6 @@ class HistoryRequest():
             return ""
         else:
             datetime_string = dateToString(self.end_date)
-            return datetime_string[:-5] + " US/Eastern" 
+            return datetime_string + " US/Eastern" 
 
 

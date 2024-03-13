@@ -33,6 +33,7 @@ class Constants:
     SECONDS_IN_DAY: Final = 86400
     
     TIME_FORMAT: Final = '%Y%m%d %H:%M:%S%z'
+    TIME_FORMAT_NO_TZ: Final = '%Y%m%d %H:%M:%S'
     READABLE_DATE_FORMAT: Final = "%H:%M:%S - %d-%m-%Y"
     
     BEGINNING_OF_TIME: Final = "1970-01-01 01:00:00"

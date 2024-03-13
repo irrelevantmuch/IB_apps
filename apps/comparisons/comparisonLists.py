@@ -14,7 +14,6 @@ import numpy as np
 from dataHandling.Constants import Constants, MAIN_BAR_TYPES, TableType
 from .ComparisonWindow import ComparisonWindow
 
-from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
 from .ComparisonProcessor import ComparisonProcessor as DataProcessor
 import sys #, threading, math
 
@@ -34,7 +33,7 @@ class ComparisonList(ComparisonWindow):
 
     time_period = "Month"
     
-    fetch_latest_signal = pyqtSignal(list)
+    fetch_data_signal = pyqtSignal()
     cancel_update_signal = pyqtSignal()
     set_stock_list_signal = pyqtSignal(dict)
     update_stock_list_signal = pyqtSignal(str, bool)
@@ -75,7 +74,7 @@ class ComparisonList(ComparisonWindow):
 
         self.data_processor.moveToThread(self.processor_thread)
         
-        self.fetch_latest_signal.connect(self.data_processor.buffered_manager.fetchLatestStockData, Qt.QueuedConnection)
+        self.fetch_data_signal.connect(self.data_processor.fetchStockData, Qt.QueuedConnection)
         self.update_stock_list_signal.connect(self.data_processor.buffered_manager.requestUpdates, Qt.QueuedConnection)
         self.data_processor.buffered_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         self.set_stock_list_signal.connect(self.data_processor.setStockList, Qt.QueuedConnection)
@@ -128,9 +127,10 @@ class ComparisonList(ComparisonWindow):
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
+        print(f"ComparisonList.apiUpdate {signal}")
         if signal == Constants.SELECTED_KEYS_CHANGED:
             print("ComparisonList.apiUpdate SELECTED_KEYS_CHANGED")
-        elif signal == Constants.ALL_DATA_LOADED:
+        elif signal == Constants.HISTORICAL_GROUP_COMPLETE:
             self.setHistoryEnabled(True)
         elif signal == Constants.DATA_LOADED_FROM_FILE:
             self.setHistoryEnabled(True, self.data_processor.isUpdatable())
@@ -138,10 +138,16 @@ class ComparisonList(ComparisonWindow):
 
 ############## BUTTON ACTIONS
 
-    def fetchData(self):
+    def fetchRangeData(self):
+        self.fetch_range_button.setEnabled(False)
         self.fetch_button.setEnabled(False)
+        self.fetch_data_signal.emit()
 
-        self.fetch_latest_signal.emit([self.selected_bar_type])
+
+    def fetchData(self):
+        self.fetch_range_button.setEnabled(False)
+        self.fetch_button.setEnabled(False)
+        self.fetch_data_signal.emit()
 
 
     def comparisonListSelection(self, value):
@@ -199,6 +205,7 @@ class ComparisonList(ComparisonWindow):
         addCheckableTickersTo(self.focus_box, filtered_list, self.focus_list)
         
         self.fetch_button.setEnabled(True)
+        self.fetch_range_button.setEnabled(True)
         self.keep_up_box.setChecked(False)
         self.keep_up_box.setEnabled(False)
         
@@ -328,6 +335,7 @@ class ComparisonList(ComparisonWindow):
         else:
             print("WE CALL FOR CANCELATION comp")
             self.cancel_update_signal.emit()
+
 
     def showTopsAndBottoms(self, value):
         self.tops_and_bottoms = value

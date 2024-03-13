@@ -17,87 +17,8 @@
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
      <layout class="QGridLayout" name="gridLayout_3">
-      <item row="1" column="4">
-       <widget class="QComboBox" name="plot_tf_selector"/>
-      </item>
-      <item row="0" column="4">
-       <widget class="QCheckBox" name="keep_up_box">
-        <property name="layoutDirection">
-         <enum>Qt::RightToLeft</enum>
-        </property>
-        <property name="text">
-         <string>Keep up-to-date</string>
-        </property>
-        <attribute name="buttonGroup">
-         <string notr="true">history_interaction_group</string>
-        </attribute>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QCheckBox" name="regular_hours_box">
-        <property name="text">
-         <string>Reg.  Hours</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="6">
-       <widget class="QComboBox" name="plot_period_selector"/>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>List</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="2">
        <widget class="QComboBox" name="list_selector"/>
-      </item>
-      <item row="1" column="3">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>Bar:</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QDateEdit" name="date_picker">
-        <property name="dateTime">
-         <datetime>
-          <hour>10</hour>
-          <minute>0</minute>
-          <second>0</second>
-          <year>2000</year>
-          <month>1</month>
-          <day>1</day>
-         </datetime>
-        </property>
-        <property name="calendarPopup">
-         <bool>true</bool>
-        </property>
-        <property name="timeSpec">
-         <enum>Qt::OffsetFromUTC</enum>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="5">
-       <widget class="QPushButton" name="fetch_button">
-        <property name="text">
-         <string>Fetch!</string>
-        </property>
-        <attribute name="buttonGroup">
-         <string notr="true">history_interaction_group</string>
-        </attribute>
-       </widget>
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="label_4">
@@ -115,13 +36,99 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="5">
+      <item row="1" column="1">
+       <widget class="QDateEdit" name="date_picker">
+        <property name="dateTime">
+         <datetime>
+          <hour>9</hour>
+          <minute>0</minute>
+          <second>0</second>
+          <year>2000</year>
+          <month>1</month>
+          <day>1</day>
+         </datetime>
+        </property>
+        <property name="calendarPopup">
+         <bool>true</bool>
+        </property>
+        <property name="timeSpec">
+         <enum>Qt::OffsetFromUTC</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="6">
        <widget class="QLabel" name="label_9">
         <property name="text">
          <string>For:</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QCheckBox" name="regular_hours_box">
+        <property name="text">
+         <string>Reg.  Hours</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="4">
+       <widget class="QComboBox" name="plot_tf_selector"/>
+      </item>
+      <item row="1" column="7">
+       <widget class="QComboBox" name="plot_period_selector"/>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>List</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Bar:</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="4">
+       <widget class="QCheckBox" name="keep_up_box">
+        <property name="layoutDirection">
+         <enum>Qt::RightToLeft</enum>
+        </property>
+        <property name="text">
+         <string>Keep up-to-date</string>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">history_interaction_group</string>
+        </attribute>
+       </widget>
+      </item>
+      <item row="0" column="7">
+       <widget class="QPushButton" name="fetch_button">
+        <property name="text">
+         <string>Fetch All!</string>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">history_interaction_group</string>
+        </attribute>
+       </widget>
+      </item>
+      <item row="0" column="6">
+       <widget class="QPushButton" name="fetch_range_button">
+        <property name="text">
+         <string>Fetch Range</string>
         </property>
        </widget>
       </item>
@@ -133,7 +140,7 @@
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Testing&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="graph_tab">
        <attribute name="title">
@@ -174,7 +181,7 @@
              <string>Yest.  Close</string>
             </property>
             <property name="checked">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -323,7 +330,6 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="visualization_mode"/>
   <buttongroup name="history_interaction_group"/>
  </buttongroups>
 </ui>

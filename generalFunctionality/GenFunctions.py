@@ -48,7 +48,7 @@ def dateFromString(date_string, sep=' '):
 #     return datetime.strptime(date_string, Constants.TIME_FORMAT)
 
 def dateToString(date):
-    return date.strftime(Constants.TIME_FORMAT)
+    return date.strftime(Constants.TIME_FORMAT_NO_TZ)
 
 
 def pdDateFromIBString(date_string, bar_type):

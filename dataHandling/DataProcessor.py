@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import pandas as pd
 from pytz import timezone
 import itertools
-from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
 
 
 class DataProcessor(QObject):
@@ -16,10 +15,9 @@ class DataProcessor(QObject):
 
     initial_fetch = False
 
-    def __init__(self, history_manager, stock_list=None, index_list=None):
+    def __init__(self, stock_list=None, index_list=None):
         super().__init__()
         print("DataProcessor.init")
-        self.buffered_manager = BufferedDataManager(history_manager, name="MoversBuffer")
         self.data_buffers = self.buffered_manager.data_buffers
         self.data_buffers.buffer_updater.connect(self.bufferUpdate, Qt.QueuedConnection)
         self.initial_stock_list = stock_list
