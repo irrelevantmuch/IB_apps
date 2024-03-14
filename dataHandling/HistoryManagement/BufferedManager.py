@@ -32,7 +32,7 @@ class BufferedDataManager(QObject):
     reset_signal = pyqtSignal()
     create_request_signal = pyqtSignal(DetailObject, datetime, datetime, str)
     request_update_signal = pyqtSignal(dict, str, bool)
-    group_request_signal = pyqtSignal()
+    group_request_signal = pyqtSignal(str)
     execute_request_signal = pyqtSignal(int)
 
 
@@ -42,7 +42,9 @@ class BufferedDataManager(QObject):
         self.name = name
         self.history_manager = history_manager
         self.data_buffers = history_manager.getDataBuffer()
-        self.data_buffers.saveOn = True
+        self.data_buffers.save_on = True
+        if name == 'MoversBuffer':
+            self.data_buffers.propagate_updates = True
         self.history_manager.addNewListener(self, self.apiUpdate)
         
 
@@ -197,7 +199,7 @@ class BufferedDataManager(QObject):
                 self.execute_request_signal.emit(11_000)
         else:
             # print("Via here")
-            self.group_request_signal.emit()
+            self.group_request_signal.emit('stock_group')
             self.execute_request_signal.emit(2_000)
 
 

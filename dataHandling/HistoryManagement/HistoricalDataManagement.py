@@ -223,10 +223,10 @@ class HistoricalDataManager(DataManager):
         return requests
       
 
-    @pyqtSlot()
-    def groupCurrentRequests(self):
+    @pyqtSlot(str)
+    def groupCurrentRequests(self, group_type: str):
         new_group = set([request.req_id for request in self._request_buffer])
-        self._grouped_req_ids.append(new_group)
+        self._grouped_req_ids.append((group_type, new_group))
 
 
     def addRequest(self, requests, contract, bar_type, period, begin_date, end_date):
@@ -538,11 +538,12 @@ class HistoricalDataManager(DataManager):
     def processGroupSignal(self, req_id, supress_signal=False):
         print(f"HistoricalDataManager.processGroupSignal {req_id}")
         for group_index in range(len(self._grouped_req_ids)):
-            if req_id in self._grouped_req_ids[group_index]:
-                self._grouped_req_ids[group_index].remove(req_id)
-                if len(self._grouped_req_ids[group_index]) == 0:
+            if req_id in self._grouped_req_ids[group_index][1]:
+                self._grouped_req_ids[group_index][1].remove(req_id)
+                if len(self._grouped_req_ids[group_index][1]) == 0:
                     if not(supress_signal):
-                        self.api_updater.emit(Constants.HISTORICAL_GROUP_COMPLETE, {})
+                        group_type = self._grouped_req_ids[group_index][0]
+                        self.api_updater.emit(Constants.HISTORICAL_GROUP_COMPLETE, {'type': group_type})
                     del self._grouped_req_ids[group_index]
                     return
 

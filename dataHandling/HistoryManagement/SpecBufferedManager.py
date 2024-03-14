@@ -33,21 +33,20 @@ class SpecBufferedDataManager(BufferedDataManager):
     reset_signal = pyqtSignal()
     create_request_signal = pyqtSignal(DetailObject, datetime, datetime, str)
     request_update_signal = pyqtSignal(dict, str, bool)
-    group_request_signal = pyqtSignal()
+    group_request_signal = pyqtSignal(str)
     execute_request_signal = pyqtSignal(int)
 
-
-    def __init__(self, history_manager, name="BufferedManager"):
-        super().__init__(history_manager, name)
-        self.data_buffers.propagateUpdates = False
 
     ################ CALLBACK
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, data_dict):
-        if signal == Constants.HISTORICAL_GROUP_COMPLETE:
+        print(f"SpecBufferedDataManager.apiUpdate {signal}")
+        print(data_dict)
+        if (signal == Constants.HISTORICAL_GROUP_COMPLETE) and (data_dict['type'] == 'range_group'):
             self.api_updater.emit(Constants.HISTORICAL_GROUP_COMPLETE, dict())
-            # self.initial_fetch = False
+        else:
+            super().apiUpdate(signal, data_dict)
 
 
     ################ CREATING AND TRIGGERING HISTORIC REQUESTS
@@ -89,7 +88,7 @@ class SpecBufferedDataManager(BufferedDataManager):
             details, bar_type, date_range = request
             self.create_request_signal.emit(details, date_range[0], date_range[1], bar_type)
 
-        self.group_request_signal.emit()
+        self.group_request_signal.emit('range_group')
         self.execute_request_signal.emit(2_000)
 
 

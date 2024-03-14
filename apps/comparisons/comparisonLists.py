@@ -34,6 +34,7 @@ class ComparisonList(ComparisonWindow):
     time_period = "Month"
     
     fetch_data_signal = pyqtSignal()
+    fetch_latest_signal = pyqtSignal()
     cancel_update_signal = pyqtSignal()
     set_stock_list_signal = pyqtSignal(dict)
     update_stock_list_signal = pyqtSignal(str, bool)
@@ -75,6 +76,7 @@ class ComparisonList(ComparisonWindow):
         self.data_processor.moveToThread(self.processor_thread)
         
         self.fetch_data_signal.connect(self.data_processor.fetchStockData, Qt.QueuedConnection)
+        self.fetch_latest_signal.connect(self.data_processor.buffered_manager.fetchLatestStockData, Qt.QueuedConnection)
         self.update_stock_list_signal.connect(self.data_processor.buffered_manager.requestUpdates, Qt.QueuedConnection)
         self.data_processor.buffered_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         self.set_stock_list_signal.connect(self.data_processor.setStockList, Qt.QueuedConnection)
@@ -130,7 +132,7 @@ class ComparisonList(ComparisonWindow):
         print(f"ComparisonList.apiUpdate {signal}")
         if signal == Constants.SELECTED_KEYS_CHANGED:
             print("ComparisonList.apiUpdate SELECTED_KEYS_CHANGED")
-        elif signal == Constants.HISTORICAL_GROUP_COMPLETE:
+        elif ((signal == Constants.HISTORICAL_GROUP_COMPLETE) and (sub_signal['type'] == 'range_group')) or (signal == Constants.ALL_DATA_LOADED):
             self.setHistoryEnabled(True)
         elif signal == Constants.DATA_LOADED_FROM_FILE:
             self.setHistoryEnabled(True, self.data_processor.isUpdatable())
@@ -140,14 +142,14 @@ class ComparisonList(ComparisonWindow):
 
     def fetchRangeData(self):
         self.fetch_range_button.setEnabled(False)
-        self.fetch_button.setEnabled(False)
+        self.fetch_full_button.setEnabled(False)
         self.fetch_data_signal.emit()
 
 
     def fetchData(self):
         self.fetch_range_button.setEnabled(False)
-        self.fetch_button.setEnabled(False)
-        self.fetch_data_signal.emit()
+        self.fetch_full_button.setEnabled(False)
+        self.fetch_latest_signal.emit()
 
 
     def comparisonListSelection(self, value):
@@ -204,7 +206,7 @@ class ComparisonList(ComparisonWindow):
         addCheckableTickersTo(self.visible_ticker_box, self.stock_list, self.check_list)
         addCheckableTickersTo(self.focus_box, filtered_list, self.focus_list)
         
-        self.fetch_button.setEnabled(True)
+        self.fetch_full_button.setEnabled(True)
         self.fetch_range_button.setEnabled(True)
         self.keep_up_box.setChecked(False)
         self.keep_up_box.setEnabled(False)

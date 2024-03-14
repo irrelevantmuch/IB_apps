@@ -37,6 +37,7 @@ class LiveDataManager(QObject):
         self.name = name
         self.history_manager = history_manager
         self.data_buffers = history_manager.getDataBuffer()
+        self.data_buffers.propagate_updates = True
         self.data_buffers.bars_to_propagate = QUICK_BAR_TYPES
         self.history_manager.addNewListener(self, self.apiUpdate)
         
@@ -129,7 +130,7 @@ class LiveDataManager(QObject):
             begin_date = self.standardBeginDateFor(end_date, bar_type)
             self.create_request_signal.emit(details, begin_date, end_date, bar_type)
 
-        self.group_request_signal.emit(uid)
+        self.group_request_signal.emit('stock_combo')
         self.execute_request_signal.emit(2_000)
 
 

@@ -116,9 +116,9 @@
        </widget>
       </item>
       <item row="0" column="7">
-       <widget class="QPushButton" name="fetch_button">
+       <widget class="QPushButton" name="fetch_full_button">
         <property name="text">
-         <string>Fetch All!</string>
+         <string>Fetch Full</string>
         </property>
         <attribute name="buttonGroup">
          <string notr="true">history_interaction_group</string>

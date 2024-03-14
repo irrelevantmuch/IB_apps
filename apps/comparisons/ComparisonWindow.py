@@ -67,7 +67,7 @@ class ComparisonWindow(QMainWindow, Comparison_UI):
 
 
     def setupActions(self):
-        self.fetch_button.clicked.connect(self.fetchData)
+        self.fetch_full_button.clicked.connect(self.fetchData)
         self.fetch_range_button.clicked.connect(self.fetchRangeData)
         self.sel_all_button.clicked.connect(self.toggleSelection)
         # self.ac_period_selector.currentTextChanged.connect(self.periodSelection)

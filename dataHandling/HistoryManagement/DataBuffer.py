@@ -6,8 +6,8 @@ from PyQt5.QtCore import pyqtSignal, QThread, QReadWriteLock, QObject
 
 class DataBuffers(QObject):
 
-    propagateUpdates = True
-    saveOn = False
+    propagate_updates = False
+    save_on = False
 
     _locks = dict()
     _buffers = dict()
@@ -260,7 +260,7 @@ class DataBuffers(QObject):
         first_index = {bar_type: new_data.index.min()}
         self.buffer_updater.emit(Constants.HAS_NEW_DATA, {'uid': uid, 'bars': [bar_type], 'updated_from': first_index, 'state': 'update'})
 
-        if self.isSavableBartype(bar_type) and self.saveOn:
+        if self.isSavableBartype(bar_type) and self.save_on:
             self.saveBuffer(uid, bar_type)
                     
 
@@ -283,7 +283,7 @@ class DataBuffers(QObject):
                 self.setBufferFor(uid, curr_bar_type, new_data, [date_range])
 
 
-            if self.propagateUpdates:
+            if self.propagate_updates:
                     #we want to use the updated bars on lower time frames to complete bars on higher time frames
                 first_indices = {curr_bar_type: new_data.index.min()}
                 greater_bars = self.getBarsAbove(curr_bar_type)
@@ -297,7 +297,7 @@ class DataBuffers(QObject):
                 self.buffer_updater.emit(Constants.HAS_NEW_DATA, {'uid': uid, 'updated_from': first_indices, 'bars': [curr_bar_type] + greater_bars, 'state': 'update'})
 
                 #if it was proper fetch we want to save
-            if (date_range is not None) and self.saveOn:
+            if (date_range is not None) and self.save_on:
                 for bar_type in updated_bar_types:
                     self.saveBuffer(uid, bar_type)
         
