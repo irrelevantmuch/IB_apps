@@ -42,7 +42,6 @@ class IBConnector:
         symbol_manager.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
         symbol_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         symbol_manager = symbol_manager
-        symbol_thread = QThread()
         self.startWorkerThread(identifier, symbol_manager)
         
         return symbol_manager
@@ -81,7 +80,6 @@ class IBConnector:
         worker.finished.connect(lambda: self.cleanupWorkerThread(identifier), Qt.QueuedConnection)
         self.running_workers[identifier] = (worker, thread)
         thread.start()
-        print("We start the thread already?")
 
 
 
@@ -131,8 +129,6 @@ class IBConnector:
         option_chain_manager.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
         option_chain_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         # self.next_id += 1
-
-        option_thread = QThread()
 
         self.startWorkerThread('option_manager', option_chain_manager)
         

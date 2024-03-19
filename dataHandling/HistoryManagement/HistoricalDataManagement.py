@@ -31,6 +31,7 @@ class HistoricalDataManager(DataManager):
     _update_requests = set()        #open updating requests
     _is_updating = set()
     _last_update_time = dict()
+    _propagating_updates = dict()
     _recently_cancelled_req_id = set()
 
     _priority_uids = []
@@ -260,7 +261,8 @@ class HistoricalDataManager(DataManager):
 
     @pyqtSlot(dict, str, bool)
     @pyqtSlot(dict, str, bool, bool)
-    def requestUpdates(self, stock_list, bar_type, keep_up_to_date, prioritize_uids=False):
+    @pyqtSlot(dict, str, bool, bool, bool)
+    def requestUpdates(self, stock_list, bar_type, keep_up_to_date, propagate_updates=False, prioritize_uids=False):
         # print(f"HistoryManagement.requestUpdates {keep_up_to_date}")
         # print([stock_inf[Constants.SYMBOL] for _, stock_inf in stock_list.items()])
 
@@ -274,12 +276,12 @@ class HistoricalDataManager(DataManager):
             begin_date = stock_list[uid]['begin_date']
             total_seconds = int((end_date-begin_date).total_seconds())
 
-            self.createUpdateRequests(details, bar_type, total_seconds, keep_up_to_date)
+            self.createUpdateRequests(details, bar_type, total_seconds, keep_up_to_date, propagate_updates)
 
         self.iterateHistoryRequests(100)        
 
 
-    def createUpdateRequests(self, contract_details, bar_type, time_in_sec, keep_up_to_date=True):
+    def createUpdateRequests(self, contract_details, bar_type, time_in_sec, keep_up_to_date=True, propagate_updates=False):
         # print("HistoricalDataManager.createUpdateRequests")
         req_id = self.getNextBufferReqID()
         uid = contract_details.numeric_id
@@ -288,6 +290,8 @@ class HistoricalDataManager(DataManager):
         if keep_up_to_date:
             self._is_updating.add(req_id)
             self._initial_fetch_complete[req_id] = False
+
+        self._propagating_updates[req_id] = propagate_updates
 
         self._historicalDFs[req_id] = pd.DataFrame(columns=[Constants.OPEN, Constants.HIGH, Constants.LOW, Constants.CLOSE, Constants.VOLUME])
         self.addUIDbyReq(uid, req_id)
@@ -301,20 +305,6 @@ class HistoricalDataManager(DataManager):
         self._hist_buffer_reqs.add(req_id)
         self._update_requests.add(req_id)
 
-
-    def createBarUpdateRequests(self, contract_details, bar_type, time_in_sec, keep_up_to_date=True):
-        req_id = self.getNextBufferReqID()
-
-        uid = contract_details.numeric_id
-        contract = self.getContractFor(contract_details)
-
-        self._historicalDFs[req_id] = pd.DataFrame(columns=[Constants.OPEN, Constants.HIGH, Constants.LOW, Constants.CLOSE, Constants.VOLUME])
-        
-        self.addUIDbyReq(uid, req_id)
-        self._bar_type_by_req[req_id] = bar_type
-        self._request_buffer.append(HistoryRequest(req_id, contract, "", f"{max(time_in_sec, 60)} S", bar_type, keep_up_to_date))
-        self._hist_buffer_reqs.add(req_id)
-        self._update_requests.add(req_id)
 
 
     def addUIDbyReq(self, uid, req_id):
@@ -518,7 +508,7 @@ class HistoricalDataManager(DataManager):
             if (req_id in self._is_updating) and self._initial_fetch_complete[req_id] and (req_id in self._last_update_time):
                 if (uid in self._priority_uids) or ((time.time() - self._last_update_time[req_id]) > self.update_delay):
                     completed_req = self.getCompletedHistoryObject(req_id, None, None)
-                    self.data_buffers.processUpdates(completed_req)
+                    self.data_buffers.processUpdates(completed_req, self._propagating_updates[req_id])
                     self._last_update_time[req_id] = time.time()
 
 
@@ -556,7 +546,7 @@ class HistoricalDataManager(DataManager):
             completed_req = self.getCompletedHistoryObject(req_id, start, end)
 
             if self.isUpdatingRequest(req_id):
-                self.data_buffers.processUpdates(completed_req)
+                self.data_buffers.processUpdates(completed_req, self._propagating_updates[req_id])
             else:
                 self.data_buffers.processData(completed_req)
 
@@ -614,3 +604,17 @@ class HistoryRequest():
             return datetime_string + " US/Eastern" 
 
 
+
+    # def createBarUpdateRequests(self, contract_details, bar_type, time_in_sec, keep_up_to_date=True):
+    #     req_id = self.getNextBufferReqID()
+
+    #     uid = contract_details.numeric_id
+    #     contract = self.getContractFor(contract_details)
+
+    #     self._historicalDFs[req_id] = pd.DataFrame(columns=[Constants.OPEN, Constants.HIGH, Constants.LOW, Constants.CLOSE, Constants.VOLUME])
+        
+    #     self.addUIDbyReq(uid, req_id)
+    #     self._bar_type_by_req[req_id] = bar_type
+    #     self._request_buffer.append(HistoryRequest(req_id, contract, "", f"{max(time_in_sec, 60)} S", bar_type, keep_up_to_date))
+    #     self._hist_buffer_reqs.add(req_id)
+    #     self._update_requests.add(req_id)

@@ -206,20 +206,6 @@ def addRSIsEMAs(stock_frame, from_index=None):
     return stock_frame
 
 
-# def addRSIsEMAs(stock_frame, from_index=None):
-        
-#         #we need up/down emas to calculate RSI
-#     updated_indices, up_ema, down_ema = getEMAColumns(stock_frame, from_index)
-#     stock_frame.loc[updated_indices, 'up_ema'] = up_ema
-#     stock_frame.loc[updated_indices, 'down_ema'] = down_ema
-#     rsi = calculateRSIfromEMAs(stock_frame['up_ema'], stock_frame['down_ema'], updated_indices)
-#     stock_frame.loc[updated_indices, 'rsi'] = rsi
-#         #we want to remove any NaNs, not sure if this is still necesarry 
-#     stock_frame['rsi'].fillna(method='ffill', inplace=True)
-#     stock_frame.loc[updated_indices, 'rsi'] = stock_frame.loc[updated_indices, 'rsi'].round(1)
-#     return stock_frame
-
-
 def calculateRSIfromEMAs(up_emas, down_emas):
     RS = (up_emas/down_emas)
     rsi = 100 - 100/(1+RS)
@@ -229,22 +215,12 @@ def calculateRSIfromEMAs(up_emas, down_emas):
 def getEMAColumns(stock_frame, from_index=None):
 
         #if have calculated EMAs before we just want to supplement what's there
-    # start = timer.time()
     up_ema_column_exists = ('up_ema' in stock_frame.columns) and (stock_frame['up_ema'].iloc[0] == 0)
     down_ema_column_exists = ('down_ema' in stock_frame.columns) and (stock_frame['down_ema'].iloc[0] == 0)
-    # print(f"\t\t\tEMAS checking: {timer.time() - start} seconds")
-    # start = timer.time()
     if up_ema_column_exists and down_ema_column_exists:
-        # try:
         return calculateEMAsFrom(stock_frame, from_index)
-        # finally:
-            # print(f"\t\t\tEMAS from index: {timer.time() - start} seconds")
     else:
-        # try:
         return calculateEMAsFromScratch(stock_frame)
-        # finally:
-        #     print(f"\t\t\tEMAS from scratch: {timer.time() - start} seconds")
-
 
 def calculateEMAsFromScratch(stock_frame):
     closes = stock_frame[Constants.CLOSE]
@@ -256,7 +232,6 @@ def calculateEMAsFromScratch(stock_frame):
 def calculateEMAs(closes, period=14):
 
         #we need up and down movements to calculate emas
-    # start = timer.time()
     ups, downs = getUpsAndDowns(closes)
         #pandas provides the fastest way to calculate emas
     up_emas = pd.Series.ewm(ups, alpha=1/period).mean()
@@ -268,16 +243,11 @@ def calculateEMAs(closes, period=14):
     
 
 def calculateEMAsFrom(stock_frame, from_index):
-    # print("GenFunctions.calculateEMAsFrom")
     
         #we only want to recalculate those emas that are necesarry
     alpha = 1/14
-    # start = timer.time()
     integer_index = getStartRecalcIndex(stock_frame, from_index)
-    # print(f"\t\t\tCalculating index: {timer.time() - start} seconds")
-
-    # print(f"\t\t\tStart index is: {integer_index} from the {len(stock_frame)}")
-
+    
     if integer_index < 10:
         return calculateEMAsFromScratch(stock_frame)
     else:
@@ -310,48 +280,34 @@ def calculateEMAsFrom(stock_frame, from_index):
 def getStartRecalcIndex(stock_frame, from_index):
     
       #at the least we want to recalculate the last two values
-  indexer = len(stock_frame)-2
+    indexer = len(stock_frame)-2
 
       #if we have a from index we want to see if we need to go further back
-  if from_index is not None:
-      from_int_index = stock_frame.index.get_loc(from_index)
-      indexer = min(indexer, from_int_index)
+    if from_index is not None:
+        try:
+            from_int_index = stock_frame.index.get_loc(from_index)
+            indexer = min(indexer, from_int_index)
+        except KeyError:
+            print(f"We have a problem finding {from_index}")
+            print(f"in {stock_frame.index}")
+      
         
-      #finally we want to make sure there are no NaNs that may need recomputing
-  first_up_nan = stock_frame['up_ema'].isna().idxmax()
-  first_down_nan = stock_frame['down_ema'].isna().idxmax()
-  if first_up_nan < first_down_nan:
-      smaller_selection = stock_frame.index < first_up_nan
-  else:
-      smaller_selection = stock_frame.index < first_down_nan
+        #finally we want to make sure there are no NaNs that may need recomputing
+    first_up_nan = stock_frame['up_ema'].isna().idxmax()
+    first_down_nan = stock_frame['down_ema'].isna().idxmax()
+    if first_up_nan < first_down_nan:
+        smaller_selection = stock_frame.index < first_up_nan
+    else:
+        smaller_selection = stock_frame.index < first_down_nan
 
-  if len(smaller_selection) > 0:
+    if len(smaller_selection) > 0:
 
-      true_value_set = np.where(smaller_selection)[0]
-      if len(true_value_set) > 0:
-          from_int_index = true_value_set.max()
-          indexer = min(indexer, from_int_index)
+        true_value_set = np.where(smaller_selection)[0]
+        if len(true_value_set) > 0:
+            from_int_index = true_value_set.max()
+            indexer = min(indexer, from_int_index)
 
-  return indexer
-
-# def getStartRecalcIndex(stock_frame, from_index):
-#     # At least recalculate the last two values
-#     indexer = len(stock_frame) - 2
-
-#     # Adjust based on 'from_index'
-#     if from_index is not None:
-#         from_int_index = stock_frame.index.get_indexer([from_index], method='ffill')[0]
-#         indexer = min(indexer, from_int_index)
-
-#     print(f"\t\t\tHMMMmmmm {indexer}")
-#     # Check for NaNs in 'up_ema' and 'down_ema'
-#     first_nan_idx = min(stock_frame['up_ema'].dropna().index[0], 
-#                         stock_frame['down_ema'].dropna().index[0]) if not stock_frame['up_ema'].notna().all() or not stock_frame['down_ema'].notna().all() else indexer
-    
-#     print(f"\t\t\tHMMMMMMM {first_nan_idx}")
-#     indexer = min(indexer, first_nan_idx)
-
-#     return indexer
+    return indexer
 
 
 def getUpsAndDowns(closes):

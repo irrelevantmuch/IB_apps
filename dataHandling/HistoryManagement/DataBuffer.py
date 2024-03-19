@@ -6,7 +6,6 @@ from PyQt5.QtCore import pyqtSignal, QThread, QReadWriteLock, QObject
 
 class DataBuffers(QObject):
 
-    propagate_updates = False
     save_on = False
 
     _locks = dict()
@@ -264,8 +263,8 @@ class DataBuffers(QObject):
             self.saveBuffer(uid, bar_type)
                     
 
-    def processUpdates(self, min_data):
-        # print("DataBuffer.processUpdates")
+    def processUpdates(self, min_data, propagate_updates=False):
+        print(f"DataBuffer.processUpdates {min_data['bar type']} {propagate_updates}")
 
             #we want to reuse these so names for clarity
         curr_bar_type = min_data['bar type']
@@ -282,11 +281,11 @@ class DataBuffers(QObject):
             else:
                 self.setBufferFor(uid, curr_bar_type, new_data, [date_range])
 
-
-            if self.propagate_updates:
+            if propagate_updates:
                     #we want to use the updated bars on lower time frames to complete bars on higher time frames
                 first_indices = {curr_bar_type: new_data.index.min()}
                 greater_bars = self.getBarsAbove(curr_bar_type)
+
                 for to_bar_type in greater_bars:
                     from_bar_type = self.getUpdateBarType(to_bar_type)
                     if (from_bar_type in first_indices):    #this ensures the from has been updated, but may be superfluous

@@ -26,7 +26,7 @@ class LiveDataManager(QObject):
 
     stop_tracking_signal = pyqtSignal(str)
     create_request_signal = pyqtSignal(DetailObject, datetime, datetime, str)
-    request_update_signal = pyqtSignal(dict, str, bool, bool)
+    request_update_signal = pyqtSignal(dict, str, bool, bool, bool)
     group_request_signal = pyqtSignal(str)
     execute_request_signal = pyqtSignal(int)
 
@@ -37,7 +37,6 @@ class LiveDataManager(QObject):
         self.name = name
         self.history_manager = history_manager
         self.data_buffers = history_manager.getDataBuffer()
-        self.data_buffers.propagate_updates = True
         self.data_buffers.bars_to_propagate = QUICK_BAR_TYPES
         self.history_manager.addNewListener(self, self.apiUpdate)
         
@@ -139,7 +138,7 @@ class LiveDataManager(QObject):
         
         end_date = datetime.now(timezone(Constants.NYC_TIMEZONE))
         stock_inf['begin_date'] = end_date - relativedelta(minutes=180)
-        self.request_update_signal.emit({uid: stock_inf}, update_bar, True, prioritize_uids)
+        self.request_update_signal.emit({uid: stock_inf}, update_bar, True, True, prioritize_uids)
         
 
     ################ DATE AND RANGE HANDLING

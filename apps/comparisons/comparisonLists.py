@@ -33,11 +33,11 @@ class ComparisonList(ComparisonWindow):
 
     time_period = "Month"
     
-    fetch_data_signal = pyqtSignal()
+    fetch_range_signal = pyqtSignal()
     fetch_latest_signal = pyqtSignal()
     cancel_update_signal = pyqtSignal()
     set_stock_list_signal = pyqtSignal(dict)
-    update_stock_list_signal = pyqtSignal(str, bool)
+    update_stock_list_signal = pyqtSignal(str, bool, bool)
     check_list_signal = pyqtSignal(dict)
     update_property_signal = pyqtSignal(dict)
     
@@ -75,7 +75,7 @@ class ComparisonList(ComparisonWindow):
 
         self.data_processor.moveToThread(self.processor_thread)
         
-        self.fetch_data_signal.connect(self.data_processor.fetchStockData, Qt.QueuedConnection)
+        self.fetch_range_signal.connect(self.data_processor.fetchStockRangeData, Qt.QueuedConnection)
         self.fetch_latest_signal.connect(self.data_processor.buffered_manager.fetchLatestStockData, Qt.QueuedConnection)
         self.update_stock_list_signal.connect(self.data_processor.buffered_manager.requestUpdates, Qt.QueuedConnection)
         self.data_processor.buffered_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
@@ -143,7 +143,7 @@ class ComparisonList(ComparisonWindow):
     def fetchRangeData(self):
         self.fetch_range_button.setEnabled(False)
         self.fetch_full_button.setEnabled(False)
-        self.fetch_data_signal.emit()
+        self.fetch_range_signal.emit()
 
 
     def fetchData(self):
@@ -333,7 +333,7 @@ class ComparisonList(ComparisonWindow):
 
     def keepUpToDate(self, value):
         if value:
-            self.update_stock_list_signal.emit(self.selected_bar_type, True)
+            self.update_stock_list_signal.emit(self.selected_bar_type, True, True)
         else:
             print("WE CALL FOR CANCELATION comp")
             self.cancel_update_signal.emit()

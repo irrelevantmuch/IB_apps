@@ -65,7 +65,7 @@ class ComparisonProcessor(DataProcessor):
 
 
     @pyqtSlot()
-    def fetchStockData(self):
+    def fetchStockRangeData(self):
         start_date = datetime.combine(self.selected_date, time(0,0,0))
         end_date = datetime.combine(self.getEndDate(), time(23, 59,0))
         

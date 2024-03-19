@@ -31,7 +31,7 @@ class BufferedDataManager(QObject):
 
     reset_signal = pyqtSignal()
     create_request_signal = pyqtSignal(DetailObject, datetime, datetime, str)
-    request_update_signal = pyqtSignal(dict, str, bool)
+    request_update_signal = pyqtSignal(dict, str, bool, bool)
     group_request_signal = pyqtSignal(str)
     execute_request_signal = pyqtSignal(int)
 
@@ -43,8 +43,6 @@ class BufferedDataManager(QObject):
         self.history_manager = history_manager
         self.data_buffers = history_manager.getDataBuffer()
         self.data_buffers.save_on = True
-        if name == 'MoversBuffer':
-            self.data_buffers.propagate_updates = True
         self.history_manager.addNewListener(self, self.apiUpdate)
         
 
@@ -81,7 +79,7 @@ class BufferedDataManager(QObject):
             if len(self.stocks_to_fetch) != 0:
                 self.fetchNextStock()
             elif self.partial_update:
-                self.requestUpdates(update_list=self.update_list)
+                self.requestUpdates(update_list=self.update_list, propagate_updates=True)
                 self.partial_update = False
             else:
                 self.api_updater.emit(Constants.ALL_DATA_LOADED, dict())
@@ -91,7 +89,7 @@ class BufferedDataManager(QObject):
             if len(self.queued_update_requests) > 0:
                 print("2) AND VIA HERE???")
                 request = self.queued_update_requests.pop(0)
-                self.requestUpdates(update_bar=request['bar_type'], keep_up_to_date=request['keep_up_to_date'], update_list=request['update_list'])
+                self.requestUpdates(update_bar=request['bar_type'], keep_up_to_date=request['keep_up_to_date'], propagate_updates=True, update_list=request['update_list'])
             else:
                 self.api_updater.emit(Constants.ALL_DATA_LOADED, dict())
                 self.initial_fetch = False
@@ -124,7 +122,7 @@ class BufferedDataManager(QObject):
                 self.partial_update = True
 
         if len(self.update_list) > 0:
-                self.requestUpdates(update_list=self.update_list)
+            self.requestUpdates(update_list=self.update_list, propagate_updates=True)
 
 
     def fetchHistStockData(self, bar_types, date_range=None, selected_uid=None):
@@ -144,25 +142,23 @@ class BufferedDataManager(QObject):
         stocks_to_fetch = dict()
         update_list = dict()
         for uid, value in self._buffering_stocks.items():
-            if self.allRangesDownloaded(uid):
-                last_timestamp = self.data_buffers.getIndexAtPos(uid, Constants.DAY_BAR, pos=-1)
-                if self.isRecent(last_timestamp):
-                    update_list[uid] = value
-                else:
-                    stocks_to_fetch[uid] = value
+            if self.allRangesUpToDate(uid):
+                update_list[uid] = value
             else:
                 stocks_to_fetch[uid] = value
-
+            
         return stocks_to_fetch, update_list
 
 
-    def allRangesDownloaded(self, uid, bar_types=MAIN_BAR_TYPES):
-
+    def allRangesUpToDate(self, uid, bar_types=MAIN_BAR_TYPES):
         for bar_type in bar_types:
-            if not self.data_buffers.bufferExists(uid, bar_type):
-                
-                if bar_type != Constants.FOUR_HOUR_BAR:
+            if self.data_buffers.bufferExists(uid, bar_type):
+                last_timestamp = self.data_buffers.getIndexAtPos(uid, bar_type, pos=-1)
+                if not self.isRecent(last_timestamp):
                     return False
+            else:
+                return False
+
         return True
 
 
@@ -172,13 +168,6 @@ class BufferedDataManager(QObject):
         day_diff = (current_dateTime-timestamp).days
         return day_diff < self.max_day_diff
 
-
-    def hasDataInLast(self, minutes, uid, bar_type):
-        now_time = datetime.now(timezone(Constants.NYC_TIMEZONE))
-        time_cutoff = now_time - timedelta(minutes=minutes)
-        if self.data_buffers.bufferExists(uid, bar_type):
-            return (self.data_buffers.getLastIndexLabel(uid, bar_type) >= (time_cutoff))
-        return False
 
 
     def fetchNextStock(self, bar_types=MAIN_BAR_TYPES, full_fetch=False):
@@ -204,7 +193,7 @@ class BufferedDataManager(QObject):
 
 
     @pyqtSlot(str, bool)
-    def requestUpdates(self, update_bar=Constants.ONE_MIN_BAR, keep_up_to_date=False, update_list=None, needs_disconnect=False):
+    def requestUpdates(self, update_bar=Constants.ONE_MIN_BAR, keep_up_to_date=False, propagate_updates=False, update_list=None, needs_disconnect=False):
         print(f"BufferedManager.requestUpdates {update_bar}")
 
         if needs_disconnect: self.history_manager.cleanup_done_signal.disconnect()
@@ -212,21 +201,20 @@ class BufferedDataManager(QObject):
         if update_list is None:
             update_list = self._buffering_stocks.copy()
 
-        if self.smallThanFiveMin(update_bar):
-            self.requestSmallUpdates(update_bar, keep_up_to_date, update_list)
+        if self.smallerThanFiveMin(update_bar):
+            self.requestSmallUpdates(update_bar, keep_up_to_date, propagate_updates, update_list)
         else:
-            now_time = datetime.now(timezone(Constants.NYC_TIMEZONE))
             for uid in update_list:
-                update_list[uid]['begin_date'] = self.getBeginDate(uid, update_bar, now_time)
+                update_list[uid]['begin_date'] = self.getMinimumStoredDate(uid)
             
-            self.request_update_signal.emit(update_list, update_bar, keep_up_to_date) #, keep_up_to_date)
+            self.request_update_signal.emit(update_list, update_bar, keep_up_to_date, propagate_updates) #, keep_up_to_date)
 
 
-    def requestSmallUpdates(self, update_bar, keep_up_to_date, update_list):
+    def requestSmallUpdates(self, update_bar, keep_up_to_date, propagate_updates, update_list):
         now_time = datetime.now(timezone(Constants.NYC_TIMEZONE))
         five_min_update_list = dict()
         for uid in update_list:
-            begin_date = self.getBeginDate(uid, Constants.FIVE_MIN_BAR, now_time)
+            begin_date = self.getMinimumStoredDate(uid)
             total_seconds = int((now_time-begin_date).total_seconds())
             if total_seconds > 10800:
                 five_min_update_list[uid] = update_list[uid]
@@ -237,28 +225,30 @@ class BufferedDataManager(QObject):
             update_list[uid]['begin_date'] = now_time - relativedelta(minutes=180)
         
         if len(five_min_update_list) > 0:
-            self.request_update_signal.emit(five_min_update_list, Constants.FIVE_MIN_BAR, False)
+            self.request_update_signal.emit(five_min_update_list, Constants.FIVE_MIN_BAR, False, propagate_updates)
             self.queued_update_requests.append({'bar_type': update_bar, 'update_list': update_list, 'keep_up_to_date': keep_up_to_date})
         else:
-            self.request_update_signal.emit(update_list, update_bar, keep_up_to_date)
+            self.request_update_signal.emit(update_list, update_bar, keep_up_to_date, propagate_updates)
 
 
     ################ DATE AND RANGE HANDLING
 
 
-    def getBeginDate(self, uid, bar_type, end_date):        
-        begin_date = None
-        if self.data_buffers.bufferExists(uid, bar_type):
-            existing_ranges = self.data_buffers.getRangesForBuffer(uid, bar_type)
-            if len(existing_ranges) > 0:
-                begin_date = existing_ranges[-1][1]
-                return begin_date
+    def getMinimumStoredDate(self, uid, bar_types=MAIN_BAR_TYPES):        
+        minimum_date = None
+        for bar_type in bar_types:
+            if self.data_buffers.bufferExists(uid, bar_type):
+                existing_ranges = self.data_buffers.getRangesForBuffer(uid, bar_type)
+                if len(existing_ranges) > 0:
+                    if minimum_date is None:
+                        minimum_date = existing_ranges[-1][1]
+                    elif existing_ranges[-1][1] < minimum_date:
+                        minimum_date = existing_ranges[-1][1]
 
-        if begin_date is None:
-            return standardBeginDateFor(end_date, bar_type)
+        return minimum_date
 
 
-    def smallThanFiveMin(self, bar_type):
+    def smallerThanFiveMin(self, bar_type):
         return ((bar_type == Constants.ONE_MIN_BAR) or (bar_type == Constants.TWO_MIN_BAR) or (bar_type == Constants.THREE_MIN_BAR))
 
 
