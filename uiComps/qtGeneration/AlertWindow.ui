@@ -122,7 +122,7 @@
            <string>Cross</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -135,7 +135,7 @@
            <string>Reversal</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -145,7 +145,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>80</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -165,7 +165,7 @@
            <string>Cross</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -182,7 +182,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>20</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -192,7 +192,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>80</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -202,7 +202,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>20</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -219,7 +219,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>20</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -236,7 +236,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>80</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -249,7 +249,7 @@
            <string>Cross</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -259,7 +259,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>20</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -272,7 +272,7 @@
            <string>Reversal</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -292,7 +292,7 @@
            <string>Reversal</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -302,7 +302,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>80</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -312,7 +312,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>20</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -338,7 +338,7 @@
            <string>Cross</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -351,7 +351,7 @@
            <string>Cross</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -364,7 +364,7 @@
            <string>Cross</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -374,7 +374,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>80</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -387,7 +387,7 @@
            <string>Cross</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -397,7 +397,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>80</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -423,7 +423,7 @@
            <string>Reversal</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -436,7 +436,7 @@
            <string>Reversal</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -446,7 +446,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>80</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -459,7 +459,7 @@
            <string>Cross</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -469,7 +469,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>20</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -502,7 +502,7 @@
            <string>Reversal</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -512,7 +512,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>80</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -525,7 +525,7 @@
            <string>Reversal</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -535,7 +535,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>20</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -548,7 +548,7 @@
            <string>Reversal</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -558,7 +558,7 @@
            <number>100</number>
           </property>
           <property name="value">
-           <number>20</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -582,21 +582,21 @@
            <string>Cross</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
         <item row="8" column="3">
          <widget class="QSpinBox" name="lower_spin_1d">
           <property name="value">
-           <number>20</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
         <item row="8" column="4">
          <widget class="QSpinBox" name="higher_spin_1d">
           <property name="value">
-           <number>80</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -606,7 +606,7 @@
            <string>Reversal</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -619,11 +619,14 @@
        <layout class="QGridLayout" name="gridLayout_6">
         <item row="5" column="3">
          <widget class="QSpinBox" name="up_spin_5m">
+          <property name="minimum">
+           <number>2</number>
+          </property>
           <property name="maximum">
            <number>40</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
@@ -640,7 +643,7 @@
            <string>Down</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -650,7 +653,7 @@
            <string>Up</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -660,7 +663,7 @@
            <string>Down</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -673,7 +676,7 @@
            <number>40</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
@@ -683,7 +686,7 @@
            <string>Down</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -700,7 +703,7 @@
            <string>Up</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -724,7 +727,7 @@
            <string>Down</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -743,31 +746,40 @@
         </item>
         <item row="6" column="3">
          <widget class="QSpinBox" name="up_spin_15m">
+          <property name="minimum">
+           <number>2</number>
+          </property>
           <property name="maximum">
            <number>40</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
         <item row="4" column="3">
          <widget class="QSpinBox" name="up_spin_3m">
+          <property name="minimum">
+           <number>2</number>
+          </property>
           <property name="maximum">
            <number>40</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
         <item row="0" column="3">
          <widget class="QSpinBox" name="up_spin_all">
+          <property name="minimum">
+           <number>2</number>
+          </property>
           <property name="maximum">
            <number>100</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
@@ -777,7 +789,7 @@
            <string>Up</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -803,7 +815,7 @@
            <number>40</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
@@ -813,7 +825,7 @@
            <string>Up</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -823,7 +835,7 @@
            <string>Up</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -833,17 +845,20 @@
            <string>Down</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
         <item row="2" column="3">
          <widget class="QSpinBox" name="up_spin_1m">
+          <property name="minimum">
+           <number>2</number>
+          </property>
           <property name="maximum">
            <number>100</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
@@ -853,17 +868,20 @@
            <string>Up</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
         <item row="8" column="3">
          <widget class="QSpinBox" name="up_spin_4h">
+          <property name="minimum">
+           <number>2</number>
+          </property>
           <property name="maximum">
            <number>40</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
@@ -876,7 +894,7 @@
            <number>40</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
@@ -889,7 +907,7 @@
            <number>40</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
@@ -912,7 +930,7 @@
            <string>Down</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -932,7 +950,7 @@
            <number>40</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
@@ -942,17 +960,20 @@
            <string>Up</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
         <item row="3" column="3">
          <widget class="QSpinBox" name="up_spin_2m">
+          <property name="minimum">
+           <number>2</number>
+          </property>
           <property name="maximum">
            <number>40</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
@@ -965,7 +986,7 @@
            <number>40</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
@@ -975,7 +996,7 @@
            <string>Up</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -988,7 +1009,7 @@
            <number>40</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
@@ -998,7 +1019,7 @@
            <string>Down</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -1011,7 +1032,7 @@
            <number>40</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
@@ -1031,11 +1052,14 @@
         </item>
         <item row="7" column="3">
          <widget class="QSpinBox" name="up_spin_1h">
+          <property name="minimum">
+           <number>2</number>
+          </property>
           <property name="maximum">
            <number>40</number>
           </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
@@ -1045,7 +1069,7 @@
            <string>Down</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -1062,7 +1086,7 @@
            <string>Up</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -1072,7 +1096,7 @@
            <string>Down</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -1085,15 +1109,21 @@
         </item>
         <item row="9" column="3">
          <widget class="QSpinBox" name="up_spin_1d">
+          <property name="minimum">
+           <number>2</number>
+          </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>
         <item row="9" column="6">
          <widget class="QSpinBox" name="down_spin_1d">
+          <property name="minimum">
+           <number>2</number>
+          </property>
           <property name="value">
-           <number>10</number>
+           <number>2</number>
           </property>
          </widget>
         </item>

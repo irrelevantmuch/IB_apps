@@ -128,10 +128,10 @@ class AlertWindow(QMainWindow, Alert_UI):
         self.comp_checkable_lists.activated.connect(self.listSelection)
 
         for tf in self.time_frame_names:
-            self.widgetFor(f"cross_box_{tf}").clicked.connect(self.crossCheckChange)
-            self.widgetFor(f"reversal_box_{tf}").clicked.connect(self.reversalCheckChange)
-            self.widgetFor(f"up_check_{tf}").clicked.connect(self.upCheckChange)
-            self.widgetFor(f"down_check_{tf}").clicked.connect(self.downCheckChange)
+            self.widgetFor(f"cross_box_{tf}").toggled.connect(self.crossCheckChange)
+            self.widgetFor(f"reversal_box_{tf}").toggled.connect(self.reversalCheckChange)
+            self.widgetFor(f"up_check_{tf}").toggled.connect(self.upCheckChange)
+            self.widgetFor(f"down_check_{tf}").toggled.connect(self.downCheckChange)
             self.widgetFor(f"lower_spin_{tf}").valueChanged.connect(self.lowerRsiChange)
             self.widgetFor(f"higher_spin_{tf}").valueChanged.connect(self.upperRsiChange)
             self.widgetFor(f"up_spin_{tf}").valueChanged.connect(self.upThresholdChange)

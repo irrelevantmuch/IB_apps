@@ -1,8 +1,8 @@
-from PyQt5.QtCore import QThread, pyqtSlot, Qt
+from PyQt5.QtCore import QThread, pyqtSlot, Qt, pyqtSignal
 from PyQt5 import QtWidgets
 from dataHandling.Constants import Constants
 from AppLauncherWindow import AppLauncherWindow
-from TelegramBot import TelegramBot
+
 import sys, os, time
 from uiComps.Logging import Logger
 import yappi
@@ -28,6 +28,7 @@ from IBConnector import IBConnector
 QtWidgets.QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
 QtWidgets.QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
+
 class AppLauncher(AppLauncherWindow, IBConnector):
 
     running_apps = []
@@ -39,19 +40,9 @@ class AppLauncher(AppLauncherWindow, IBConnector):
         self.loggin_instance.setLogWindow(self.log_window)
         self.real_tws_button.setChecked(True)
         self.connectionSelection()
-        self.setupTelegramBot()
         self.updateConnectionStatus('closed')
 
         print(f"AppLauncher init {int(QThread.currentThreadId())}")
-
-
-    def setupTelegramBot(self):
-                # Setup the bot logic and thread
-        self.telegram_bot = TelegramBot()  # Replace with your actual token
-        self.bot_thread = QThread()
-        self.telegram_bot.moveToThread(self.bot_thread)
-        self.bot_thread.started.connect(self.telegram_bot.run)
-        self.bot_thread.start()
         
 
     def updateConnectionStatus(self, status):
@@ -122,7 +113,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
     def openAlertApp(self):
         history_manager = self.getHistoryManager()
-        alert_app = AlertManager(self, history_manager, self.telegram_bot.telegram_signal)
+        alert_app = AlertManager(self, history_manager)
         self.running_apps.append(alert_app)
         alert_app.show()
 

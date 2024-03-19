@@ -15,7 +15,7 @@ from dataHandling.Constants import Constants, DT_BAR_TYPES
 from .AlertWindow import AlertWindow
 
 from PyQt5.QtWidgets import QMainWindow
-
+from TelegramBot import TelegramBot
 import json
 import requests
 
@@ -37,31 +37,56 @@ class AlertManager(AlertWindow):
     list_removal_signal = pyqtSignal(str)
     alerting_signal = pyqtSignal(bool)
 
+    telegram_signal = pyqtSignal(str, float, list)
+
     updating = False
     message_listening = False
     controller_delegate = None
     last_update_id = 0
     
 
-    def __init__(self, delegate, history_manager, telegram_signal):
+    def __init__(self, delegate, history_manager):
         super().__init__()
 
         self.controller_delegate = delegate
 
         history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
 
-        self.bot_info = self.readBotInfo()
+        self.setupTelegramBot()
         self.loadLists()
         file_name, _ = self.stock_lists[0]
         self.history_manager = history_manager
-        self.prepAlertProcessor(history_manager, telegram_signal)
+        self.prepAlertProcessor(history_manager)
+        self.setDefaultThresholds()
 
 
-    def prepAlertProcessor(self, history_manager, telegram_signal):
+    def setDefaultThresholds(self):
+        self.lower_spin_all.setValue(30)
+        self.higher_spin_all.setValue(70)
+        self.up_spin_all.setValue(6)
+        self.down_spin_all.setValue(6)
+
+        self.up_check_all.setChecked(True)
+        self.down_check_all.setChecked(True)
+        self.reversal_box_all.setChecked(True)
+        self.cross_box_all.setChecked(True)
+
+    def setupTelegramBot(self):
+                # Setup the bot logic and thread
+        self.telegram_bot = TelegramBot()  # Replace with your actual token
+        # self.bot_thread = QThread()
+        
+        self.telegram_signal.connect(self.telegram_bot.sendMessage, Qt.QueuedConnection)
+        # self.telegram_bot.moveToThread(self.bot_thread)
+        # self.bot_thread.started.connect(self.telegram_bot.run)
+        # self.bot_thread.start()
+
+
+    def prepAlertProcessor(self, history_manager):
         if isinstance(history_manager, FinazonDataManager):
             self.alert_processor = AlertProcessorFinazon(history_manager)
         elif isinstance(history_manager, HistoricalDataManager):
-            self.alert_processor = AlertProcessorIB(history_manager, telegram_signal)
+            self.alert_processor = AlertProcessorIB(history_manager, self.telegram_signal)
         self.processor_thread = QThread()
         self.alert_processor.moveToThread(self.processor_thread)
         
@@ -189,39 +214,39 @@ class AlertManager(AlertWindow):
         print("We check the data every so often")
 
 
-    def checkMessages(self, dont_reply=False):
+    # def checkMessages(self, dont_reply=False):
 
-        method = 'getUpdates'
-        api_url = f"https://api.telegram.org/bot{self.bot_info['token']}/"
-        params = {'offset': self.last_update_id}
-        resp = requests.post(api_url + method, params)
+    #     method = 'getUpdates'
+    #     api_url = f"https://api.telegram.org/bot{self.bot_info['token']}/"
+    #     params = {'offset': self.last_update_id}
+    #     resp = requests.post(api_url + method, params)
         
-        json_dict = json.loads(resp.text)
-        print(json.dumps(json_dict, sort_keys=True, indent=4, separators=(',', ': ')))
-        messages = json_dict["result"]
-        for message in messages:
-            message_details = message["message"]
-            self.parseMessage(message_details)
-            self.last_update_id = message["update_id"] + 1
+    #     json_dict = json.loads(resp.text)
+    #     print(json.dumps(json_dict, sort_keys=True, indent=4, separators=(',', ': ')))
+    #     messages = json_dict["result"]
+    #     for message in messages:
+    #         message_details = message["message"]
+    #         self.parseMessage(message_details)
+    #         self.last_update_id = message["update_id"] + 1
 
     
-    def parseMessage(self, message_details):    
-        if "text" in message_details:
+    # def parseMessage(self, message_details):    
+    #     if "text" in message_details:
             
-            command, params = self.parseCommands(message_details["text"])
-            response = self.controller_delegate.request(command, params)
+    #         command, params = self.parseCommands(message_details["text"])
+    #         response = self.controller_delegate.request(command, params)
             
-            if response is not None:
-                if "photo" in response:
-                    self.sendPhoto(open(response["photo"], 'rb'))
-                if "text" in response:
-                    self.sendTextMessage(response["text"])
+    #         if response is not None:
+    #             if "photo" in response:
+    #                 self.sendPhoto(open(response["photo"], 'rb'))
+    #             if "text" in response:
+    #                 self.sendTextMessage(response["text"])
                 
-                # url = f"https://api.telegram.org/bot{self.bot_info['token']}/sendMessage?chat_id={self.bot_info['chat_id']}&parse_mode=HTML&text={return_message}"
-                # requests.get(url)
-                return
-            else:
-                self.sendTextMessage("No apps responding")
+    #             # url = f"https://api.telegram.org/bot{self.bot_info['token']}/sendMessage?chat_id={self.bot_info['chat_id']}&parse_mode=HTML&text={return_message}"
+    #             # requests.get(url)
+    #             return
+    #         else:
+    #             self.sendTextMessage("No apps responding")
 
 
     def parseCommands(self, message):
@@ -236,10 +261,10 @@ class AlertManager(AlertWindow):
         return command, param_dict
 
 
-    def sendTextMessage(self, message_text):
-        print("Maybe this aint working")
-        url = f"https://api.telegram.org/bot{self.bot_info['token']}/sendMessage?chat_id={self.bot_info['chat_id']}&parse_mode=HTML&text={message_text}"
-        print(requests.get(url))
+    # def sendTextMessage(self, message_text):
+    #     print("Maybe this aint working")
+    #     url = f"https://api.telegram.org/bot{self.bot_info['token']}/sendMessage?chat_id={self.bot_info['chat_id']}&parse_mode=HTML&text={message_text}"
+    #     print(requests.get(url))
 
 
     @pyqtSlot(str, dict)
@@ -338,22 +363,13 @@ class AlertManager(AlertWindow):
     #             requests.get(url).json()
 
 
-    def sendPhoto(self, file_name):
-        method = 'sendPhoto'
-        params = {'chat_id': self.bot_info['chat_id']}
-        files = {'photo': file_name}
-        api_url = f"https://api.telegram.org/bot{self.bot_info['token']}/"
-        resp = requests.post(api_url + method, params, files=files)
-        return resp
+    # def sendPhoto(self, file_name):
+    #     method = 'sendPhoto'
+    #     params = {'chat_id': self.bot_info['chat_id']}
+    #     files = {'photo': file_name}
+    #     api_url = f"https://api.telegram.org/bot{self.bot_info['token']}/"
+    #     resp = requests.post(api_url + method, params, files=files)
+    #     return resp
 
 
-    def readBotInfo(self):
-        file_name = './data/bot_info.json'
-        try:
-            with open(file_name) as json_file:
-                json_dict = json.load(json_file)
-                return json_dict
-        except (IOError, OSError) as e:
-            return dict()
-    
     
