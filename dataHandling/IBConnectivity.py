@@ -203,7 +203,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
     @pyqtSlot(dict)
     def makeRequest(self, request):
-        print(f"IBConnectivity.makeRequest {self.name}({self.client_id}) {int(QThread.currentThreadId())} {self.queue_timer.isActive()}")
+        # print(f"IBConnectivity.makeRequest {self.name}({self.client_id}) {int(QThread.currentThreadId())} {self.queue_timer.isActive()}")
         self.request_queue.put(request)
         # print("------- CHECK IF WE NEED TO START")
         if (not (self.queue_timer.isActive())) and self.readyForRequests():
@@ -284,7 +284,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
 
     def reqHistoricalData(self, req_id, contract, endDateTime, durationStr, barSizeSetting, whatToShow, useRTH, formatDate, keepUpToDate, chartOptions):
-        print(f"IBConnectivity.reqHistoricalData {self.name} {self.client_id}")
+        print(f"IBConnectivity.reqHistoricalData {self.name} {self.client_id} {keepUpToDate}")
         super().reqHistoricalData(req_id, contract, endDateTime, durationStr, barSizeSetting, whatToShow, useRTH, formatDate, keepUpToDate, chartOptions)
         
 

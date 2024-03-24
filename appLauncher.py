@@ -11,7 +11,7 @@ import asyncio
 from dataHandling.ibFTPdata import downloadShortData
 
 from apps.listManaging.listManager import ListManager
-from apps.dataDetails.dataDetails import DataDetails
+from apps.polygonDownload.dataDownloader import DataDownloader
 from apps.optionPositions.optionsPositionListing import OptionPositions
 from apps.optionVisualization.optionsVisualization import OptionVisualization
 from apps.comparisons.comparisonLists import ComparisonList
@@ -126,8 +126,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
 
     def openDataDetailsApp(self):
-        history_manager = self.getHistoryManager()
-        new_app = DataDetails(history_manager)
+        new_app = DataDownloader()
         self.running_apps.append(new_app)
         new_app.show()
 

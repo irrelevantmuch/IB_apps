@@ -363,9 +363,9 @@
          </widget>
         </item>
         <item row="7" column="1">
-         <widget class="QPushButton" name="open_downloader">
+         <widget class="QPushButton" name="open_poly_downloader">
           <property name="text">
-           <string>Data Details</string>
+           <string>Polygon Download</string>
           </property>
          </widget>
         </item>
@@ -576,7 +576,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>24</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
@@ -586,8 +586,8 @@
  <connections/>
  <buttongroups>
   <buttongroup name="data_group"/>
-  <buttongroup name="app_group"/>
   <buttongroup name="trading_type_group"/>
   <buttongroup name="finazon_group"/>
+  <buttongroup name="app_group"/>
  </buttongroups>
 </ui>

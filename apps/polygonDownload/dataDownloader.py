@@ -14,7 +14,7 @@ from PyQt5.QtCore import pyqtSlot, QThread, pyqtSignal, Qt
 import pandas as pd
 import numpy as np
 from dataHandling.Constants import Constants, TableType, MAIN_BAR_TYPES
-from .DataDetailsWindow import DataDetailsWindow
+from .DataDownloaderWindow import DataDownloaderWindow
 from .polygonDownloader import PolygonDownloader
 
 from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
@@ -31,48 +31,34 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 
-class DataDetails(DataDetailsWindow):
+class DataDownloader(DataDownloaderWindow):
+
+    bar_types = ['1 minute','2 minute','3 minute','5 minute','15 minute', '30 minute', '1 hour', '2 hour', '4 hour', '12 hour', '1 day', '3 day']
 
     timer = None
     download_selection = "Whole List"
     data_processor = None
-    buffered_manager = None
     status_window = None
 
-    polygon_symbol_download = pyqtSignal(str, str, tuple)
-    polygon_list_download = pyqtSignal(list, str, tuple)
+    polygon_symbol_download = pyqtSignal(str, list, tuple)
+    polygon_list_download = pyqtSignal(list, list, tuple)
 
 
-    def __init__(self, history_manager):
-        super().__init__(MAIN_BAR_TYPES)
+    def __init__(self):
+        super().__init__(self.bar_types)
 
         file_name, _ = self.stock_lists[0]
         self.stock_list = readStockList(file_name)
 
-        self.buffered_manager = BufferedDataManager(history_manager, name="MoversBuffer")
-        self.buffered_manager.api_updater.connect(self.apiUpdate)
-
-        self.data_object = history_manager.getDataBuffer()
-
         self.selected_key = list(self.stock_list.keys())[0]
         self.selected_bar_type = self.bar_types[0]
-        
-        
-        self.history_manager = history_manager
-        self.history_manager.most_recent_first = True
-        self.history_manager.queue_cap = 10
+
 
         self.prepPolygonDownloader()
         self.generateColumnNames() #TODO: this is a bit ugly
         self.resetTickerList()
         self.resetDataFrames()
-        self.initDataModels()
-        # self.trade_plot.clearPlot()
-        # self.trade_plot.setHistoricalData(self.data_frame_points.copy())
-        # self.ticker_description_label.setText(self.stock_list[self.selected_key]['long_name'])
-        # self.setTableProperties()
 
-        #self.history_manager.fetchEarliestDates(self.stock_list)
 
     def prepPolygonDownloader(self):
         self.polygonDownloader = PolygonDownloader()
@@ -91,19 +77,16 @@ class DataDetails(DataDetailsWindow):
         return (self.selected_key, self.selected_bar_type)
 
 
-    def hasDataForCurrentKey(self):
-        return self.data_object.bufferExists(self.selected_key, self.selected_bar_type)
-
-
     def resetDataFrames(self):
-        if self.hasDataForCurrentKey():
-            self.resetCounts()
-            self.resetDataPoints()
-            self.resetRanges()
-        else:
-            self.data_count_frame = pd.DataFrame(columns=self.count_columns)
-            self.data_frame_ranges = pd.DataFrame(columns=self.range_columns)
-            self.data_frame_points = pd.DataFrame(columns=self.point_columns)
+        pass
+        # if self.hasDataForCurrentKey():
+        #     self.resetCounts()
+        #     self.resetDataPoints()
+        #     self.resetRanges()
+        # else:
+        #     self.data_count_frame = pd.DataFrame(columns=self.count_columns)
+        #     self.data_frame_ranges = pd.DataFrame(columns=self.range_columns)
+        #     self.data_frame_points = pd.DataFrame(columns=self.point_columns)
 
 
     def resetCounts(self):
@@ -207,32 +190,15 @@ class DataDetails(DataDetailsWindow):
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
-        print(f"DataDetails.apiUpdate {signal}")
-        if signal == Constants.DATES_RETRIEVED:
-            self.earliest_date_by_uid = self.history_manager.earliest_date_by_uid
-            self.earliest_date_label.setText(dateToReadableString(self.earliest_date_by_uid[self.selected_key]))
-        elif signal == Constants.QUEUED_NEW_TASKS:
-            self.createStatusWindow()
-        elif signal == Constants.HISTORICAL_REQUEST_COMPLETED:
-            if self.status_window is not None:
-                self.status_window.updateTaskStatus(sub_signal['req_id'], "1: Completed")
-            self.resetDataFrames()
-            self.updateTables()
-        elif signal == Constants.HISTORICAL_REQUEST_SUBMITTED:
-            if self.status_window is not None:
-                self.status_window.updateTaskStatus(sub_signal['req_id'], "0: Submitted")
-        elif signal == Constants.POLYGON_REQUEST_COMPLETED:
+        print(f"DataDownloader.apiUpdate {signal}")
+        if signal == Constants.POLYGON_REQUEST_COMPLETED:
             print("We receive polygon data!")
             print(sub_signal)
-        elif signal == POLYGON_REQUESTS_COMPLETED:
-            self.download_polygon_button.setEnabled(True)
-            # uid_list = list(self.stock_list.keys())
-            # symbol_list = [stock_info[Constants.SYMBOL] for stock_info in self.stock_list.values()]
-            # for (symbol, polygon_bar_type), df in sub_signal.items():
-            #     index = symbol_list.index(symbol)
-            #     bar_type = self.getBarFromPolygonType(polygon_bar_type)
-            #     print(f"We save for {polygon_bar_type}")
-            #     self.buffered_manager.saveBuffers(for_uids=[uid_list[index]], for_bars=[bar_type], clear=True, polygon=True)
+            self.download_counter += 1
+            self.statusBar.showMessage(f"Downloaded {self.download_counter} of {self.total_count}")
+        elif signal == Constants.POLYGON_REQUESTS_COMPLETED:
+            self.statusBar.showMessage(f"All Data Requests Downloaded")
+            self.download_button.setEnabled(True)
 
 
     def getBarFromPolygonType(self, polygon_bar):
@@ -254,17 +220,14 @@ class DataDetails(DataDetailsWindow):
         file_name, _ = self.stock_lists[value]
         self.stock_list = readStockList(file_name)
         self.selected_key = list(self.stock_list.keys())[0]
-        self.buffered_manager.setStockList(self.stock_list)
-        self.buffered_manager.history_manager.cancelActiveRequests(self)
-        ordered_keys = list(self.buffered_manager.existing_buffers.keys())
-        #self.history_manager.fetchEarliestDates(self.stock_list)
         self.resetTickerList()
         
 
-    def frameChecksChanged(self, value):
+    def barChecksChanged(self, value):
         print(f"Does this help sufficiently? {value}")
-        print(self.download_frame_selector.itemState(value))
-        self.bar_selection[self.bar_types[value]] = self.download_frame_selector.itemState(value)
+        print(self.download_bar_selector.itemState(value))
+        self.bar_selection[self.bar_types[value]] = self.download_bar_selector.itemState(value)
+
 
     def createStatusWindow(self):
         requests = self.history_manager.request_buffer
@@ -307,44 +270,29 @@ class DataDetails(DataDetailsWindow):
 
 
     def downloadData(self):
-        selected_bar_types = [k for k, v in self.bar_selection.items() if v is True]
-        if self.download_selection == "Single Ticker":
-            self.buffered_manager.fetchHistStockData(bar_types=selected_bar_types, selected_uid=self.selected_key)
-        elif self.download_selection == "Whole List":
-            self.buffered_manager.fetchHistStockData(bar_types=selected_bar_types)
-        elif self.download_selection == "Multiple Lists":
-            pass
-            # for list in 
-            # self.buffered_manager.fetchHistStockData(bar_types=selected_bar_types)
-
-
-    def downloadPolygonData(self):
         print("DataDetails.downloadPolygonData")
         current_date = datetime.now()
         start_date = current_date - relativedelta(years=5)
 
-        for bar_type in [bar_type for bar_type, checked in self.selected_polygon_bars.items() if checked]:
-            print(f"We go for bar_type {bar_type}")
-            if self.download_selection == "Single Ticker":
-                self.download_polygon_button.setEnabled(False)
-                symbol = self.stock_list[self.selected_key][Constants.SYMBOL]
-                self.polygon_symbol_download.emit(symbol, bar_type, (start_date, current_date))
-            elif self.download_selection == "Whole List":
-                self.download_polygon_button.setEnabled(False)
-                symbol_list = [stock_info[Constants.SYMBOL] for stock_info in self.stock_list.values()]
-                self.polygon_list_download.emit(symbol_list, bar_type, (start_date, current_date))
-            elif self.download_selection == "Multiple Lists":
-                pass
+        bar_types = [bar_type for bar_type, checked in self.bar_selection.items() if checked]
 
+        if self.download_selection == "Single Ticker":
+            self.download_button.setEnabled(False)
+            symbol = self.stock_list[self.selected_key][Constants.SYMBOL]
+            self.total_count = len(bar_types)
+            self.polygon_symbol_download.emit(symbol, bar_types, (start_date, current_date))
+        elif self.download_selection == "Whole List":
+            self.download_button.setEnabled(False)
 
-    def polygonBarSelection(self, value):
-        print(self.polygon_bar_types)
-        print("-------")
-        print(value)
-        print("---0---")
-        print(self.selected_polygon_bars)
+            symbol_list = [stock_info[Constants.SYMBOL] for stock_info in self.stock_list.values()]
+            self.total_count = len(bar_types) * len(symbol_list)
+            self.polygon_list_download.emit(symbol_list, bar_types, (start_date, current_date))
+        elif self.download_selection == "Multiple Lists":
+            pass
 
-        self.selected_polygon_bars[self.polygon_bar_types[value]] = self.polygon_bar_selector.itemState(value)
+        self.download_counter = 0
+        self.statusBar.showMessage(f"Downloaded {self.download_counter} of {self.total_count}")
+
 
     def timeFramePointSel(self, value):
         self.selected_bar_type = self.bar_types[value]
@@ -377,8 +325,4 @@ class DataDetails(DataDetailsWindow):
         current_model.dataChanged.emit(QtCore.QModelIndex(), QtCore.QModelIndex())
 
 
-    def keepUpToDate(self, value):
-        if value:
-            self.buffered_manager.requestUpdates(keep_up_to_date=value)
-    
 

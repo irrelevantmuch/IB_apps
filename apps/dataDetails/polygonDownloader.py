@@ -5,8 +5,8 @@ import pandas as pd
 from dataHandling.Constants import Constants
 from dateutil.relativedelta import relativedelta
 import time
-from PyQt5.QtCore import QThread, pyqtSignal
-
+import sys
+from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal
 
 
     # The Polygon.io API key
@@ -16,7 +16,7 @@ API_KEY = 'your_polygon_key'
 base_url = 'https://api.polygon.io'
 
 
-class PolygonDownloader(QThread):
+class PolygonDownloader(QObject):
 
     api_updater = pyqtSignal(str, dict)
 
@@ -43,12 +43,12 @@ class PolygonDownloader(QThread):
         
         return url
 
+    @pyqtSlot(list, str, tuple)
     def downloadForSymbols(self, symbols, bar_type, time_range):
         data_dict = dict()
         for symbol in symbols:
             data_dict[symbol] = self.downloadForSymbol(symbol, bar_type, time_range)
-        return data_dict
-
+        self.api_updater.emit(Constants.POLYGON_REQUESTS_COMPLETED, dict())
 
     def getCountAndUnit(self, polygon_bar):
         split_polygon_bar = polygon_bar.split()
@@ -57,6 +57,7 @@ class PolygonDownloader(QThread):
         return count, unit
 
 
+    @pyqtSlot(str, str, tuple)
     def downloadForSymbol(self, symbol, bar_type, time_range):
 
         print(f"We attempt to download {symbol} for {bar_type} between {time_range[0]} to {time_range[1]}")
@@ -89,15 +90,18 @@ class PolygonDownloader(QThread):
                 print(f'Request failed with status code {response.status_code}')
                 break
 
+
         symbol_df = self.fixTimeZones(symbol_df)
 
         # Rename columns
         column_names = { 'o': Constants.OPEN, 'h': Constants.HIGH, 'l': Constants.LOW, 'c': Constants.CLOSE, 'v': Constants.VOLUME }
         symbol_df.rename(columns=column_names, inplace=True)
 
+        file_name = Constants.POLYGON_BUFFER_FOLDER + symbol + '_' + bar_type + '.pkl'
+        symbol_df.to_pickle(file_name)
         # Remove the name of the index column
         
-        self.api_updater.emit(Constants.POLYGON_REQUEST_COMPLETED, {(symbol, bar_type): symbol_df})
+        self.api_updater.emit(Constants.POLYGON_REQUEST_COMPLETED, {'symbol': symbol, 'bar_type': bar_type})
 
 
     def fixTimeZones(self, unix_ms_frame):

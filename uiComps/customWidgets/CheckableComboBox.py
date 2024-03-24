@@ -23,7 +23,6 @@ class CheckableComboBox(QComboBox):
 
 
     def itemState(self, index):
-        print(f"When do we go through here? {index}")
         item = self.model().item(index, 0)
         if item is not None:
             return (item.checkState() == QtCore.Qt.Checked)

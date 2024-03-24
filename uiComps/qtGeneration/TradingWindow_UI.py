@@ -430,6 +430,7 @@ class Ui_MainWindow(object):
         self.label_2.setObjectName("label_2")
         self.horizontalLayout.addWidget(self.label_2)
         self.step_count_field = QtWidgets.QSpinBox(self.stair_step_tab)
+        self.step_count_field.setMaximum(1000)
         self.step_count_field.setProperty("value", 0)
         self.step_count_field.setObjectName("step_count_field")
         self.horizontalLayout.addWidget(self.step_count_field)

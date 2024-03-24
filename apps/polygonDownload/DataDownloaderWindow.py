@@ -26,12 +26,11 @@ class RightAlignedDelegate(QStyledItemDelegate):
 
         
 
-class DataDetailsWindow(QMainWindow, DataDetails_UI):
+class DataDownloaderWindow(QMainWindow, DataDetails_UI):
 
     column_for_name = {'Price': 1, 'Day': 2, 'Week': 3, '2 Weeks': 4, 'Month': 5, "2 Months": 6, "6 Months": 7 , "1 Year": 8}
     period_options = ["Day", "Week", "2 Weeks", "Month", "2 Months", "3 Months", "6 Months", "1 Year"]
     corr_period_options = ["2 hours", "4 hours", "Today", "24 hours", "1 week", "2 week", "Month", "2 Months", "3 Months", "6 Months", "max"]
-    polygon_bar_types = ['1 minute','2 minute','3 minute','5 minute','15 minute', '30 minute', '1 hour', '2 hour', '4 hour', '12 hour', '1 day', '3 day']
     
 
     def __init__(self, bar_types):
@@ -54,15 +53,12 @@ class DataDetailsWindow(QMainWindow, DataDetails_UI):
         self.trade_plot = CandlePlotWidget(self.setLevels)
         self.graph_layout.addWidget(self.trade_plot, 1, 0, 1, 1)
 
-        self.download_frame_selector = CheckableComboBox()
-        self.download_frame_layout.insertWidget(1, self.download_frame_selector)
+        self.download_bar_selector = CheckableComboBox()
+        self.download_bar_layout.insertWidget(1, self.download_bar_selector)
 
         self.download_list_checker = CheckableComboBox()
         self.download_list_checker.setEnabled(False)
         self.download_control_layout.addWidget(self.download_list_checker, 2, 2, 1, 1)
-
-        self.polygon_bar_selector = CheckableComboBox()
-        self.polygon_layout.insertWidget(1, self.polygon_bar_selector)
 
 
     def setLevels(self):
@@ -74,11 +70,9 @@ class DataDetailsWindow(QMainWindow, DataDetails_UI):
         self.ticker_selector.currentIndexChanged.connect(self.tickerSelection)
         self.bar_selector_point.currentIndexChanged.connect(self.timeFramePointSel)
         self.bar_selector_graph.currentIndexChanged.connect(self.timeFrameGraphSel)
-        self.download_frame_selector.activated.connect(self.frameChecksChanged)
+        self.download_bar_selector.activated.connect(self.barChecksChanged)
         self.download_type_group.buttonClicked.connect(self.radioSelection)
         self.download_button.clicked.connect(self.downloadData)
-        self.download_polygon_button.clicked.connect(self.downloadPolygonData)
-        self.polygon_bar_selector.activated.connect(self.polygonBarSelection)
         
 
     def populateBoxes(self):
@@ -89,41 +83,22 @@ class DataDetailsWindow(QMainWindow, DataDetails_UI):
         self.bar_selector_graph.addItems(self.bar_types)
         self.bar_selector_point.addItems(self.bar_types)
 
-        self.populateCheckableFrames()
+        self.populateCheckableBars()
         self.populateCheckableLists()
-        self.populateMinuteSelection()
 
 
-    def populateMinuteSelection(self):
-        bar_types = [str(count) for count in self.polygon_bar_types]
-
-        self.selected_polygon_bars = {k: False for k in bar_types}
-
-        self.polygon_bar_selector.blockSignals(True)
-
-        for index, bar_type in enumerate(bar_types):
-
-            self.polygon_bar_selector.addItem(bar_type)
-
-            item = self.polygon_bar_selector.model().item(index, 0)
-            if self.selected_polygon_bars[bar_type]: item.setCheckState(QtCore.Qt.Checked)
-            else: item.setCheckState(QtCore.Qt.Unchecked)
-
-        self.polygon_bar_selector.blockSignals(False)            
-
-
-    def populateCheckableFrames(self):
+    def populateCheckableBars(self):
         
-        self.download_frame_selector.blockSignals(True)
+        self.download_bar_selector.blockSignals(True)
 
         for index, bar_type in enumerate(self.bar_types):
-            self.download_frame_selector.addItem(bar_type)
+            self.download_bar_selector.addItem(bar_type)
 
-            item = self.download_frame_selector.model().item(index, 0)
+            item = self.download_bar_selector.model().item(index, 0)
             if self.bar_selection[bar_type]: item.setCheckState(QtCore.Qt.Checked)
             else: item.setCheckState(QtCore.Qt.Unchecked)
 
-        self.download_frame_selector.blockSignals(False)            
+        self.download_bar_selector.blockSignals(False)            
 
 
     def populateCheckableLists(self):

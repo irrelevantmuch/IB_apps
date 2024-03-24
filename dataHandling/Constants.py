@@ -165,6 +165,7 @@ class Constants:
     HISTORICAL_DATA_READY: Final = "Historical Data Ready"
     HISTORICAL_REQUEST_SUBMITTED: Final = "Historical Request Submitted"
     POLYGON_REQUEST_COMPLETED: Final = "Polygon Request Complete"
+    POLYGON_REQUESTS_COMPLETED: Final = "Polygon Requests Complete"
     PROGRESS_UPDATE: Final = "Progress Update"
     PROPERTY_UPDATE: Final = "Property Update"
     ACTIVE_REQUESTS_CANCELLED: Final = "Active Requests Cancelled"
