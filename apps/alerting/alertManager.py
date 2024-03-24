@@ -37,7 +37,7 @@ class AlertManager(AlertWindow):
     list_removal_signal = pyqtSignal(str)
     alerting_signal = pyqtSignal(bool)
 
-    telegram_signal = pyqtSignal(str, float, list)
+    telegram_signal = pyqtSignal(str, float, dict)
 
     updating = False
     message_listening = False

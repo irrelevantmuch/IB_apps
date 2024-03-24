@@ -256,23 +256,10 @@ class AlertProcessor(QObject):
     def sendAlert(self, uid):
         print(f"AlertProcessor.sendAlert {uid}")
         latest_price = self.data_buffers.getLatestPrice(uid)
-        message_lines = []
-        for (bar_type, alert_type), level in self.alert_tracker[uid].items():
-            print(f"We should add for {bar_type} {alert_type}")
-            if (alert_type == "down steps") or (alert_type == "rsi crossing down"):
-                emoticon = "🔴"
-            elif (alert_type == "up steps") or (alert_type == "rsi crossing up"):
-                emoticon = "🟢"
-            else:
-                emoticon = "🟠"
-
-            message_lines.append(f"{emoticon} {level} {alert_type} on the {bar_type}")
 
         print(f"AlertProcessor.sendAlert...... {self.full_stock_list[uid][Constants.SYMBOL]}")
-        print(message_lines)
         symbol = self.full_stock_list[uid][Constants.SYMBOL]
-        self.telegram_signal.emit(symbol, latest_price, message_lines)
-        self.alert_tracker[uid, bar_type, alert_type] = level
+        self.telegram_signal.emit(symbol, latest_price, self.alert_tracker[uid].copy())
 
 
     def stopUpdating(self):
@@ -364,7 +351,7 @@ class AlertProcessorIB(AlertProcessor):
                 self.runRotatingUpdates()
             elif self.initial_fetch:
                 print("Are we updating?")
-                self.buffered_manager.requestUpdates(keep_up_to_date=True)
+                self.buffered_manager.requestUpdates(keep_up_to_date=True, propagate_updates=True)
                 self.initial_fetch = False        
         
 

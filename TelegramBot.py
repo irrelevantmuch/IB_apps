@@ -24,7 +24,7 @@ class TelegramBot(QObject):
             self.bot.send_message(message.chat.id, message.text)
 
 
-    @pyqtSlot(str, float, list)
+    @pyqtSlot(str, float, dict)
     def sendMessage(self, symbol, latest_price, alert_lines):
         new_message = self.createMessage(symbol, latest_price, alert_lines)
         if symbol in self.message_tracker:
@@ -36,10 +36,20 @@ class TelegramBot(QObject):
     def createMessage(self, symbol, latest_price, alert_lines):
         # (: {level} {alert_type} (<b>{percentage:.1f}%</b>)
         message = f"<a href='https://www.tradingview.com/chart/?symbol={symbol}'>{symbol}</a> (<b>{latest_price:.2f}</b>):" 
+        print(alert_lines)
+        print(alert_lines.keys())
+        for (bar_type, alert_type), level in alert_lines.items():
+            print(f"We should add for {bar_type} {alert_type}")
+            if (alert_type == "down steps") or (alert_type == "rsi crossing down"):
+                emoticon = "🔴"
+            elif (alert_type == "up steps") or (alert_type == "rsi crossing up"):
+                emoticon = "🟢"
+            else:
+                emoticon = "🟠"
 
-        for line in alert_lines:
+
             message += "\n"
-            message += line
+            message += f"{emoticon} {level} {alert_type} on the {bar_type}"
 
         return message
 
