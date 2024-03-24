@@ -11,13 +11,13 @@ from dataHandling.HistoryManagement.FinazonDataManager import FinazonDataManager
 from dataHandling.HistoryManagement.HistoricalDataManagement import HistoricalDataManager
 import time
 
-from generalFunctionality.GenFunctions import addRSIsEMAs, getLowsHighsCount
 
 class AlertProcessor(QObject):
 
     initial_fetch = False
     alerts_on = False
     alert_tracker = dict()
+    update_stock_selection = pyqtSignal(dict)
 
     stock_count_signal = pyqtSignal(int)
 
@@ -25,13 +25,15 @@ class AlertProcessor(QObject):
     step_bar_types = [Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR]
     
     
-    def __init__(self, history_manager, telegram_signal):
+    def __init__(self, history_manager, indicator_processor, telegram_signal):
         super().__init__()
         
         print("DataProcessor.init")
         self.buffered_manager = BufferedDataManager(history_manager, name="MoversBuffer")
         self.data_buffers = self.buffered_manager.data_buffers
-        self.data_buffers.buffer_updater.connect(self.bufferUpdate, Qt.QueuedConnection)
+        self.indicator_processor = indicator_processor
+        self.indicator_processor.indicator_updater.connect(self.indicatorUpdate, Qt.QueuedConnection)
+        self.update_stock_selection.connect(self.indicator_processor.setTrackingList, Qt.QueuedConnection)
 
         self.telegram_signal = telegram_signal
         self.history_manager = history_manager
@@ -87,29 +89,30 @@ class AlertProcessor(QObject):
             stock_list = readStockList(stock_list_name)
             self.full_stock_list.update(stock_list)
 
+        if self.indicator_processor is not None:
+            self.update_stock_selection.emit(self.full_stock_list)
         self.stock_count_signal.emit(len(self.full_stock_list))
 
 
     @pyqtSlot(str, dict)
-    def bufferUpdate(self, signal, sub_signal):
-        if signal == Constants.HAS_NEW_DATA:
+    def indicatorUpdate(self, signal, sub_signal):
+        print(f"AlertProcessor.indicatorUpdate {signal}")
+        if signal == Constants.HAS_NEW_VALUES:
             
-            # start_time = time.time()
+            print(sub_signal)
             
-            updated_bar_types = sub_signal['bars']
+            
             if 'updated_from' in sub_signal:
                 updated_from = sub_signal['updated_from']
             else:
                 updated_from = None
 
             if self.alerts_on:
-                rsi_bars = [bar for bar in updated_bar_types if bar in self.rsi_bar_types]
-                self.computeRSIs(updated_uids=[sub_signal['uid']], bar_types=rsi_bars, from_indices=updated_from)
+                if sub_signal['update_type'] == 'rsi':
+                    self.checkRsiEvents(sub_signal['uid'], sub_signal['bar_type'])
+                if sub_signal['update_type'] == 'steps':
+                    self.checkStepEvents(sub_signal['uid'], sub_signal['bar_type'])
 
-                step_bars = [bar for bar in updated_bar_types if bar in self.step_bar_types]
-                self.computeSteps(updated_uids=[sub_signal['uid']], bar_types=step_bars)
-            
-            # print(f"PostProcessing takes: {time.time() - start_time} seconds")
 
 
     @pyqtSlot(str, dict)
@@ -152,42 +155,22 @@ class AlertProcessor(QObject):
         down_bars = [key for key, item in self.down_checks.items() if item]
         self.step_bar_types = list(set(up_bars) | set(down_bars))
 
+    def checkRsiEvents(self, uid, bar_type):
+        rsi_column = self.data_buffers.getColumnFor(uid, bar_type, 'rsi')
+        if rsi_column is not None:
+            if self.alertExistsFor(uid, bar_type, "rsi crossing down"):
+                if (rsi_column.iloc[-1] > self.cross_down_thresholds[bar_type]):
+                    del self.alert_tracker[uid][bar_type, "rsi crossing down"]                    
+            elif (rsi_column.iloc[-2] > self.cross_down_thresholds[bar_type]) and (rsi_column.iloc[-1] < self.cross_down_thresholds[bar_type]):
+                self.logAlertFor(uid, bar_type, "rsi crossing down", rsi_column.iloc[-1])
+                self.sendAlert(uid)
 
-    def computeRSIs(self, updated_uids=None, bar_types=None, from_indices=None):
-        # keys = self.data_buffers.getAllUIDs()
-        if updated_uids is None:
-            updated_uids = self.data_buffers.getAllUIDs()
-        if bar_types is None:
-            bar_types = self.rsi_bar_types
-                
-        for uid, bar_type in itertools.product(updated_uids, bar_types):
-            starting_index = None
-            if (from_indices is not None) and (bar_type in from_indices):
-                starting_index = from_indices[bar_type]
-            if self.data_buffers.bufferExists(uid, bar_type):
-                stock_frame = self.data_buffers.getBufferFor(uid, bar_type)
-                if len(stock_frame) > 14:
-                    stock_frame = addRSIsEMAs(stock_frame)
-                    self.data_buffers.setBufferFor(uid, bar_type, stock_frame)
-
-                    self.checkRsiEvents(uid, bar_type, stock_frame['rsi'])
-
-
-    def checkRsiEvents(self, uid, bar_type, rsi_column):
-
-        if self.alertExistsFor(uid, bar_type, "rsi crossing down"):
-            if (rsi_column.iloc[-1] > self.cross_down_thresholds[bar_type]):
-                del self.alert_tracker[uid][bar_type, "rsi crossing down"]                    
-        elif (rsi_column.iloc[-2] > self.cross_down_thresholds[bar_type]) and (rsi_column.iloc[-1] < self.cross_down_thresholds[bar_type]):
-            self.logAlertFor(uid, bar_type, "rsi crossing down", rsi_column.iloc[-1])
-            self.sendAlert(uid)
-
-        if self.alertExistsFor(uid, bar_type, "rsi crossing up"):
-            if (rsi_column.iloc[-1] < self.cross_up_thresholds[bar_type]):
-                del self.alert_tracker[uid][bar_type, "rsi crossing up"]    
-        elif (rsi_column.iloc[-2] < self.cross_up_thresholds[bar_type]) and (rsi_column.iloc[-1] > self.cross_up_thresholds[bar_type]):
-            self.logAlertFor(uid, bar_type, "rsi crossing up", rsi_column.iloc[-1])
-            self.sendAlert(uid)
+            if self.alertExistsFor(uid, bar_type, "rsi crossing up"):
+                if (rsi_column.iloc[-1] < self.cross_up_thresholds[bar_type]):
+                    del self.alert_tracker[uid][bar_type, "rsi crossing up"]    
+            elif (rsi_column.iloc[-2] < self.cross_up_thresholds[bar_type]) and (rsi_column.iloc[-1] > self.cross_up_thresholds[bar_type]):
+                self.logAlertFor(uid, bar_type, "rsi crossing up", rsi_column.iloc[-1])
+                self.sendAlert(uid)
 
 
     def alertExistsFor(self, uid, bar_type, alert_type):
@@ -202,46 +185,34 @@ class AlertProcessor(QObject):
         self.alert_tracker[uid][bar_type, alert_type] = value
 
 
-    def computeSteps(self, updated_uids=None, bar_types=None):
-        if updated_uids is None:
-            updated_uids = self.data_buffers.getAllUIDs()
+    def checkStepEvents(self, uid, bar_type):
+        up_move = self.data_buffers.getIndicatorValues(uid, bar_type, ['UpSteps','UpMove'])
 
-        if bar_types is None:
-            bar_types = self.step_bar_types
-
-        for uid, bar_type in itertools.product(updated_uids, bar_types):
-            if self.data_buffers.bufferExists(uid, bar_type):
-                stock_frame = self.data_buffers.getBufferFor(uid, bar_type)
-                
-                up_move, down_move, inner_bar_specs = getLowsHighsCount(stock_frame)
-                
-                self.checkBarEvents(uid, bar_type, up_move, down_move, inner_bar_specs)
-
-
-    def checkBarEvents(self, uid, bar_type, up_move, down_move, inner_bar_specs):
         if self.alertExistsFor(uid, bar_type, "up steps"):
             old_level = self.alert_tracker[uid][bar_type, "up steps"]
-            if up_move['count'] < old_level:
+            if up_move['UpSteps'] < old_level:
                 # self.sendAlert("up steps", uid, bar_type, old_level, 'broke')
                 del self.alert_tracker[uid][bar_type, "up steps"]
-            elif up_move['count'] > old_level:
-                self.logAlertFor(uid, bar_type, "up steps", up_move['count'])
+            elif up_move['UpSteps'] > old_level:
+                self.logAlertFor(uid, bar_type, "up steps", up_move['UpSteps'])
                 self.sendAlert(uid)
-        elif (up_move['count'] > self.step_up_thresholds[bar_type]) and (up_move['move'] > 1.0):
-            self.logAlertFor(uid, bar_type, "up steps", up_move['count'])
+        elif (up_move['UpSteps'] > self.step_up_thresholds[bar_type]) and (up_move['UpMove'] > 1.0):
+            self.logAlertFor(uid, bar_type, "up steps", up_move['UpSteps'])
             self.sendAlert(uid)
+        
+        down_move = self.data_buffers.getIndicatorValues(uid, bar_type, ['DownSteps','DownMove'])
         
         if self.alertExistsFor(uid, bar_type, "down steps"):
             old_level = self.alert_tracker[uid][bar_type, "down steps"]
-            if down_move['count'] < old_level:
+            if down_move['DownSteps'] < old_level:
                 # self.sendAlert("down steps", uid, bar_type, old_level, 'broke')
                 del self.alert_tracker[uid][bar_type, "down steps"]
-            elif down_move['count'] > old_level:
-                self.logAlertFor(uid, bar_type, "down steps", down_move['count'])
+            elif down_move['DownSteps'] > old_level:
+                self.logAlertFor(uid, bar_type, "down steps", down_move['DownSteps'])
                 self.sendAlert(uid)
-        elif (down_move['count'] > self.step_down_thresholds[bar_type]) and (down_move['move'] < -1.0):
-            print(f"down step {down_move['count']}")
-            self.logAlertFor(uid, bar_type, "down steps", down_move['count'])
+        elif (down_move['DownSteps'] > self.step_down_thresholds[bar_type]) and (down_move['DownMove'] < -1.0):
+            print(f"down step {down_move['DownSteps']}")
+            self.logAlertFor(uid, bar_type, "down steps", down_move['DownSteps'])
             self.sendAlert(uid)
                 
 
@@ -302,8 +273,8 @@ class AlertProcessorIB(AlertProcessor):
     rotating = False
     next_index = 0
 
-    def __init__(self, history_manager, telegram_signal):
-        super().__init__(history_manager, telegram_signal)
+    def __init__(self, history_manager, indicator_processor, telegram_signal):
+        super().__init__(history_manager, indicator_processor, telegram_signal)
         self.separate_stock_lists = list()
         self.buffered_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         history_manager.addNewListener(self, self.apiUpdate)

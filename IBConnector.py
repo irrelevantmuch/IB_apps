@@ -1,6 +1,7 @@
 
 from PyQt5.QtCore import QThread, QMetaObject, Qt, pyqtSlot
 from dataHandling.HistoryManagement.HistoricalDataManagement import HistoricalDataManager
+from dataHandling.HistoryManagement.IndicatorProcessor import IndicatorProcessor
 from dataHandling.HistoryManagement.FinazonDataManager import FinazonDataManager
 from dataHandling.TradeManagement.OrderManagement import OrderManager
 from dataHandling.OptionManagement.OptionChainManager import OptionChainManager
@@ -16,6 +17,7 @@ class IBConnector:
     data_management = None
     order_manager = None
     history_manager = None
+    indicator_processor = None
 
     running_workers = dict()
 
@@ -45,6 +47,28 @@ class IBConnector:
         self.startWorkerThread(identifier, symbol_manager)
         
         return symbol_manager
+
+
+    def getHistoryWithIndicator(self):
+        if self.data_source == "IBKR":
+            history_manager = self.getHistoryManagerIB('general_history')
+        elif self.data_source == "Finazon":
+            history_manager = self.getHistoryManagerIB('general_history')
+
+        indicator_processor = self.getInidicatorManager(history_manager.getDataBuffer())
+        return history_manager, indicator_processor
+
+
+    def getInidicatorManager(self, data_object):
+        if self.indicator_processor is None:
+
+            self.indicator_thread = QThread()
+            self.indicator_processor = IndicatorProcessor(data_object)
+            self.indicator_processor.moveToThread(self.indicator_thread)
+            self.indicator_thread.started.connect(self.indicator_processor.run)
+            self.indicator_thread.start()
+
+        return self.indicator_processor
 
 
     def getHistoryManager(self, identifier='general_history'):

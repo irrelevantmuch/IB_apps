@@ -155,6 +155,7 @@ class Constants:
     PNL_RETRIEVED: Final = "PNL Updated"
     IND_PNL_COMPLETED: Final = "Individual PnLs retrieved"
     HAS_NEW_DATA: Final = "New data avaible by key"
+    HAS_NEW_VALUES: Final = "New values avaible by key"
     DATA_RELOADED: Final = "Data has been reloaded"
     ALL_DATA_LOADED: Final = "All requests completed"
     DATA_LOADED_FROM_FILE: Final = "Previously buffered data loaded"

@@ -112,8 +112,8 @@ class AppLauncher(AppLauncherWindow, IBConnector):
     
 
     def openAlertApp(self):
-        history_manager = self.getHistoryManager()
-        alert_app = AlertManager(self, history_manager)
+        history_manager, indicator_processor = self.getHistoryWithIndicator()
+        alert_app = AlertManager(history_manager, indicator_processor)
         self.running_apps.append(alert_app)
         alert_app.show()
 

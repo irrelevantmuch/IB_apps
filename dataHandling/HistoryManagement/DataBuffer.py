@@ -2,14 +2,15 @@ import json
 from dataHandling.Constants import Constants, MAIN_BAR_TYPES, DT_BAR_TYPES, MINUTES_PER_BAR, RESAMPLING_BARS
 import pandas as pd
 from PyQt5.QtCore import pyqtSignal, QThread, QReadWriteLock, QObject
-
-
+          
+    
 class DataBuffers(QObject):
 
     save_on = False
 
     _locks = dict()
     _buffers = dict()
+    _indicators = dict()
     _date_ranges = dict()
 
     buffer_updater = pyqtSignal(str, dict)
@@ -30,6 +31,28 @@ class DataBuffers(QObject):
             self._date_ranges[uid, bar_type] = ranges
         self._locks[uid, bar_type].unlock()
 
+
+    def setIndicatorValues(self, uid, bar_type, new_value_dict):
+        
+        self._locks[uid, bar_type].lockForWrite()
+        if not((uid, bar_type) in self._indicators):
+            self._indicators[uid, bar_type] = dict()
+        self._indicators[uid, bar_type].update(new_value_dict)
+        self._locks[uid, bar_type].unlock()
+
+
+    def getIndicatorValues(self, uid, bar_type, indicators):
+        print(f"DataBuffer.getIndicatorValues {type(indicators)}")
+        self._locks[uid, bar_type].lockForRead()
+        try:
+            if ((uid, bar_type) in self._indicators) and all(indicator in self._indicators[uid, bar_type] for indicator in indicators):
+                ind_dict = {ind: value for ind, value in self._indicators[uid, bar_type].items() if ind in indicators}
+                return ind_dict
+            else:
+                return None
+        finally:
+            self._locks[uid, bar_type].unlock()
+        
 
     def getBufferFor(self, uid, bar_type):
         
@@ -121,6 +144,15 @@ class DataBuffers(QObject):
             return -1.0
 
 
+    def getLatestRow(self, uid, bar_type):
+        self._locks[uid, smallest_bar_type].lockForRead()
+        try:
+            return self._buffers[uid, smallest_bar_type].iloc[-1].copy()
+        finally:
+            self._locks[uid, smallest_bar_type].unlock()
+
+        
+
     def getBarsFromIndex(self, uid, bar_type, index):
         self._locks[uid, bar_type].lockForRead()
         try:
@@ -171,6 +203,17 @@ class DataBuffers(QObject):
         self._locks[uid, bar_type].lockForRead()
         try:
             return self._buffers[uid, bar_type].iloc[pos][column]
+        finally:
+            self._locks[uid, bar_type].unlock()
+
+
+    def getColumnFor(self, uid, bar_type, column_name):
+        self._locks[uid, bar_type].lockForRead()
+        try:
+            if column_name in self._buffers[uid, bar_type]:
+                return self._buffers[uid, bar_type][column_name].copy()
+            else:
+                return None
         finally:
             self._locks[uid, bar_type].unlock()
 

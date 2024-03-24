@@ -41,14 +41,11 @@ class AlertManager(AlertWindow):
 
     updating = False
     message_listening = False
-    controller_delegate = None
     last_update_id = 0
     
 
-    def __init__(self, delegate, history_manager):
+    def __init__(self, history_manager, indicator_processor):
         super().__init__()
-
-        self.controller_delegate = delegate
 
         history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
 
@@ -56,7 +53,7 @@ class AlertManager(AlertWindow):
         self.loadLists()
         file_name, _ = self.stock_lists[0]
         self.history_manager = history_manager
-        self.prepAlertProcessor(history_manager)
+        self.prepAlertProcessor(history_manager, indicator_processor)
         self.setDefaultThresholds()
 
 
@@ -82,11 +79,11 @@ class AlertManager(AlertWindow):
         # self.bot_thread.start()
 
 
-    def prepAlertProcessor(self, history_manager):
+    def prepAlertProcessor(self, history_manager, indicator_processor):
         if isinstance(history_manager, FinazonDataManager):
-            self.alert_processor = AlertProcessorFinazon(history_manager)
+            self.alert_processor = AlertProcessorFinazon(history_manager, indicator_processor, self.telegram_signal)
         elif isinstance(history_manager, HistoricalDataManager):
-            self.alert_processor = AlertProcessorIB(history_manager, self.telegram_signal)
+            self.alert_processor = AlertProcessorIB(history_manager, indicator_processor, self.telegram_signal)
         self.processor_thread = QThread()
         self.alert_processor.moveToThread(self.processor_thread)
         
