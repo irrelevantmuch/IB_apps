@@ -36,7 +36,7 @@ class MoversList(MoversWindow):
     gui_change_signal = pyqtSignal(TableType)
     fetch_latest_signal = pyqtSignal()
     set_stock_list_signal = pyqtSignal(dict)
-    update_stock_list_signal = pyqtSignal(str, bool)
+    update_stock_list_signal = pyqtSignal(str, bool, bool)
     period_update_signal = pyqtSignal(str)
     cancel_update_signal = pyqtSignal()
     index_selection_signal = pyqtSignal(str)
@@ -274,7 +274,7 @@ class MoversList(MoversWindow):
 
     def keepUpToDate(self, value):
         if value:
-            self.update_stock_list_signal.emit(Constants.ONE_MIN_BAR, value)
+            self.update_stock_list_signal.emit(Constants.ONE_MIN_BAR, value, True)
         else:
             print("WE CALL FOR CANCELATION")
             self.cancel_update_signal.emit()

@@ -192,9 +192,9 @@ class BufferedDataManager(QObject):
             self.execute_request_signal.emit(2_000)
 
 
-    @pyqtSlot(str, bool)
+    @pyqtSlot(str, bool, bool)
     def requestUpdates(self, update_bar=Constants.ONE_MIN_BAR, keep_up_to_date=False, propagate_updates=False, update_list=None, needs_disconnect=False):
-        print(f"BufferedManager.requestUpdates {update_bar}")
+        print(f"BufferedManager.requestUpdates {update_bar} {keep_up_to_date} {propagate_updates}")
 
         if needs_disconnect: self.history_manager.cleanup_done_signal.disconnect()
         

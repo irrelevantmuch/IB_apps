@@ -42,7 +42,6 @@ class SpecBufferedDataManager(BufferedDataManager):
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, data_dict):
         print(f"SpecBufferedDataManager.apiUpdate {signal}")
-        print(data_dict)
         if (signal == Constants.HISTORICAL_GROUP_COMPLETE) and (data_dict['type'] == 'range_group'):
             self.api_updater.emit(Constants.HISTORICAL_GROUP_COMPLETE, dict())
         else:
@@ -92,7 +91,7 @@ class SpecBufferedDataManager(BufferedDataManager):
         self.execute_request_signal.emit(2_000)
 
 
-    @pyqtSlot(str, bool)
+    @pyqtSlot(str, bool, bool)
     def requestUpdates(self, update_bar=Constants.ONE_MIN_BAR, keep_up_to_date=False, propagate_updates=False, update_list=None, needs_disconnect=False):
         print(f"BufferedManager.requestUpdates {update_bar}")
         

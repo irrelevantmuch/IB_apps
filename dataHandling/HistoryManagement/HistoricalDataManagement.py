@@ -227,7 +227,7 @@ class HistoricalDataManager(DataManager):
     @pyqtSlot(str)
     def groupCurrentRequests(self, group_type: str):
         new_group = set([request.req_id for request in self._request_buffer])
-        self._grouped_req_ids.append((group_type, new_group))
+        self._grouped_req_ids.append({'group_type': group_type, 'group_ids': new_group})
 
 
     def addRequest(self, requests, contract, bar_type, period, begin_date, end_date):
@@ -259,11 +259,10 @@ class HistoricalDataManager(DataManager):
         return num_weeks, num_days, num_seconds
 
 
-    @pyqtSlot(dict, str, bool)
     @pyqtSlot(dict, str, bool, bool)
     @pyqtSlot(dict, str, bool, bool, bool)
     def requestUpdates(self, stock_list, bar_type, keep_up_to_date, propagate_updates=False, prioritize_uids=False):
-        # print(f"HistoryManagement.requestUpdates {keep_up_to_date}")
+        print(f"HistoryManagement.requestUpdates are we prioritizing? {keep_up_to_date} {propagate_updates}")
         # print([stock_inf[Constants.SYMBOL] for _, stock_inf in stock_list.items()])
 
         for uid, stock_inf in stock_list.items():
@@ -282,7 +281,7 @@ class HistoricalDataManager(DataManager):
 
 
     def createUpdateRequests(self, contract_details, bar_type, time_in_sec, keep_up_to_date=True, propagate_updates=False):
-        # print("HistoricalDataManager.createUpdateRequests")
+        print(f"HistoricalDataManager.createUpdateRequests {keep_up_to_date} {propagate_updates}")
         req_id = self.getNextBufferReqID()
         uid = contract_details.numeric_id
         contract = self.getContractFor(contract_details)
@@ -526,13 +525,12 @@ class HistoricalDataManager(DataManager):
 
 
     def processGroupSignal(self, req_id, supress_signal=False):
-        print(f"HistoricalDataManager.processGroupSignal {req_id}")
         for group_index in range(len(self._grouped_req_ids)):
-            if req_id in self._grouped_req_ids[group_index][1]:
-                self._grouped_req_ids[group_index][1].remove(req_id)
-                if len(self._grouped_req_ids[group_index][1]) == 0:
+            if req_id in self._grouped_req_ids[group_index]['group_ids']:
+                self._grouped_req_ids[group_index]['group_ids'].remove(req_id)
+                if len(self._grouped_req_ids[group_index]['group_ids']) == 0:
                     if not(supress_signal):
-                        group_type = self._grouped_req_ids[group_index][0]
+                        group_type = self._grouped_req_ids[group_index]['group_type']
                         self.api_updater.emit(Constants.HISTORICAL_GROUP_COMPLETE, {'type': group_type})
                     del self._grouped_req_ids[group_index]
                     return

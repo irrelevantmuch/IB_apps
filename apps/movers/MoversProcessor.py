@@ -80,7 +80,7 @@ class MoversProcessor(DataProcessor):
 
     def isUpdatable(self):
         for stock in self._stock_list:
-            if not self.buffered_manager.allRangesDownloaded(stock):
+            if not self.buffered_manager.allRangesUpToDate(stock):
                 return False
 
         return True

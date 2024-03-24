@@ -264,7 +264,6 @@ class DataBuffers(QObject):
                     
 
     def processUpdates(self, min_data, propagate_updates=False):
-        print(f"DataBuffer.processUpdates {min_data['bar type']} {propagate_updates}")
 
             #we want to reuse these so names for clarity
         curr_bar_type = min_data['bar type']
@@ -281,6 +280,7 @@ class DataBuffers(QObject):
             else:
                 self.setBufferFor(uid, curr_bar_type, new_data, [date_range])
 
+            greater_bars = []
             if propagate_updates:
                     #we want to use the updated bars on lower time frames to complete bars on higher time frames
                 first_indices = {curr_bar_type: new_data.index.min()}
@@ -292,14 +292,14 @@ class DataBuffers(QObject):
                         first_indices[to_bar_type], return_type = self.incoorporateUpdates(uid, from_bar_type, to_bar_type, date_range)
                         updated_bar_types.append(to_bar_type)
 
-                    #other components need to know the data is updated
-                self.buffer_updater.emit(Constants.HAS_NEW_DATA, {'uid': uid, 'updated_from': first_indices, 'bars': [curr_bar_type] + greater_bars, 'state': 'update'})
+                #other components need to know the data is updated
+            self.buffer_updater.emit(Constants.HAS_NEW_DATA, {'uid': uid, 'updated_from': first_indices, 'bars': [curr_bar_type] + greater_bars, 'state': 'update'})
 
                 #if it was proper fetch we want to save
             if (date_range is not None) and self.save_on:
                 for bar_type in updated_bar_types:
                     self.saveBuffer(uid, bar_type)
-        
+            
 
     def incoorporateUpdates(self, uid, from_bar_type, to_bar_type, new_range, update_full=True):
         # print(f"DataBuffer.incoorporateUpdates {uid} {from_bar_type} {to_bar_type} {new_range}")
