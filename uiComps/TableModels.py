@@ -45,6 +45,14 @@ class PandasDataModel(QAbstractTableModel):
         return QAbstractTableModel.headerData(self, section, orientation, role)
 
 
+    def onVerticalHeaderClicked(self, section_index):
+        print(f"TableModels.onVerticalHeaderClicked {section_index}")
+        self.layoutAboutToBeChanged.emit() 
+        self._table_data.sortValuesForColumn(Constants.SYMBOL)
+        
+        self.layoutChanged.emit()
+
+
     def rowCount(self, parent=QtCore.QModelIndex()):
         return self._table_data.getCount()
 
@@ -82,7 +90,7 @@ class PandasDataModel(QAbstractTableModel):
         if self._mapping[col] == '__INDEX__':
             self._table_data.sortIndex(ascending=(order==Qt.AscendingOrder))
         else:
-            self._table_data.sortValuesForColumn(self._mapping[col], ascending=(order==Qt.AscendingOrder))
+            self._table_data.sortValuesForColumn(self._mapping[col]) #, ascending=(order==Qt.AscendingOrder))
         self.layoutChanged.emit()
 
 

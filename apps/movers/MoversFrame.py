@@ -9,10 +9,10 @@ class MoversFrame(QObject):
     _data_frame = None
 
     def setDataFrame(self, data_frame):
-        
         self.processing_updater.emit(Constants.DATA_WILL_CHANGE, dict())
         self._lock.lockForWrite()
         self._data_frame = data_frame
+        self._ascending_order = {key: False for key in self._data_frame.columns}
 
         self._lock.unlock()
         self.processing_updater.emit(Constants.DATA_STRUCTURE_CHANGED, dict())
@@ -43,15 +43,17 @@ class MoversFrame(QObject):
     def sortIndex(self, ascending=True):
         self._lock.lockForRead()
         try:
+            print(self._data_frame.index)
             self._data_frame.sort_index(ascending=ascending, inplace=True)
         finally:
             self._lock.unlock()
 
 
-    def sortValuesForColumn(self, column, ascending=True):
+    def sortValuesForColumn(self, column):
         self._lock.lockForRead()
         try:
-            self._data_frame.sort_values(column, ascending=ascending, inplace=True)
+            self._ascending_order[column] = not self._ascending_order[column]
+            self._data_frame.sort_values(column, ascending=self._ascending_order[column], inplace=True)
         finally:
             self._lock.unlock()
 

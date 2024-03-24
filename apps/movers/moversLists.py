@@ -9,7 +9,7 @@
 
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QMainWindow, QHeaderView
+from PyQt5.QtWidgets import QMainWindow, QHeaderView, QPushButton
 
 import numpy as np
 from dataHandling.Constants import Constants, DT_BAR_TYPES, TableType
@@ -100,56 +100,77 @@ class MoversList(MoversWindow):
         function_labels = [lambda x: f"{x:.2f}", lambda x: f"{x:.2f}%", lambda x: f"{x:.2f}", lambda x: f"{x:.2f}", lambda x: f"{x:.2f}%", lambda x: f"{x:.2f}%"]
         self.overview_model = OverviewModel(self.table_data, mapping, header_labels, function_labels)
         self.overview_table.setModel(self.overview_model)
+        self.setupVerticalHeaderInteraction(self.overview_table, self.overview_model)
 
         mapping = {0: Constants.PRICE, 1: 'Day_LOW', 2: 'Week_LOW', 3: "2 Weeks_LOW", 4: "Month_LOW", 5: "2 Months_LOW", 6: "6 Months_LOW", 7: "1 Year_LOW"}
         header_labels = ['Price', 'Day', 'Week', '2 Weeks', '1 Month', '2 Months', '6 Months', 'Year']
         self.low_model = LevelModel(self.table_data, mapping, header_labels)
         self.low_table.setModel(self.low_model)
+        self.setupVerticalHeaderInteraction(self.low_table, self.low_model)
 
         mapping = {0: Constants.PRICE, 1: 'Day_HIGH', 2: 'Week_HIGH', 3: "2 Weeks_HIGH", 4: "Month_HIGH", 5: "2 Months_HIGH", 6: "6 Months_HIGH", 7: "1 Year_HIGH"}
         header_labels = ['Price', 'Day', 'Week', '2 Weeks', '1 Month', '2 Months', '6 Months', 'Year']
         self.high_model = LevelModel(self.table_data, mapping, header_labels)
         self.high_table.setModel(self.high_model)
+        self.setupVerticalHeaderInteraction(self.high_table, self.high_model)
 
         mapping = {0: Constants.PRICE, 1: '1 min_UpSteps', 2: '2 mins_UpSteps', 3: '3 mins_UpSteps', 4: '5 mins_UpSteps', 5: '15 mins_UpSteps', 6: '1 hour_UpSteps', 7: '4 hours_UpSteps', 8: '1 day_UpSteps'}
         header_labels = ['Price', '1m Up', '2m Up', '3m Up', '5m Up', '15m Up', '1H Up', '4H Up', 'Day Up']
         self.step_up_model = StepModel(self.table_data, mapping, header_labels)
         self.step_up_table.setModel(self.step_up_model)
+        self.setupVerticalHeaderInteraction(self.step_up_table, self.step_up_model)
 
         mapping = {0: Constants.PRICE, 1: '1 min_DownSteps', 2: '2 mins_DownSteps', 3: '3 mins_DownSteps', 4: '5 mins_DownSteps', 5: '15 mins_DownSteps', 6: '1 hour_DownSteps', 7: '4 hours_DownSteps', 8: '1 day_DownSteps'}
         header_labels = ['Price', '1m Down', '2m Down', '3m Down', '5m Down', '15m Down', '1H Down', '4H Down', 'Day Down']
         self.step_down_model = StepModel(self.table_data, mapping, header_labels)
         self.step_down_table.setModel(self.step_down_model)
+        self.setupVerticalHeaderInteraction(self.step_down_table, self.overview_model)
 
         mapping = {0: Constants.PRICE, 1: '1 min_InnerCount', 2: '2 mins_InnerCount', 3: '3 mins_InnerCount', 4: '5 mins_InnerCount', 5: '15 mins_InnerCount', 6: '1 hour_InnerCount', 7: '4 hours_InnerCount', 8: '1 day_InnerCount'}
         header_labels = ['Price', '1m', '2m', '3m', '5m', '15m', '1H', '4H', 'Day']
         function_labels = [lambda x: f"{x:.2f}", lambda x: str(x), lambda x: str(x), lambda x: str(x), lambda x: str(x), lambda x: str(x), lambda x: str(x), lambda x: str(x), lambda x: str(x)]
         self.inside_bar_model = StepModel(self.table_data, mapping, header_labels, function_labels)
         self.inside_bar_table.setModel(self.inside_bar_model)
+        self.setupVerticalHeaderInteraction(self.inside_bar_table, self.inside_bar_model)
 
         mapping = {0: Constants.PRICE, 1: '1 min_RSI', 2: '2 mins_RSI', 3: '3 mins_RSI', 4: '5 mins_RSI', 5: '15 mins_RSI', 6: "1 hour_RSI", 7: "4 hours_RSI", 8: "1 day_RSI", 9: "Difference_RSI"}
         header_labels = ['Price', Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR, Constants.DAY_BAR, 'Long v Short']
         function_labels = [lambda x: f"{x:.2f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}"]
         self.rsi_model = RSIModel(self.table_data, mapping, header_labels, function_labels)
         self.rsi_table.setModel(self.rsi_model)
+        self.setupVerticalHeaderInteraction(self.rsi_table, self.rsi_model)
 
         mapping = {0: Constants.PRICE, 1: '1 min_REL_RSI', 2: '2 mins_REL_RSI', 3: "3 mins_REL_RSI", 4: '5 mins_REL_RSI', 5: '15 mins_REL_RSI', 6: "1 hour_REL_RSI", 7: "4 hours_REL_RSI", 8: "1 day_REL_RSI", 9: "Difference_REL_RSI"}
         header_labels = ['Price', Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR, Constants.DAY_BAR, 'Long v Short']
         function_labels = [lambda x: f"{x:.2f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}"]
         self.rel_rsi_model = RSIModel(self.table_data, mapping, header_labels, function_labels)
         self.rel_rsi_table.setModel(self.rel_rsi_model)
+        self.setupVerticalHeaderInteraction(self.rel_rsi_table, self.rel_rsi_model)
 
         mapping = {0: Constants.PRICE, 1: 'SPY_CORR', 2: 'QQQ_CORR', 3: 'IWM_CORR'}
         header_labels = ['Price', 'SPY', 'QQQ', 'IWM']
         function_labels = [lambda x: f"{x:.2f}", lambda x: f"{x:.2f}", lambda x: f"{x:.2f}", lambda x: f"{x:.2f}"]
         self.index_corr_model = CorrModel(self.table_data, mapping, header_labels, function_labels)
         self.index_correlation_table.setModel(self.index_corr_model)
+        self.setupVerticalHeaderInteraction(self.index_correlation_table, self.index_corr_model)
 
         self.models = [self.overview_model, self.low_model, self.high_model, self.step_up_model, self.step_down_model, self.rsi_model, self.rel_rsi_model, self.index_corr_model]
         for model in self.models: model.greyout_stale = self.use_stale_box.isChecked()
 
+    
+    def setupVerticalHeaderInteraction(self, table_view, table_model):        
+        # table_view.setCornerButtonEnabled(False)
+        table_view.verticalHeader().sectionClicked.connect(self.onRowHeaderClicked)
+        corner_button = table_view.findChild(QtWidgets.QAbstractButton)
+        corner_button.clicked.disconnect()
+        corner_button.clicked.connect(table_model.onVerticalHeaderClicked)
 
     
+    def onRowHeaderClicked(self, row_index):
+        symbol = self.table_data.getValueForColRow(Constants.SYMBOL, row_index)
+        webbrowser.open(f"https://www.tradingview.com/chart/?symbol={symbol}", new=2)
+
+
 ############## Callbacks
 
 
@@ -377,9 +398,6 @@ class MoversList(MoversWindow):
                 max_date = self.table_data.getValueFor(uid, 'MAX_DATE').strftime('%Y.%m.%d')
                 QtWidgets.QToolTip.showText(p, f"{max_value} on {max_date}")
 
-        elif column == 0:
-            item = self.stock_list[uid]
-            webbrowser.open(f"https://www.tradingview.com/chart/?symbol={item['exchange']}%3A{item[Constants.SYMBOL]}", new=2)
 
 
         #TODO this should be in super
