@@ -32,6 +32,7 @@ from dataHandling.ibFTPdata import getShortDataFor
 class ComparisonList(ComparisonWindow):
 
     time_period = "Month"
+    selected_duration = "Max"
     
     fetch_range_signal = pyqtSignal()
     fetch_latest_signal = pyqtSignal()
@@ -54,6 +55,7 @@ class ComparisonList(ComparisonWindow):
         self.fillTickerLists()
         self.resetProcessor()
         sys.setrecursionlimit(20_000)
+        self.plot_period_selector.setCurrentText(self.selected_duration)
 
 
     def listSetup(self):
@@ -129,7 +131,7 @@ class ComparisonList(ComparisonWindow):
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
-        print(f"ComparisonList.apiUpdate {signal}")
+        print(f"ComparisonList.apiUpdate {signal} {sub_signal}")
         if signal == Constants.SELECTED_KEYS_CHANGED:
             print("ComparisonList.apiUpdate SELECTED_KEYS_CHANGED")
         elif ((signal == Constants.HISTORICAL_GROUP_COMPLETE) and (sub_signal['type'] == 'range_group')) or (signal == Constants.ALL_DATA_LOADED):

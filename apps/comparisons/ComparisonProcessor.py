@@ -27,12 +27,12 @@ class ComparisonProcessor(DataProcessor):
     minutes_per_bar = MINUTES_PER_BAR
     period_days = {'Day': 1, '2 Day': 2, '5 Day': 5, 'Month': 30, '2 Months': 60}
 
-    selected_duration = 'Day'
+    selected_duration = 'Max'
 
     show_line = True
 
     check_list = None
-    regular_hours = True
+    regular_hours = False
     primary_graph_data = None
     focus_graph_data = None
     focus_list = None
@@ -48,7 +48,7 @@ class ComparisonProcessor(DataProcessor):
         self.data_object = ComparisonDataWrapper()
         
         self.bar_types = bar_types
-        
+
 
     def setStockList(self, stock_list):
         self.check_list = {key: True for key in stock_list.keys()}
@@ -158,7 +158,18 @@ class ComparisonProcessor(DataProcessor):
         if self.check_list is not None:
             self.recalculateGraphLines(uids, self.check_list)
             self.recalcFocusData()
-            self.data_object.updatePrimaryGraphData(self.primary_graph_data, forced_reset=forced_reset)
+            self.data_object.updatePrimaryGraphData(self.primary_graph_data, self.selected_bar_type, forced_reset=forced_reset)
+
+
+    # def insertDayBreak(self, graph_line, time_index_sel):
+    #     day_change_ind = np.where(np.diff([dt.date() for dt in time_index_sel]))[0] + 1
+    #     graph_line['time_indices'] = np.insert(np.array(graph_line['time_indices']).astype(float), day_change_ind, np.nan)
+    #     graph_line['indices'] = np.insert(np.array(graph_line['indices']).astype(float), day_change_ind, np.nan)
+    #     graph_line['original'] = np.insert(np.array(graph_line['original']).astype(float), day_change_ind, np.nan)
+    #     graph_line['adapted'] = np.insert(np.array(graph_line['adapted']).astype(float), day_change_ind, np.nan)
+    #     graph_line['adapted_low'] = np.insert(np.array(graph_line['adapted_low']).astype(float), day_change_ind, np.nan)
+    #     graph_line['adapted_high'] = np.insert(np.array(graph_line['adapted_high']).astype(float), day_change_ind, np.nan)
+    #     return graph_line
 
 
     def recalculateGraphLines(self, uids, check_list):
@@ -219,6 +230,7 @@ class ComparisonProcessor(DataProcessor):
             unix_time_indices = pd.to_datetime(time_index_sel) #, utc=False)
             unix_time_indices = (unix_time_indices.tz_localize(None) - pd.Timestamp("1970-01-01 02:00:00")) // pd.Timedelta('1s')
             
+            graph_line['original_dts'] = time_index_sel
             graph_line['time_indices'] = unix_time_indices
             graph_line['label'] = symbol
             graph_line['indices'] = int_indices
@@ -229,23 +241,10 @@ class ComparisonProcessor(DataProcessor):
             graph_line['adapted_low'] = self.convertData(low_data.copy(), base_price=base_price, min_price=min_value, max_price=max_value, to_type=self.conversion_type)
             graph_line['adapted_high'] = self.convertData(high_data.copy(), base_price=base_price, min_price=min_value, max_price=max_value, to_type=self.conversion_type)
             
-            if self.selected_bar_type != Constants.DAY_BAR:
-                graph_line = self.insertDayBreak(graph_line, time_index_sel)
-
             return graph_line
 
         return None
 
-
-    def insertDayBreak(self, graph_line, time_index_sel):
-        day_change_ind = np.where(np.diff([dt.date() for dt in time_index_sel]))[0] + 1
-        graph_line['time_indices'] = np.insert(np.array(graph_line['time_indices']).astype(float), day_change_ind, np.nan)
-        graph_line['indices'] = np.insert(np.array(graph_line['indices']).astype(float), day_change_ind, np.nan)
-        graph_line['original'] = np.insert(np.array(graph_line['original']).astype(float), day_change_ind, np.nan)
-        graph_line['adapted'] = np.insert(np.array(graph_line['adapted']).astype(float), day_change_ind, np.nan)
-        graph_line['adapted_low'] = np.insert(np.array(graph_line['adapted_low']).astype(float), day_change_ind, np.nan)
-        graph_line['adapted_high'] = np.insert(np.array(graph_line['adapted_high']).astype(float), day_change_ind, np.nan)
-        return graph_line
 
 
     def generateTimeIndices(self, start_time, end_time, bar_type):

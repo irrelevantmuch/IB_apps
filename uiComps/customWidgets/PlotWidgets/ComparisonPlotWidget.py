@@ -60,7 +60,7 @@ class ComparisonPlotWidget(pg.PlotWidget):
         max_indices = np.empty(line_count)
 
         for index, key in enumerate(line_ids):
-            price_data = self.data_object.getLineData(self.plot_type, key)
+            price_data = self.data_object.getLineData(key)
             line_points = price_data['adapted']
             time_indices = price_data['time_indices']
 
@@ -80,20 +80,35 @@ class ComparisonPlotWidget(pg.PlotWidget):
         return min_y_value, max_y_value, min_x_value, max_x_value, min_indices, max_indices, min_points, max_points
 
 
-    def setupCurves(self, show_tops_bottoms):
+    def addMouseOverElements(self):
+        self.addCrossHair()
+                # Add arrow and text (assuming these are static or not part of the band-specific setup)
+        self.arrow_mid = pg.ArrowItem(angle=240, pen=(255, 255, 0), brush=(255, 0, 0))
+        self.text_mid = pg.TextItem('', color=(80, 80, 80), fill=pg.mkBrush('w'), anchor=(0.5, 2.0))
+        self.text_mid.setZValue(100)
+        self.addItem(self.arrow_mid)
+        self.addItem(self.text_mid)
+
+
+    def resetPlot(self):
         self.clear()
-        self.initializeBand()
-
-        line_ids, line_count = self.data_object.getPlotParameters(self.plot_type)
-        
-        self.plotItem.legend.setColumnCount(7)
-        self.plotItem.legend.setOffset((30,5))
-
-        axis = DateAxisItem(orientation='bottom')
-        #axis.attachToPlotItem(self.getPlotItem())
-        axis.linkToView(self.getViewBox())
         self.curve_points = dict()
         self.curves = dict()
+        self.high_low_bands = dict()
+        self.plotItem.legend.setColumnCount(7)
+        self.plotItem.legend.setOffset((30,5))
+        self.addMouseOverElements()
+
+        # axis = DateAxisItem(orientation='bottom')
+        # #axis.attachToPlotItem(self.getPlotItem())
+        # axis.linkToView(self.getViewBox())
+
+
+    def setupCurves(self, show_tops_bottoms):
+        print("ComparisonPlotWidget.setupCurves")
+        self.resetPlot()
+        line_ids, line_count = self.data_object.getPlotParameters(self.plot_type)
+        
         if line_count > 0:
             color_list = self.generateColorList(line_count)
             self.len_list = [len(data_line) for data_line in self.data_object.getLines(self.plot_type).values()]
@@ -105,10 +120,10 @@ class ComparisonPlotWidget(pg.PlotWidget):
             has_plots = False
             
             for index, key in enumerate(line_ids):
-                price_data = self.data_object.getLineData(self.plot_type, key)
-                line_points = price_data['adapted']
-                time_indices = price_data['time_indices']
                 
+                time_indices, line_points, low_line, high_line = self.getPlotLines(key)
+
+                price_data = self.data_object.getLineData(key)
                 if price_data['label'] == "Average":
                     pen = pg.mkPen(color=color_list[index],width=6)
                 else:
@@ -117,25 +132,92 @@ class ComparisonPlotWidget(pg.PlotWidget):
                 if len(line_points) > 0:            
                     has_plots = True
                     self.createCurve(key, time_indices, line_points, pen, price_data['label'])
+                    self.createBands(key, time_indices, low_line, high_line)
                     
-            
             if has_plots:
-                # print(f"Where are these coming from {min_y_value} {max_y_value}")
-                # print(f"Where are these coming from {min_x_value} {max_x_value}")
+                print(f"Where are these coming from {min_y_value} {max_y_value}")
+                print(f"Where are these coming from {min_x_value} {max_x_value}")
                 self.setYRange(min_y_value, max_y_value, padding=0.5)
                 self.setXRange(min_x_value, max_x_value, padding=0.5)
             
             if show_tops_bottoms:
+                print("Maybe this?")
                 self.min_points = self.plot(min_indices, min_points, pen=None, symbol='d')
                 self.max_points = self.plot(max_indices, max_points, pen=None, symbol='x')
 
 
+    def createCurve(self, key, time_indices, line_points, pen, label):
+        print(f"ComparisonPlotWidget.createCurve {type(line_points)}")
+        print(line_points)
+        self.curves[key] = self.plot(time_indices, line_points, pen=pen, symbol='o', symbolPen=pen, name=label)
+        self.curves[key].setSymbolSize(1)
+        self.curve_points[key] = pg.CurvePoint(self.curves[key])
+        self.addItem(self.curve_points[key])
+        
+
+    def createBands(self, key, index_data, low_data, high_data):
+        segments = []
+        current_segment = {'x': [], 'low': [], 'high': []}
+
+        # Ensure x_data, high_data, and low_data are aligned
+        for x_point, low_point, high_point in zip(index_data, low_data, high_data):
+            if np.isnan(low_point) or np.isnan(high_point):
+                # Avoid adding empty segments
+                if current_segment['x'] and current_segment['low'] and current_segment['high']:
+                    segments.append(current_segment)
+                current_segment = {'x': [], 'low': [], 'high': []}  # Reset for the next segment
+            else:
+                current_segment['x'].append(x_point)
+                current_segment['low'].append(low_point)
+                current_segment['high'].append(high_point)
+
+        # Add the last segment if it's not empty
+        if current_segment['x'] and current_segment['low'] and current_segment['high']:
+            segments.append(current_segment)
+
+        self.high_low_bands[key] = []
+        for segment in segments:
+            curve_low = pg.PlotCurveItem(segment['x'], segment['low'])
+            curve_high = pg.PlotCurveItem(segment['x'], segment['high'])
+            band_item = pg.FillBetweenItem(curve_low, curve_high, brush=(75, 75, 100, 50))
+            self.addItem(band_item)
+            band_item.hide()
+            self.high_low_bands[key].append(band_item)
+
+
+    # def getPlotLines(self, key):
+    #     graph_line = self.data_object.getLineData(key)
+    #     day_change_ind = np.where(np.diff([dt.date() for dt in graph_line['original_dts']]))[0] + 1
+    #     time_index_sel = np.insert(np.array(graph_line['time_indices']).astype(float), day_change_ind, np.nan)
+    #     original_line = np.insert(np.array(graph_line['adapted']).astype(float), day_change_ind, np.nan)
+    #     low_line = np.insert(np.array(graph_line['adapted_low']).astype(float), day_change_ind, np.nan)
+    #     high_line = np.insert(np.array(graph_line['adapted_high']).astype(float), day_change_ind, np.nan)
+    #     return time_index_sel, original_line, low_line, high_line
+
+    def getPlotLines(self, key):
+        graph_line = self.data_object.getLineData(key)
+        # Ensure dt.date() conversion handles all cases correctly
+        dates = np.array([dt.date() for dt in graph_line['original_dts']])
+        day_change_ind = np.where(np.diff(dates) != np.timedelta64(0, 'D'))[0] + 1
+        
+        def insert_nans(arr):
+            return np.insert(np.array(arr).astype(float), day_change_ind, np.nan)
+        
+        time_index_sel = insert_nans(graph_line['time_indices'])
+        original_line = insert_nans(graph_line['adapted'])
+        low_line = insert_nans(graph_line['adapted_low'])
+        high_line = insert_nans(graph_line['adapted_high'])
+
+        return time_index_sel, original_line, low_line, high_line
+
+
     def updateCurves(self, uids):
+        print("ComparisonPlotWidget.updateCurves")
         for uid in uids:
-            updated_data = self.data_object.getLineData(self.plot_type, uid)
-            line_points = updated_data['adapted']
-            time_indices = updated_data['time_indices']
+            time_indices, line_points, low_points, high_points = self.getPlotLines(uid)
+
             self.curves[uid].setData(x=time_indices, y=line_points)
+            # self.curve_points[key].setData()
             # self.curve_points[uid] = pg.CurvePoint(curve_mid)
 
         min_y_value, max_y_value, min_x_value, max_x_value, min_indices, max_indices, min_points, max_points = self.calculateMinMax()
@@ -154,13 +236,6 @@ class ComparisonPlotWidget(pg.PlotWidget):
             self.max_points = self.plot(max_indices, max_points, pen=None, symbol='x')
 
 
-    def createCurve(self, key, time_indices, line_points, pen, label):
-        self.curves[key] = self.plot(time_indices, line_points, pen=pen, symbol='o', symbolPen=pen, name=label)
-        self.curves[key].setSymbolSize(1)
-        self.curve_points[key] = pg.CurvePoint(self.curves[key])
-        self.addItem(self.curve_points[key])
-        
-
     def addCrossHair(self):
         self.addItem(pg.InfiniteLine(pos=0.0, angle=0, pen=pg.mkPen(color=(170,170,170), width=2, style=QtCore.Qt.DashLine), movable=False))
         self.hLine = pg.InfiniteLine(pos=0.0, angle=0, pen=pg.mkPen(color=(170,170,170), width=2, style=QtCore.Qt.DashLine), movable=False)
@@ -168,22 +243,11 @@ class ComparisonPlotWidget(pg.PlotWidget):
         
 
     def setData(self, data_object):
+        print("ComparisonPlotWidget.setData")
+        print(data_object)
         self.data_object = data_object
         self.data_object.processing_updater.connect(self.dataUpdate, Qt.QueuedConnection)
         self.setupCurves(True)
-
-
-    def initializeBand(self):
-        self.addCrossHair()
-        self.curve_high = pg.PlotCurveItem()
-        self.curve_low = pg.PlotCurveItem()
-        self.high_low_band = pg.FillBetweenItem(self.curve_low, self.curve_high, brush=(75,75,100,50))
-        self.addItem(self.high_low_band)
-        
-        self.arrow_mid = pg.ArrowItem(angle=240,pen=(255,255,0),brush=(255,0,0))
-        self.text_mid = pg.TextItem('',color=(80,80,80),fill=pg.mkBrush('w'),anchor=(0.5,2.0))
-        self.text_mid.setZValue(100)
-
 
 
     @pyqtSlot(str, dict)
@@ -196,8 +260,6 @@ class ComparisonPlotWidget(pg.PlotWidget):
                 self.renewal = False
             else:
                 self.updateCurves(sub_signal['updated_uids'])
-            
-
 
     
     def mouseMoved(self, evt):
@@ -211,59 +273,63 @@ class ComparisonPlotWidget(pg.PlotWidget):
     
             self.hLine.setPos(y_mouse)
 
-            min_y_dist = sys.float_info.max
-            min_key = None
-            min_symbol = 'Not Found'
-            for k, price_data in data_lines.items():
-                time_index_list = price_data['time_indices'].tolist()
-                #if x_mouse in time_index_list:
-                data_line = price_data['adapted']
-                original_line = price_data['original']
-                data_index, _ = findNearest(np.array(time_index_list), x_mouse)
+            for key in data_lines.keys():
+                for band in self.high_low_bands[key]:
+                    band.hide()
 
-                y_for_x = data_line[data_index]
-                y_dist = abs(y_mouse - y_for_x)
-                if y_dist < min_y_dist:
-                    min_y_dist = y_dist
-                    min_key = k
-                    min_symbol = price_data['label']
-                    min_original_line = original_line
-                    min_index = data_index
-                    min_point_count = len(data_line)
-
-                    low_data = price_data['adapted_low']
-                    high_data = price_data['adapted_high']
-                    index_data = time_index_list
+            min_key, min_index = self.findClosest(x_mouse, y_mouse, data_lines)
 
             if min_key is not None:
-                self.arrow_mid.setParentItem(self.curve_points[min_key])
-                self.text_mid.setParentItem(self.curve_points[min_key])
-                if min_point_count == 1:
-                    self.curve_points[min_key].setPos(0)
-                else:
-                    self.curve_points[min_key].setPos(min_index/(min_point_count-1))
-
-                self.arrow_mid.show()
-                self.high_low_band.show()
-                self.text_mid.show()
-                self.text_mid.setText(f"{min_symbol}: {min_original_line[min_index]:.2f}")
-
-                self.curve_low.setData(index_data, low_data)
-                self.curve_high.setData(index_data, high_data)
+                self.plotHighLowBandFor(min_key, min_index)
                 found_match = True
         
         if not found_match:
             self.arrow_mid.hide()
-            self.high_low_band.hide()
             self.text_mid.hide()
-        
+            
 
-    def findClosest(self, value, element_list):
-        np_list = np.array(element_list)
-        distance_list = np_list - value 
-        min_distance = min(distance_list)
-        min_index = distance_list.index(min_distance)
-        return min_index, min_distance
+    def plotHighLowBandFor(self, key, min_index):
+ 
+        for band_item in self.high_low_bands[key]:
+            band_item.show()
+
+        graph_line = self.data_object.getLineData(key)
+        label = graph_line['label']
+        original_line = graph_line['original']
+        min_point_count = len(original_line)
+        if min_point_count == 1:
+            self.curve_points[key].setPos(0)
+        else:
+            self.curve_points[key].setPos(min_index/(min_point_count-1))
+       
+        self.arrow_mid.setParentItem(self.curve_points[key])
+        self.text_mid.setParentItem(self.curve_points[key])
+        self.arrow_mid.show()
+        self.text_mid.show()
+        self.text_mid.setText(f"{label}: {original_line[min_index]:.2f}")
+
+
+    def findClosest(self, x_mouse, y_mouse, data_lines):
+        min_y_dist = sys.float_info.max
+        min_key = None
+        min_symbol = 'Not Found'
+        for k, price_data in data_lines.items():
+
+            time_index_list = price_data['time_indices'].tolist()
+            
+            data_line = price_data['adapted']
+            data_index, _ = findNearest(np.array(time_index_list), x_mouse)
+            
+            y_for_x = data_line[data_index]
+            y_dist = abs(y_mouse - y_for_x)
+
+            if y_dist < min_y_dist:
+                min_y_dist = y_dist
+                min_key = k
+                min_index = data_index
+                min_symbol = price_data['label']
+
+        return min_key, min_index
 
 
     def capturePlotAsImage(self):
@@ -273,7 +339,6 @@ class ComparisonPlotWidget(pg.PlotWidget):
         #exporter.parameters()['width'] = 1000
         exporter.export('fileName.png')
         return 'fileName.png'
-
 
 
     def updatePlot(self, strike_comp_frame):
