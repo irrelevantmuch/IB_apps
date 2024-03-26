@@ -24,18 +24,29 @@ class TelegramBot(QObject):
             self.bot.send_message(message.chat.id, message.text)
 
 
-    @pyqtSlot(str, float, dict)
-    def sendMessage(self, symbol, latest_price, alert_lines):
-        new_message = self.createMessage(symbol, latest_price, alert_lines)
+    @pyqtSlot(str, float, dict, float)
+    def sendMessage(self, symbol, latest_price, alert_lines, latest_daily_rsi):
+
+        new_message = self.createMessage(symbol, latest_price, alert_lines, latest_daily_rsi)
         if symbol in self.message_tracker:
             self.bot.edit_message_text(new_message, chat_id=self.bot_inf['chat_id'], message_id=self.message_tracker[symbol].message_id, disable_web_page_preview=True, parse_mode= 'HTML')
         else:
             self.message_tracker[symbol] = self.bot.send_message(self.bot_inf['chat_id'], new_message, disable_web_page_preview=True, parse_mode= 'HTML')
 
 
-    def createMessage(self, symbol, latest_price, alert_lines):
-        # (: {level} {alert_type} (<b>{percentage:.1f}%</b>)
-        message = f"<a href='https://www.tradingview.com/chart/?symbol={symbol}'>{symbol}</a> (<b>{latest_price:.2f}</b>):" 
+    def createMessage(self, symbol, latest_price, alert_lines, latest_daily_rsi):
+        if latest_daily_rsi > 0:
+            if latest_daily_rsi < 40:
+               strength = "🔴"
+            elif latest_daily_rsi > 60:
+                strength = "🟢"
+            else:
+                strength = "🟠"
+            
+            message = f"<a href='https://www.tradingview.com/chart/?symbol={symbol}'>{symbol}</a> (<b>{latest_price:.2f}</b>) - RSI: <b>{latest_daily_rsi:.2f}</b> {strength}" 
+        else:
+            message = f"<a href='https://www.tradingview.com/chart/?symbol={symbol}'>{symbol}</a> (<b>{latest_price:.2f}</b>):"
+            
         print(alert_lines)
         print(alert_lines.keys())
         for (bar_type, alert_type), level in alert_lines.items():
@@ -65,7 +76,7 @@ class TelegramBot(QObject):
     
 
     def readBotInfo(self):
-        file_name = './data/bot_info.json'
+        file_name = './data/telegram_bot_info.json'
         try:
             with open(file_name) as json_file:
                 json_dict = json.load(json_file)

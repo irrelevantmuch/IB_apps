@@ -553,6 +553,7 @@ class HistoricalDataManager(DataManager):
             
             self.processGroupSignal(req_id)
             if req_id in self._update_requests:
+                print(self._update_requests)
                 self._update_requests.remove(req_id)
                 if req_id in self._is_updating:
                     self._last_update_time[req_id] = time.time()

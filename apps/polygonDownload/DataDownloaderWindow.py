@@ -12,7 +12,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QStyledItemDelegate
 from uiComps.qtGeneration.DataDetails_UI import Ui_MainWindow as DataDetails_UI
 from dataHandling.Constants import Constants
-from dataHandling.TradeManagement.UserDataManagement import getStockListNames
+from dataHandling.UserDataManagement import getStockListNames
 from dataHandling.Constants import TableType
 
 from uiComps.customWidgets.PlotWidgets.CandlePlotWidget import CandlePlotWidget

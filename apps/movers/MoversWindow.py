@@ -12,7 +12,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMainWindow, QHeaderView
 from uiComps.qtGeneration.Movers_UI import Ui_MainWindow as Movers_UI
 from dataHandling.Constants import Constants
-from dataHandling.TradeManagement.UserDataManagement import getStockListNames
+from dataHandling.UserDataManagement import getStockListNames
 from dataHandling.Constants import TableType
 # from generalFunctionality.UIFunctions import findRowForValue
 # from generalFunctionality.UIFunctions import getNumericItem, AlignDelegate, BigNumberAlignDelegate, PercAlignDelegate

@@ -1,7 +1,7 @@
 
 from dataHandling.Constants import Constants, MAIN_BAR_TYPES, DT_BAR_TYPES, MINUTES_PER_BAR
 from dataHandling.DataStructures import DetailObject
-from dataHandling.TradeManagement.UserDataManagement import readStockList
+from dataHandling.UserDataManagement import readStockList
 from datetime import datetime
 from pytz import timezone
 from dateutil.relativedelta import relativedelta
@@ -26,6 +26,8 @@ class BufferedDataManager(QObject):
     stocks_to_fetch = dict()
     updated_through = dict()
     initial_fetch = True
+
+    fetching_bars = None
 
     queued_update_requests = []
 
@@ -52,7 +54,8 @@ class BufferedDataManager(QObject):
 
 
     def connectSignalsToSlots(self):
-        # print("BufferedManager.connectSignalsToSlots")
+        print("BufferedManager.connectSignalsToSlots")
+        print(self.history_manager)
         self.reset_signal.connect(self.history_manager.cancelActiveRequests, Qt.QueuedConnection)
         self.create_request_signal.connect(self.history_manager.createRequestsForContract, Qt.QueuedConnection)
         self.request_update_signal.connect(self.history_manager.requestUpdates, Qt.QueuedConnection)
@@ -75,22 +78,24 @@ class BufferedDataManager(QObject):
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, data_dict):
+        print(f"BufferedDataManager.apiUpdate {signal}")
         if signal == Constants.HISTORICAL_GROUP_COMPLETE:
             if len(self.stocks_to_fetch) != 0:
-                self.fetchNextStock()
+                self.fetchNextStock(self.fetching_bars)
             elif self.partial_update:
+                print("Request PARTIAL")
                 self.requestUpdates(update_list=self.update_list, propagate_updates=True)
                 self.partial_update = False
             else:
                 self.api_updater.emit(Constants.ALL_DATA_LOADED, dict())
                 self.initial_fetch = False
         elif signal == Constants.HISTORICAL_UPDATE_COMPLETE:
-            print("1) DO WE MAKE IT HERE?")
             if len(self.queued_update_requests) > 0:
-                print("2) AND VIA HERE???")
+                print("Request From QUEUE")
                 request = self.queued_update_requests.pop(0)
                 self.requestUpdates(update_bar=request['bar_type'], keep_up_to_date=request['keep_up_to_date'], propagate_updates=True, update_list=request['update_list'])
             else:
+                print("")
                 self.api_updater.emit(Constants.ALL_DATA_LOADED, dict())
                 self.initial_fetch = False
 
@@ -106,7 +111,7 @@ class BufferedDataManager(QObject):
 
     @pyqtSlot()
     @pyqtSlot(list)
-    def fetchLatestStockData(self, bar_types=DT_BAR_TYPES, needs_disconnect=False):
+    def fetchLatestStockData(self, bar_types=MAIN_BAR_TYPES, needs_disconnect=False):
         print(f"BufferedManager.fetchLatestStockData on thread: {int(QThread.currentThreadId())}")
         if needs_disconnect: self.history_manager.cleanup_done_signal.disconnect()
 
@@ -115,27 +120,28 @@ class BufferedDataManager(QObject):
         self.stocks_to_fetch, self.update_list = self.splitRequestsForUpdateType()
 
         # print(f"We have {len(self.stocks_to_fetch)} tickers to fetch and {len(self.update_list)} to update")
+        self.fetching_bars = bar_types
 
         if len(self.stocks_to_fetch) > 0:
-            self.fetchNextStock(bar_types=bar_types)
+            self.fetchNextStock(bar_types=self.fetching_bars)
             if len(self.update_list) > 0:
                 self.partial_update = True
-
-        if len(self.update_list) > 0:
+        elif len(self.update_list) > 0:
+            print("Just through here no?")
             self.requestUpdates(update_list=self.update_list, propagate_updates=True)
 
 
-    def fetchHistStockData(self, bar_types, date_range=None, selected_uid=None):
-        self.history_manager.process_owner = self
+    # def fetchHistStockData(self, bar_types, date_range=None, selected_uid=None):
+    #     self.history_manager.process_owner = self
 
-        self.stocks_to_fetch = dict()
-        if selected_uid is None:
-            for uid, value in self._buffering_stocks.items():
-                self.stocks_to_fetch[uid] = value      
-        else:
-            self.stocks_to_fetch[selected_uid] = self._buffering_stocks[selected_uid]
-        if len(self.stocks_to_fetch) > 0:
-            self.fetchNextStock(bar_types, full_fetch=True)
+    #     self.stocks_to_fetch = dict()
+    #     if selected_uid is None:
+    #         for uid, value in self._buffering_stocks.items():
+    #             self.stocks_to_fetch[uid] = value      
+    #     else:
+    #         self.stocks_to_fetch[selected_uid] = self._buffering_stocks[selected_uid]
+    #     if len(self.stocks_to_fetch) > 0:
+    #         self.fetchNextStock(bar_types, full_fetch=True)
             
 
     def splitRequestsForUpdateType(self):
@@ -169,9 +175,11 @@ class BufferedDataManager(QObject):
         return day_diff < self.max_day_diff
 
 
+    def fetchNextStock(self, bar_types=None, full_fetch=False):
+        print("BufferedManager.fetchNextStock")
+        if bar_types is None:
+            bar_types = MAIN_BAR_TYPES
 
-    def fetchNextStock(self, bar_types=MAIN_BAR_TYPES, full_fetch=False):
-        # print("BufferedManager.fetchNextStock")
         uid, value = self.stocks_to_fetch.popitem()
         details = DetailObject(symbol=value[Constants.SYMBOL], exchange=value['exchange'], numeric_id=uid)
 
@@ -205,16 +213,17 @@ class BufferedDataManager(QObject):
             self.requestSmallUpdates(update_bar, keep_up_to_date, propagate_updates, update_list)
         else:
             for uid in update_list:
-                update_list[uid]['begin_date'] = self.getMinimumStoredDate(uid)
+                update_list[uid]['begin_date'] = self.getOldestEndDate(uid)
             
-            self.request_update_signal.emit(update_list, update_bar, keep_up_to_date, propagate_updates) #, keep_up_to_date)
+            self.request_update_signal.emit(update_list, update_bar, keep_up_to_date, propagate_updates)
 
 
     def requestSmallUpdates(self, update_bar, keep_up_to_date, propagate_updates, update_list):
+        print(f"BufferedManager.requestSmallUpdates")
         now_time = datetime.now(timezone(Constants.NYC_TIMEZONE))
         five_min_update_list = dict()
         for uid in update_list:
-            begin_date = self.getMinimumStoredDate(uid)
+            begin_date = self.getOldestEndDate(uid)
             total_seconds = int((now_time-begin_date).total_seconds())
             if total_seconds > 10800:
                 five_min_update_list[uid] = update_list[uid]
@@ -234,7 +243,7 @@ class BufferedDataManager(QObject):
     ################ DATE AND RANGE HANDLING
 
 
-    def getMinimumStoredDate(self, uid, bar_types=MAIN_BAR_TYPES):        
+    def getOldestEndDate(self, uid, bar_types=MAIN_BAR_TYPES):        
         minimum_date = None
         for bar_type in bar_types:
             if self.data_buffers.bufferExists(uid, bar_type):

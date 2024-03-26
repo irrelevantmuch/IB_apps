@@ -42,7 +42,6 @@ class DataBuffers(QObject):
 
 
     def getIndicatorValues(self, uid, bar_type, indicators):
-        print(f"DataBuffer.getIndicatorValues {type(indicators)}")
         self._locks[uid, bar_type].lockForRead()
         try:
             if ((uid, bar_type) in self._indicators) and all(indicator in self._indicators[uid, bar_type] for indicator in indicators):
@@ -145,11 +144,11 @@ class DataBuffers(QObject):
 
 
     def getLatestRow(self, uid, bar_type):
-        self._locks[uid, smallest_bar_type].lockForRead()
+        self._locks[uid, bar_type].lockForRead()
         try:
-            return self._buffers[uid, smallest_bar_type].iloc[-1].copy()
+            return self._buffers[uid, bar_type].iloc[-1].copy()
         finally:
-            self._locks[uid, smallest_bar_type].unlock()
+            self._locks[uid, bar_type].unlock()
 
         
 
@@ -324,9 +323,10 @@ class DataBuffers(QObject):
                 self.setBufferFor(uid, curr_bar_type, new_data, [date_range])
 
             greater_bars = []
+            first_indices = {curr_bar_type: new_data.index.min()}
             if propagate_updates:
                     #we want to use the updated bars on lower time frames to complete bars on higher time frames
-                first_indices = {curr_bar_type: new_data.index.min()}
+                
                 greater_bars = self.getBarsAbove(curr_bar_type)
 
                 for to_bar_type in greater_bars:

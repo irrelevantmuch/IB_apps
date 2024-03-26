@@ -4,13 +4,12 @@ import json
 import pandas as pd
 from dataHandling.Constants import Constants
 from dateutil.relativedelta import relativedelta
+from dataHandling.UserDataManagement import readApiKeys
 import time
 import sys
 from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal
 
-
-    # The Polygon.io API key
-API_KEY = 'your_polygon_key'
+api_keys = readApiKeys()
 
     # Define the base URL
 base_url = 'https://api.polygon.io'
@@ -76,7 +75,7 @@ class PolygonDownloader(QObject):
             # While there are pages
             while url:
                 # Make the HTTP request
-                url += '&apiKey=' + API_KEY + '&limit=50000'
+                url += '&apiKey=' + api_keys[Constants.POLYGON_SOURCE] + '&limit=50000'
                 
                 response = requests.get(url)
 

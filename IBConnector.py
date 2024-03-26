@@ -50,10 +50,10 @@ class IBConnector:
 
 
     def getHistoryWithIndicator(self):
-        if self.data_source == "IBKR":
+        if self.data_source == Constants.IB_SOURCE:
             history_manager = self.getHistoryManagerIB('general_history')
-        elif self.data_source == "Finazon":
-            history_manager = self.getHistoryManagerIB('general_history')
+        elif self.data_source == Constants.FINAZON_SOURCE:
+            history_manager = self.getFinazonManager('general_history')
 
         indicator_processor = self.getInidicatorManager(history_manager.getDataBuffer())
         return history_manager, indicator_processor
@@ -62,19 +62,16 @@ class IBConnector:
     def getInidicatorManager(self, data_object):
         if self.indicator_processor is None:
 
-            self.indicator_thread = QThread()
             self.indicator_processor = IndicatorProcessor(data_object)
-            self.indicator_processor.moveToThread(self.indicator_thread)
-            self.indicator_thread.started.connect(self.indicator_processor.run)
-            self.indicator_thread.start()
-
+            self.startWorkerThread('general_indicator', self.indicator_processor)
+            
         return self.indicator_processor
 
 
     def getHistoryManager(self, identifier='general_history'):
-        if self.data_source == "IBKR":
+        if self.data_source == Constants.IB_SOURCE:
             return self.getHistoryManagerIB(identifier)
-        elif self.data_source == "Finazon":
+        elif self.data_source == Constants.FINAZON_SOURCE:
             return self.getFinazonManager(identifier)
 
 

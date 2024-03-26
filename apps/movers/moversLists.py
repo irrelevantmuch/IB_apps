@@ -25,7 +25,7 @@ from uiComps.customWidgets.OrderDialog import StepOrderDialog
 from uiComps.customWidgets.PlotWidgets.QuickChart import QuickChart
 
 import webbrowser
-from dataHandling.TradeManagement.UserDataManagement import readStockList
+from dataHandling.UserDataManagement import readStockList
 from dataHandling.ibFTPdata import getShortDataFor
 
 
@@ -175,14 +175,14 @@ class MoversList(MoversWindow):
 
 
     def processingUpdate(self, signal):
-        # print(f"MoversList.processingUpdate {signal}")
+        print(f"MoversList.processingUpdate {signal}")
         # print(f"Do we get data loaded? ")
         if signal == Constants.ALL_DATA_LOADED:
             self.setHistoryEnabled(True)
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
-
+        print(f"MoversList.apiUpdate {signal}")
         if signal == Constants.ALL_DATA_LOADED:
             self.setHistoryEnabled(True)
         elif signal == Constants.DATA_LOADED_FROM_FILE:

@@ -15,6 +15,15 @@ def fetchPositionNotes():
         return dict()
 
 
+def readApiKeys():
+    try:
+        with open('data/api_keys.json') as json_file:
+            data = json.load(json_file)
+            return data
+    except: # (IOError, OSError) as e:
+        return dict()
+
+
 def writePositionNotes(dict):
 
     try:

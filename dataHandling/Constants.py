@@ -45,6 +45,10 @@ class Constants:
     TRADING_IBG_SOCKET: Final = 4001
     PAPER_IBG_SOCKET: Final = 4002
 
+    POLYGON_SOURCE: Final = "Polygon Data Source"
+    FINAZON_SOURCE: Final = "Finazon Data Source"
+    IB_SOURCE: Final = "IB Data Source"
+
     OPEN_REQUEST_MAX: Final = 50
 
     MIN_SECONDS: Final = 300

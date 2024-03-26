@@ -12,7 +12,7 @@ from PyQt5.QtCore import QTimeZone
 from PyQt5.QtWidgets import QMainWindow
 from uiComps.qtGeneration.Comparison_UI import Ui_MainWindow as Comparison_UI
 from dataHandling.Constants import Constants
-from dataHandling.TradeManagement.UserDataManagement import getStockListNames
+from dataHandling.UserDataManagement import getStockListNames
 from dataHandling.Constants import TableType
 from uiComps.customWidgets.PlotWidgets.ComparisonPlotWidget import ComparisonPlotWidget
 from uiComps.customWidgets.CheckableComboBox import CheckableComboBox

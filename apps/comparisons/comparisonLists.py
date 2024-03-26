@@ -25,7 +25,7 @@ from uiComps.customWidgets.PlotWidgets.QuickChart import QuickChart
 from uiComps.generalUIFunctionality import addCheckableTickersTo
 
 import webbrowser
-from dataHandling.TradeManagement.UserDataManagement import readStockList
+from dataHandling.UserDataManagement import readStockList
 from dataHandling.ibFTPdata import getShortDataFor
 
 
@@ -135,8 +135,10 @@ class ComparisonList(ComparisonWindow):
         if signal == Constants.SELECTED_KEYS_CHANGED:
             print("ComparisonList.apiUpdate SELECTED_KEYS_CHANGED")
         elif ((signal == Constants.HISTORICAL_GROUP_COMPLETE) and (sub_signal['type'] == 'range_group')) or (signal == Constants.ALL_DATA_LOADED):
+            print("WE ENABLE THROUGH HERE")
             self.setHistoryEnabled(True)
         elif signal == Constants.DATA_LOADED_FROM_FILE:
+            print("OR WE ENABLE THROUGH HERE")
             self.setHistoryEnabled(True, self.data_processor.isUpdatable())
     
 

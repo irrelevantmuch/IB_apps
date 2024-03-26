@@ -28,7 +28,7 @@ from .TickerProcessor import LiveTickerProcessor
 from dataHandling.SymbolManager import SymbolDataManager
 from dataHandling.HistoryManagement.HistoricalDataManagement import HistoricalDataManager
 
-from dataHandling.TradeManagement.UserDataManagement import writeStockList, readStockList, getStockListNames
+from dataHandling.UserDataManagement import writeStockList, readStockList, getStockListNames
 
 
 class TradeMaker(TradingWindow):
@@ -72,9 +72,7 @@ class TradeMaker(TradingWindow):
         self.prepTickerProcessor(history_manager)
         self.connectSignalSlots()
         
-        
         self.product_label.setText(self.stock_list[self.selected_key]['long_name']) 
-        print("TradeMMaker.__init__ 1")
         
         
         self.setupOrderTable(self.order_buffer)
@@ -82,7 +80,6 @@ class TradeMaker(TradingWindow):
         self.setBaseGuiValues()
         self.processor_thread.start()
         
-        # self.order_manager.open_order_request.emit()
         self.tickerSelection(0)
 
 

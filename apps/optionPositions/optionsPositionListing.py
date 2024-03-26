@@ -22,7 +22,7 @@ import threading
 import pandas as pd
 
 from dataHandling.TradeManagement.PositionDataManagement import PositionDataManager
-from dataHandling.TradeManagement.UserDataManagement import fetchPositionNotes, writePositionNotes
+from dataHandling.UserDataManagement import fetchPositionNotes, writePositionNotes
 from uiComps.QHelper import SymbolCompleter
 
 class OptionPositions(OptionPositionWindow):

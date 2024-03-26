@@ -32,7 +32,8 @@ QtWidgets.QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 class AppLauncher(AppLauncherWindow, IBConnector):
 
     running_apps = []
-    data_source = "IBKR"
+    data_source = Constants.IB_SOURCE
+    ib_connected = False
 
     def __init__(self):
         super().__init__()
@@ -49,9 +50,10 @@ class AppLauncher(AppLauncherWindow, IBConnector):
         if status == Constants.CONNECTION_OPEN:
             self.statusbar.showMessage("Connection Open")
             self.toggleAppButtons(True, interface=self.data_source)
-            return
-
-        self.statusbar.showMessage("Offline")
+            self.ib_connected = True
+        else:
+            self.statusbar.showMessage("Offline")
+            self.ib_connected = False
 
 
     def connectionSelection(self):
@@ -69,9 +71,13 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
     def dataSelection(self):
         if self.ib_data_radio.isChecked():
-            self.data_source = "IBKR"
+            self.data_source = Constants.IB_SOURCE
+            self.toggleAppButtons(self.ib_connected, interface=Constants.IB_SOURCE)
+
         elif self.finazon_data_radio.isChecked():
-            self.data_source = "Finazon"
+            self.toggleAppButtons(True, interface=Constants.FINAZON_SOURCE)
+
+            self.data_source = Constants.FINAZON_SOURCE
             
 
     def appRunning(self,app_type):

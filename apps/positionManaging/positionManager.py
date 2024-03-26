@@ -19,7 +19,7 @@ import threading
 import decimal
 import pandas as pd
 
-from dataHandling.TradeManagement.UserDataManagement import readPositionTypes, writePositionTypes
+from dataHandling.UserDataManagement import readPositionTypes, writePositionTypes
 from dataHandling.TradeManagement.PositionDataManagement import PositionDataManager
 
 

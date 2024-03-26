@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 
 # Form implementation generated from reading ui file 'optionsGraph.ui'
@@ -22,7 +23,7 @@ import requests
 import re
 
 from .AlertProcessor import AlertProcessorFinazon, AlertProcessorIB
-from dataHandling.TradeManagement.UserDataManagement import getStockListNames, readStockList
+from dataHandling.UserDataManagement import getStockListNames, readStockList
 from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
 
 from itertools import cycle
@@ -37,7 +38,7 @@ class AlertManager(AlertWindow):
     list_removal_signal = pyqtSignal(str)
     alerting_signal = pyqtSignal(bool)
 
-    telegram_signal = pyqtSignal(str, float, dict)
+    telegram_signal = pyqtSignal(str, float, dict, float)
 
     updating = False
     message_listening = False
@@ -134,7 +135,6 @@ class AlertManager(AlertWindow):
     def loadLists(self):
         
         self.stock_lists = getStockListNames()
-        #check_list = {k: False for k in range(len(self.stock_lists))}
 
         self.comp_checkable_lists.blockSignals(True)
 
@@ -200,50 +200,9 @@ class AlertManager(AlertWindow):
             self.list_selection_button.setText("All Off")
             self.comp_checkable_lists.selectAll()
 
-        print("Not here right?")
-
 
     def getStockList(self, for_index):            
         file_name, _ = self.stock_lists[for_index]
-
-
-    def checkData(self):
-        print("We check the data every so often")
-
-
-    # def checkMessages(self, dont_reply=False):
-
-    #     method = 'getUpdates'
-    #     api_url = f"https://api.telegram.org/bot{self.bot_info['token']}/"
-    #     params = {'offset': self.last_update_id}
-    #     resp = requests.post(api_url + method, params)
-        
-    #     json_dict = json.loads(resp.text)
-    #     print(json.dumps(json_dict, sort_keys=True, indent=4, separators=(',', ': ')))
-    #     messages = json_dict["result"]
-    #     for message in messages:
-    #         message_details = message["message"]
-    #         self.parseMessage(message_details)
-    #         self.last_update_id = message["update_id"] + 1
-
-    
-    # def parseMessage(self, message_details):    
-    #     if "text" in message_details:
-            
-    #         command, params = self.parseCommands(message_details["text"])
-    #         response = self.controller_delegate.request(command, params)
-            
-    #         if response is not None:
-    #             if "photo" in response:
-    #                 self.sendPhoto(open(response["photo"], 'rb'))
-    #             if "text" in response:
-    #                 self.sendTextMessage(response["text"])
-                
-    #             # url = f"https://api.telegram.org/bot{self.bot_info['token']}/sendMessage?chat_id={self.bot_info['chat_id']}&parse_mode=HTML&text={return_message}"
-    #             # requests.get(url)
-    #             return
-    #         else:
-    #             self.sendTextMessage("No apps responding")
 
 
     def parseCommands(self, message):
@@ -258,12 +217,6 @@ class AlertManager(AlertWindow):
         return command, param_dict
 
 
-    # def sendTextMessage(self, message_text):
-    #     print("Maybe this aint working")
-    #     url = f"https://api.telegram.org/bot{self.bot_info['token']}/sendMessage?chat_id={self.bot_info['chat_id']}&parse_mode=HTML&text={message_text}"
-    #     print(requests.get(url))
-
-
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
         pass
@@ -276,88 +229,6 @@ class AlertManager(AlertWindow):
 
     def accepts(self, value):
         return False
-
-
-        # url = f"https://api.telegram.org/bot{bot_info['token']}/getUpdates"
-        # anything = requests.get(url)
-        # print(anything.text)
-        #https://api.telegram.org/botyour_telegram_key/getUpdates
-        #self.send_photo(bot_info, open('funny_image.jpg', 'rb'))
-        #return
-
-    # def lookForAlertables(self):
-    #     pass
-    #     bot_info = self.readBotInfo()
-
-    #     method = 'getUpdates'
-    #     #params = {'chat_id': bot_info['chat_id']}
-    #     #files = {'photo': file_opened}
-    #     api_url = f"https://api.telegram.org/bot{bot_info['token']}/"
-    #     resp = requests.post(api_url + method)
-    #     json_dict = json.loads(resp.text)
-    #     print(json_dict["result"])
-    #     print("Do we get anything good?")
-    #     print(resp.text)
-    #     # url = f"https://api.telegram.org/bot{bot_info['token']}/getUpdates"
-    #     # anything = requests.get(url)
-    #     # print(anything.text)
-    #     #https://api.telegram.org/botyour_telegram_key/getUpdates
-    #     #self.send_photo(bot_info, open('funny_image.jpg', 'rb'))
-    #     return
-
-
-    #     if self.previousDataFrame is not None:
-    #         previous_numeric = self.previousDataFrame.select_dtypes(include=[np.float])
-    #         current_numeric = self.stock_df.select_dtypes(include=[np.float])
-    #         time_between_calc = self.stock_df[Constants.CALCULATED_AT].astype('datetime64[ns]') - self.previousDataFrame[Constants.CALCULATED_AT].astype('datetime64[ns]')
-    #         # print("Classic")
-    #         # print(pd.to_datetime(datetime.now(timezone(Constants.NYC_TIMEZONE))))
-    #         # print("Pandas with EST")
-    #         # print(pd.Timestamp.now(timezone(Constants.NYC_TIMEZONE)))
-    #         # print(type(pd.Timestamp.now(Constants.NYC_TIMEZONE)))
-    #         # print("Pandas without EST")
-    #         # print(pd.Timestamp.now())
-    #         # print(type(pd.Timestamp.now()))
-    #         # print("And this is what's in the array")
-    #         # print(self.stock_df['LAST_FIVE_AT'].iloc[0])
-    #         # print(type(self.stock_df['LAST_FIVE_AT'].iloc[0]))
-    #         # forced_type = self.stock_df['LAST_FIVE_AT'].astype('datetime64[ns]')
-    #         # print("And this is what's in the forced array")
-    #         # print(forced_type.iloc[0])
-    #         # print(type(forced_type.iloc[0]))
-            
-    #         time_to_bars = self.stock_df[Constants.LAST_FIVE_AT].astype('datetime64[ns]') - self.previousDataFrame[Constants.LAST_FIVE_AT].astype('datetime64[ns]')
-            
-    #         #time_to_bars = self.stock_df['LAST_FIVE_AT'].astype('datetime64[ns]') - pd.to_datetime(datetime.now(timezone(Constants.NYC_TIMEZONE)))
-    #         seconds_diff_calc = time_between_calc.apply(lambda x: x.total_seconds())
-    #         seconds_to_bars = time_to_bars.apply(lambda x: x.total_seconds())
-    #         difference_frame = current_numeric - previous_numeric
-    #         self.checkForMomentumShifts(bot_info, difference_frame, seconds_diff_calc, seconds_to_bars)
-                
-
-    # def checkForMomentumShifts(self, bot_info, difference_frame, seconds_diff_calc, seconds_to_bars):
-
-    #     for time_frame in self.bar_minutes:
-    #         rsi_column = time_frame + '_RSI'
-    #         row_selection = (seconds_to_bars < 360) & (seconds_diff_calc < 15) & (abs(difference_frame[rsi_column]) > 4) & ((self.stock_df[rsi_column] > 65) | (self.stock_df[rsi_column] < 35))
-    #         up_movers = self.stock_df.index.values[(difference_frame[rsi_column] > 4) & row_selection]
-            
-    #         # print("BUT THIS SHOULD BE A LOT OF FALSE??!!?")
-    #         # print(seconds_to_bars)
-    #         # print(seconds_diff_calc)
-    #         # print((seconds_to_bars < 360))
-    #         # print((seconds_diff_calc < 15))
-    #         moving_uids = self.stock_df.index.values[row_selection]
-    #         # print(moving_uids)
-
-    #         for key in moving_uids:
-    #             # print("Is it always in there?")
-    #             # print(key)
-    #             # print(up_movers)
-    #             direction = "UP" if key in up_movers else "DOWN"
-    #             message = f"<b>{self.stock_list[key][Constants.SYMBOL]}</b> (<b>{self.stock_df.loc[key,'PRICE']:.2f}</b>): {time_frame} RSI is {direction} to <b>{self.stock_df.loc[key,rsi_column]:.1f}</b>"
-    #             url = f"https://api.telegram.org/bot{bot_info['token']}/sendMessage?chat_id={bot_info['chat_id']}&parse_mode=HTML&text={message}"
-    #             requests.get(url).json()
 
 
     # def sendPhoto(self, file_name):

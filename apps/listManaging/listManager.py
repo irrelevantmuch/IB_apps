@@ -27,7 +27,7 @@ from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
 from dataHandling.SymbolManager import SymbolDataManager
 from dataHandling.HistoryManagement.HistoricalDataManagement import HistoricalDataManager
 
-from dataHandling.TradeManagement.UserDataManagement import writeStockList, readStockList, getStockListNames
+from dataHandling.UserDataManagement import writeStockList, readStockList, getStockListNames
 
 class ListManager(ListManagerWindow):
 

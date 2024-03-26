@@ -10,6 +10,7 @@
 
 from PyQt5.QtWidgets import QMainWindow
 from uiComps.qtGeneration.AppLauncher_UI import Ui_MainWindow as AppLauncher_UI
+from dataHandling.Constants import Constants
 
 
 class AppLauncherWindow(QMainWindow, AppLauncher_UI):
@@ -23,14 +24,16 @@ class AppLauncherWindow(QMainWindow, AppLauncher_UI):
         self.setupActions()
         
 
-    def toggleAppButtons(self, enabled, interface="IBKR"):
-        if interface == "IBKR":
-            for button in self.app_group.buttons():
+    def toggleAppButtons(self, enabled, interface=Constants.IB_SOURCE):
+        if interface == Constants.IB_SOURCE:
+            for button in self.ib_group.buttons():
                 button.setEnabled(enabled)
-        elif interface == "FINAZON":
-            for button in self.app_group.buttons():
+            for button in self.general_history_group.buttons():
+                button.setEnabled(enabled)
+        elif interface == Constants.FINAZON_SOURCE:
+            for button in self.ib_group.buttons():
                 button.setEnabled(False)
-            for button in self.finazon_group.buttons():
+            for button in self.general_history_group.buttons():
                 button.setEnabled(enabled)
 
 
@@ -42,10 +45,10 @@ class AppLauncherWindow(QMainWindow, AppLauncher_UI):
         self.open_stocks.clicked.connect(self.openStocksApp)
         self.open_poly_downloader.clicked.connect(self.openDataDetailsApp)
         self.open_movers.clicked.connect(self.openMoversApp)
-        self.open_fitter.clicked.connect(self.openFittingApp)
-        self.open_analysis.clicked.connect(self.openAnalysisApp)
+        # self.open_fitter.clicked.connect(self.openFittingApp)
+        # self.open_analysis.clicked.connect(self.openAnalysisApp)
         self.open_man_trader.clicked.connect(self.openManualTraderApp)
-        self.open_auto_trader.clicked.connect(self.openAutoTraderApp)
+        # self.open_auto_trader.clicked.connect(self.openAutoTraderApp)
         self.fetch_rates.clicked.connect(self.downloadShortRateData)
         self.open_list_manager.clicked.connect(self.openListManager)
         self.open_comparisons.clicked.connect(self.openComparisonApp)

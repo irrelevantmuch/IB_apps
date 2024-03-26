@@ -1,7 +1,7 @@
 
 from dataHandling.Constants import Constants, MAIN_BAR_TYPES, DT_BAR_TYPES, MINUTES_PER_BAR
 from dataHandling.DataStructures import DetailObject
-from dataHandling.TradeManagement.UserDataManagement import readStockList
+from dataHandling.UserDataManagement import readStockList
 from datetime import datetime
 from pytz import timezone
 from dateutil.relativedelta import relativedelta

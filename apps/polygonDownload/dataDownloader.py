@@ -24,7 +24,7 @@ from ibapi.contract import Contract
 from uiComps.TableModels import PandasDataModel
 from uiComps.customWidgets.TaskProgressWindow import TaskProgressWindow
 
-from dataHandling.TradeManagement.UserDataManagement import readStockList
+from dataHandling.UserDataManagement import readStockList
 
 from generalFunctionality.GenFunctions import dateToReadableString
 from datetime import datetime
@@ -224,8 +224,6 @@ class DataDownloader(DataDownloaderWindow):
         
 
     def barChecksChanged(self, value):
-        print(f"Does this help sufficiently? {value}")
-        print(self.download_bar_selector.itemState(value))
         self.bar_selection[self.bar_types[value]] = self.download_bar_selector.itemState(value)
 
 

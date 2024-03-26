@@ -6,7 +6,7 @@ from pytz import timezone
 from dataHandling.DataStructures import DetailObject
 import itertools, json
 from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
-from dataHandling.TradeManagement.UserDataManagement import readStockList
+from dataHandling.UserDataManagement import readStockList
 from dataHandling.HistoryManagement.FinazonDataManager import FinazonDataManager
 from dataHandling.HistoryManagement.HistoricalDataManagement import HistoricalDataManager
 import time
@@ -30,6 +30,8 @@ class AlertProcessor(QObject):
         
         print("DataProcessor.init")
         self.buffered_manager = BufferedDataManager(history_manager, name="MoversBuffer")
+        self.buffered_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
+
         self.data_buffers = self.buffered_manager.data_buffers
         self.indicator_processor = indicator_processor
         self.indicator_processor.indicator_updater.connect(self.indicatorUpdate, Qt.QueuedConnection)
@@ -63,8 +65,6 @@ class AlertProcessor(QObject):
 
     @pyqtSlot(str)
     def removeStockList(self, stock_list):
-        print(self.stock_lists)
-        print(stock_list)
         self.stock_lists.remove(stock_list)
         self.updateStockList()
 
@@ -96,12 +96,7 @@ class AlertProcessor(QObject):
 
     @pyqtSlot(str, dict)
     def indicatorUpdate(self, signal, sub_signal):
-        print(f"AlertProcessor.indicatorUpdate {signal}")
         if signal == Constants.HAS_NEW_VALUES:
-            
-            print(sub_signal)
-            
-            
             if 'updated_from' in sub_signal:
                 updated_from = sub_signal['updated_from']
             else:
@@ -149,8 +144,6 @@ class AlertProcessor(QObject):
 
 
     def setStepBarTypes(self):
-        print(self.up_checks)
-        print(self.down_checks)
         up_bars = [key for key, item in self.up_checks.items() if item]
         down_bars = [key for key, item in self.down_checks.items() if item]
         self.step_bar_types = list(set(up_bars) | set(down_bars))
@@ -211,7 +204,6 @@ class AlertProcessor(QObject):
                 self.logAlertFor(uid, bar_type, "down steps", down_move['DownSteps'])
                 self.sendAlert(uid)
         elif (down_move['DownSteps'] > self.step_down_thresholds[bar_type]) and (down_move['DownMove'] < -1.0):
-            print(f"down step {down_move['DownSteps']}")
             self.logAlertFor(uid, bar_type, "down steps", down_move['DownSteps'])
             self.sendAlert(uid)
                 
@@ -227,10 +219,12 @@ class AlertProcessor(QObject):
     def sendAlert(self, uid):
         print(f"AlertProcessor.sendAlert {uid}")
         latest_price = self.data_buffers.getLatestPrice(uid)
-
-        print(f"AlertProcessor.sendAlert...... {self.full_stock_list[uid][Constants.SYMBOL]}")
         symbol = self.full_stock_list[uid][Constants.SYMBOL]
-        self.telegram_signal.emit(symbol, latest_price, self.alert_tracker[uid].copy())
+        if self.data_buffers.bufferExists(uid, Constants.DAY_BAR):
+            daily_rsi = self.data_buffers.getLatestRow(uid, Constants.DAY_BAR)['rsi']
+            self.telegram_signal.emit(symbol, latest_price, self.alert_tracker[uid].copy(), daily_rsi)
+        else:
+            self.telegram_signal.emit(symbol, latest_price, self.alert_tracker[uid].copy(), -1.0)
 
 
     def stopUpdating(self):
@@ -241,30 +235,33 @@ class AlertProcessor(QObject):
 class AlertProcessorFinazon(AlertProcessor):
 
 
-    # def __init__(self, history_manager):
-    #     super().__init__(history_manager)
-    #     history_manager.addNewListener(self, self.apiUpdate)
-        
-
     @pyqtSlot(bool)
     def runUpdates(self, turn_on):
         if turn_on:
             self.buffered_manager.setStockList(self.full_stock_list)
             self.buffered_manager.fetchLatestStockData()
+            self.initial_fetch = True
         else:
             self.stopUpdating()
 
 
 
             
+    # @pyqtSlot(str, dict)
+    # def bufferUpdate(self, signal, sub_signal):
+    #     print(f"AlertProcessor.bufferUpdate {signal}")
+    #     if signal == Constants.ALL_DATA_LOADED:
+    #         if self.initial_fetch:
+    #             self.buffered_manager.requestUpdates(keep_up_to_date=True)
+    #             self.initial_fetch = False
+    
     @pyqtSlot(str, dict)
-    def bufferUpdate(self, signal, sub_signal):
-        print("AlertProcessor.bufferUpdate {signal}")
+    def apiUpdate(self, signal, sub_signal):
+        print(f"AlertProcessor.apiUpdate {signal} {self.initial_fetch}")
         if signal == Constants.ALL_DATA_LOADED:
             if self.initial_fetch:
-                print("We go for keeping things up to date")
-                self.buffered_manager.requestUpdates(keep_up_to_date=True)
-                self.initial_fetch = False
+                self.buffered_manager.requestUpdates(keep_up_to_date=True, propagate_updates=True)
+                self.initial_fetch = False        
         
 
 
@@ -276,7 +273,6 @@ class AlertProcessorIB(AlertProcessor):
     def __init__(self, history_manager, indicator_processor, telegram_signal):
         super().__init__(history_manager, indicator_processor, telegram_signal)
         self.separate_stock_lists = list()
-        self.buffered_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         history_manager.addNewListener(self, self.apiUpdate)
     
 
@@ -316,12 +312,9 @@ class AlertProcessorIB(AlertProcessor):
     def apiUpdate(self, signal, sub_signal):
         print(f"AlertProcessor.apiUpdate {signal}")
         if signal == Constants.ALL_DATA_LOADED:
-            print(f"We ask for more!!!! {self.initial_fetch}")
             if self.rotating:
-                print("We go for rotation")
                 self.runRotatingUpdates()
             elif self.initial_fetch:
-                print("Are we updating?")
                 self.buffered_manager.requestUpdates(keep_up_to_date=True, propagate_updates=True)
                 self.initial_fetch = False        
         
