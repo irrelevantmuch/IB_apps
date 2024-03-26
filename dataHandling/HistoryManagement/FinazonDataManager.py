@@ -9,10 +9,11 @@ import pytz
 import sys, math
 from operator import attrgetter
 
-from dataHandling.Constants import Constants
+from dataHandling.Constants import Constants, MINUTES_PER_BAR
 from dataHandling.DataStructures import DetailObject
 from dataHandling.IBConnectivity import IBConnectivity
 from generalFunctionality.GenFunctions import dateFromString, dateToString, pdDateFromIBString, dateFromIBString
+from dataHandling.UserDataManagement import readApiKeys
 from dataHandling.HistoryManagement.DataBuffer import DataBuffers
 
 import asyncio
@@ -22,14 +23,11 @@ import requests
 
 import threading
 
-my_api_key = "your_finazon_key"
-
-# message = {"event":"subscribe","publisher":"sip","tickers": ['AAPL','GOOGL','AMZN','MSFT','BABA'],"channel": "bars","frequency": "1s","aggregation": "1m","mic": "","market": ""}
-{"event": "subscribe","publisher": "sip","tickers": ["AAPL","TSLA"],"channel": "bars","frequency": "1s","aggregation": "1m"}
+api_keys = readApiKeys()
 
 class WebsocketManager(QObject):
     message_received = pyqtSignal(dict)
-    socket_address = f"wss://ws.finazon.io/v1?apikey={my_api_key}"
+    socket_address = f"wss://ws.finazon.io/v1?apikey={api_keys[Constants.FINAZON_SOURCE]}"
     # run_async_socket = pyqtSignal()
     is_running = True
     finished = pyqtSignal()
@@ -45,12 +43,10 @@ class WebsocketManager(QObject):
 
         self.setup_message = {
             "event": "subscribe",
-            "publisher": self.channel,
-            "mic": "",
-            "market": "",
+            "dataset": self.channel,
             "tickers": self.tickers,
             "channel": "bars",
-            "frequency": "1s",
+            "frequency": "10s",
             "aggregation": "1m"
         }
 
@@ -58,7 +54,9 @@ class WebsocketManager(QObject):
         self.timer.timeout.connect(lambda: self.checkForUnsentUpdates())
         self.timer.start(3_000)
 
-    def on_message(self, ws, message):
+    def onMessage(self, ws, message):
+        print("FinazonDataManager.onMessage")
+        print(message)
         now_time = datetime.now(timezone(Constants.NYC_TIMEZONE))
         delay_dif = timedelta(seconds=3)
         
@@ -93,35 +91,20 @@ class WebsocketManager(QObject):
                     del self.last_unsent_time[symbol]
 
 
-    def on_error(self, ws, error):
-        print(f"Wat is deze: {error}")
+    def onError(self, ws, error):
+        print(f"Finazon websocket error: {error}")
 
 
-    def on_close(self, ws, close_status_code, close_msg):
+    def onClose(self, ws, close_status_code, close_msg):
         self.finished.emit()
-        print("### closed ###")
+        print(f"Finazon websocket error: CLOSED")
 
 
-    def on_open(self, ws):
-        # ws.send(self.setup_message)
+    def onOpen(self, ws):
         ws.send(json.dumps(self.setup_message))
-        # def run(*args):
-        #     for i in range(3):
-        #         time.sleep(1)
-        #         ws.send(f"Hello {i}")
-        #     time.sleep(1)
-        #     ws.close()
-        # run()
-
 
     def run(self):
-        # websocket.enableTrace(True)
-        self.ws = websocket.WebSocketApp(self.socket_address,
-                                on_open=self.on_open,
-                                on_message=self.on_message,
-                                on_error=self.on_error,
-                                on_close=self.on_close)
-
+        self.ws = websocket.WebSocketApp(self.socket_address, on_open=self.onOpen, on_message=self.onMessage, on_error=self.onError, on_close=self.onClose)
         self.ws.run_forever()
 
     # @pyqtSlot()
@@ -150,7 +133,7 @@ class FinazonDataManager(QObject):
     regular_hours = 0
 
     url = "https://api.finazon.io/latest/time_series"
-    headers = {"Authorization": f"apikey {my_api_key}"}
+    headers = {"Authorization": f"apikey {api_keys[Constants.FINAZON_SOURCE]}"}
 
     run_ib_client_signal = pyqtSignal()
     close_signal = pyqtSignal()
@@ -183,6 +166,7 @@ class FinazonDataManager(QObject):
 
     @pyqtSlot(dict)
     def updatedBars(self, json_dict):
+        # print("FinazonDataManager.updatedBars")
         keys_to_extract = ['t', 'o', 'h', 'l', 'c', 'v']
         if "p" in json_dict:
             bar_dict = {key: json_dict[key] for key in keys_to_extract}
@@ -192,8 +176,7 @@ class FinazonDataManager(QObject):
                 completed_req = self.createCompletedReq(uid, self.backward_bar_conversion[json_dict['aggr']], None, None)
                 completed_req['data'] = bar_df
 
-                self.data_buffers.processUpdates(completed_req)
-                # self.api_updater.emit(Constants.HISTORICAL_REQUEST_COMPLETED, completed_req)
+                self.data_buffers.processUpdates(completed_req, propagate_updates=True)
                 self.update_counter += 1
 
                 if (self.update_counter % 100) == 0:
@@ -221,7 +204,7 @@ class FinazonDataManager(QObject):
             end_index = (1+socket_index)*tickers_per_socket
             end_index = min(len(tickers),end_index)
 
-            self.ws_managers.insert(socket_count, WebsocketManager(tickers[start_index:end_index], channel="sip"))
+            self.ws_managers.insert(socket_count, WebsocketManager(tickers[start_index:end_index], channel="sip_non_pro"))
             self.ws_managers[socket_index].message_received.connect(self.updatedBars, Qt.QueuedConnection)
             self.close_signal.connect(self.ws_managers[socket_index].close)
             self.ws_threads.insert(socket_count, QThread())
@@ -250,39 +233,23 @@ class FinazonDataManager(QObject):
 
     @pyqtSlot()
     def cancelActiveRequests(self, sender=None):
-        print("We go for close")
         if self.ws_managers is not None:
             for ws_man in self.ws_managers:
                 ws_man.close()
-            print("We go for close......")
-            # self.close_signal.emit()
-            # print("WE EMIT A CLOSE SIGNAL")
-            # for ws_man in self.ws_managers:
-            #     ws_man.close()
-            
+
 
 
 ######## HISTORICAL DATA REQUEST CREATION
-
-
-    @pyqtSlot(DetailObject, datetime, datetime, str)
-    def createRequestsForContract(self, contract_details, start_date, end_date, bar_type):
-        print(f"FinazonDataManager.createRequestsForContract {contract_details.symbol}")
-        new_request = {"contract": contract_details, "start_date": start_date, "end_date": end_date, "bar_type": bar_type}
-        self.request_buffer.append(new_request)
         
 
     @pyqtSlot(str)
     def groupCurrentRequests(self, for_uid):
         print(f"groupCurrentRequests {for_uid}")
-        # print(f"What goes on here? {for_uid}")
-        # self._group_reqs_by_uid[for_uid] = set()
-        # for request in self.request_buffer:
-        #     if self._uid_by_req[request.req_id] == for_uid:
-        #         self._group_reqs_by_uid[for_uid].add(request.req_id)
 
 
-    def requestUpdates(self, stock_list, keep_up_to_date):
+    @pyqtSlot(dict, str, bool, bool)
+    @pyqtSlot(dict, str, bool, bool, bool)
+    def requestUpdates(self, stock_list, bar_type, keep_up_to_date, propagate_updates=False, prioritize_uids=False):
         print(f"FinazonDataManager.requestUpdates {keep_up_to_date}")
 
         if keep_up_to_date:
@@ -306,23 +273,21 @@ class FinazonDataManager(QObject):
         while len(self.request_buffer) > 0:
 
             request = self.request_buffer.pop()
-            print(f"We go for {request}")
+            print(f"requestUpdates: {request}")
             completed_req = self.getBarsForRequest(request, is_one_min_update=True)
             if completed_req is not None:
-                self.data_buffers.processUpdates(completed_req)
-                # self.api_updater.emit(Constants.HISTORICAL_REQUEST_COMPLETED, completed_req)
+                self.data_buffers.processUpdates(completed_req, propagate_updates)
                 completed_uids.append(completed_req['key'])
         
         self.api_updater.emit(Constants.HISTORICAL_UPDATE_COMPLETE, {'completed_uids': completed_uids})
 
         if keep_up_to_date:
             self.timer = QTimer()
-            self.timer.timeout.connect(lambda: self.performPeriodUpdates(stock_list))
+            self.timer.timeout.connect(lambda: self.performPeriodicUpdates(stock_list))
             self.timer.start(100_000)
 
 
-    def performPeriodUpdates(self, stock_list):
-        print("We make our periodic update")
+    def performPeriodicUpdates(self, stock_list):
         start_date = datetime.now(timezone(Constants.NYC_TIMEZONE)) - timedelta(minutes=6)
         for uid, stock_inf in stock_list.items():
             details = DetailObject(symbol=stock_inf[Constants.SYMBOL], exchange=stock_inf['exchange'], numeric_id=uid)
@@ -339,12 +304,11 @@ class FinazonDataManager(QObject):
                 
 
     def getBarsForRequest(self, request, is_one_min_update=False):
-        print(f"We go for {request}")
-        contract_details = request["contract"]
-        start_date = request["start_date"]
-        end_date = request["end_date"]
-        bar_type = request["bar_type"]
-        uid = request["contract"].numeric_id
+        contract_details = request['contract']
+        start_date = request['start_date']
+        end_date = request['end_date']
+        bar_type = request['bar_type']
+        uid = request['contract'].numeric_id
 
         if is_one_min_update:
             if (end_date - start_date) < timedelta(hours=5):
@@ -369,6 +333,7 @@ class FinazonDataManager(QObject):
                             "interval": self.bar_conversion[bar_type],
                             "timezone": "America/New_York",
                             "prepost": "true",
+                            # "adjust":
                             "order": "asc",
                             "start_at": str(timestamp_start),
                             "page": str(page), "page_size": str(page_size)}
@@ -445,45 +410,87 @@ class FinazonDataManager(QObject):
         return len(self.request_buffer) > 0
 
 
+    @pyqtSlot(DetailObject, datetime, datetime, str)
+    def createRequestsForContract(self, contract_details, start_date, end_date, bar_type):
+        # print(f"FinazonDataManager.createRequestsForContract {contract_details.symbol} {bar_type}")
+        new_request = {"contract": contract_details, "start_date": start_date, "end_date": end_date, "bar_type": bar_type}
+        self.request_buffer.append(new_request)
+
 
     @pyqtSlot(int)
-    def iterateHistoryRequests(self, delay=11_000):
-        print("FinazonDataManager.iterateHistoryRequests not even here")
-        base_request = self.request_buffer[0]
+    def iterateHistoryRequests(self, delay=11_000): #this delay is only to match the interface of the IBKR historymanager. Needs to be removed
+        # print("FinazonDataManager.iterateHistoryRequests not even here")
+        # print(self.request_buffer)
+        smallest_index = self.getSmallestBarIndex()   #does this work under the assumption that the first request is always for one minute?
+
+            #only bars smaller than 5 mins give us outside regular hours data, so we need some of those for supplementing!
+        if self.request_buffer[smallest_index] == Constants.ONE_MIN_BAR:
+            base_request = self.request_buffer.pop(smallest_index)
+            min_start_date = base_request['end_date'] - timedelta(days=5)
+            if min_start_date < base_request['start_date']:
+                base_request['start_date'] = min_start_date
+                one_min_bars = self.getBarsForRequest(base_request, is_one_min_update=False)
+                self.data_buffers.processData(one_min_bars)
+        else:
+            base_request = self.request_buffer[smallest_index].copy()
+            base_request['bar_type'] = Constants.ONE_MIN_BAR
+            base_request['start_date'] = base_request['end_date'] - timedelta(days=5)
+            one_min_bars = self.getBarsForRequest(base_request, is_one_min_update=False)
         
-        one_min_start_date = base_request["end_date"] - timedelta(days=5)
-        one_min_request = {"contract": base_request["contract"], "start_date": one_min_start_date, "end_date": base_request["end_date"], "bar_type": Constants.ONE_MIN_BAR}
-        one_min_bars = self.getBarsForRequest(one_min_request, is_one_min_update=False)
+        start_date = base_request['start_date']
+        one_min_bars = self.getBarsForRequest(base_request, is_one_min_update=False)
         
         while len(self.request_buffer) > 0:
             request = self.request_buffer.pop()
-
-            if request["start_date"] >= one_min_start_date or request["bar_type"] == Constants.FOUR_HOUR_BAR:
-                completed_req = self.barsFromOneMinuteData(request, one_min_bars, one_min_start_date)
+            if request['start_date'] >= start_date or request['bar_type'] == Constants.FOUR_HOUR_BAR:
+                completed_req = self.barsFromSmallerData(request, one_min_bars, start_date)
             else:     
                 one_min_converted = one_min_bars['data'].resample(self.resampleFrame[request["bar_type"]]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
                 completed_req = self.getBarsForRequest(request)
                 completed_req['data'] = one_min_converted.combine_first(completed_req['data'])
 
             self.data_buffers.processData(completed_req)
-            # self.api_updater.emit(Constants.HISTORICAL_REQUEST_COMPLETED, completed_req)
         
         #working under the assumption that all these requests are for a single contract
         self.api_updater.emit(Constants.HISTORICAL_GROUP_COMPLETE, {"uid": request["contract"].numeric_id})
 
 
-    def barsFromOneMinuteData(self, request, one_min_bars, one_min_start_date):
-        bar_type = request["bar_type"]
-        uid = request["contract"].numeric_id
-        end_date = request["end_date"]
-        new_data = one_min_bars['data'].resample(self.resampleFrame[request["bar_type"]]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
-        completed_req = self.createCompletedReq(uid, bar_type, one_min_start_date, end_date)
+    def getSmallestBarIndex(self):
+        # print("FinazonDataManager.getSmallestRequest")
+        smallest_bar_type = self.request_buffer[0]['bar_type']
+        smallest_index = 0
+        for index in range(1, len(self.request_buffer)):
+            request_bar_type = self.request_buffer[index]['bar_type']
+            print(f"Request bar type: {request_bar_type}")
+            if self.isSmallerBar(request_bar_type, smallest_bar_type):
+                smallest_bar_type = request_bar_type
+                smallest_index = index
+                print(f"{request_bar_type} is smaller than {smallest_bar_type}")
+        return smallest_index
+
+
+    def isSmallerBar(self, bar, comp_bar):
+        if comp_bar is None:
+            return True
+        else:
+            return MINUTES_PER_BAR[bar] < MINUTES_PER_BAR[comp_bar]
+
+
+    def barsFromSmallerData(self, request, smallest_bars, start_date):
+        bar_type = request['bar_type']
+        # print(f"FinazonDataManager.barsFromSmallerData {bar_type}")
+        uid = request['contract'].numeric_id
+        end_date = request['end_date']
+        new_data = smallest_bars['data'].resample(self.resampleFrame[bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+        completed_req = self.createCompletedReq(uid, bar_type, start_date, end_date)
         completed_req['data'] = new_data
         return completed_req
 
 
     def processBars(self, bars):
         bar_frame = pd.DataFrame(bars)
+
+
         bar_frame['t'] = pd.to_datetime(bar_frame['t'], unit='s')  # Convert timestamp to datetime
         bar_frame.set_index('t', inplace=True)  # Set timestamp as the index
         bar_frame.index.name = None
