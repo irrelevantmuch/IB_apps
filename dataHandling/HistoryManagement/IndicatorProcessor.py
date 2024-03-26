@@ -10,6 +10,8 @@ class IndicatorProcessor(QObject):
     last_uid_update = dict()
     indicators = set(['rsi', 'steps'])
 
+    finished = pyqtSignal()
+
     _previous_values = dict()
     indicator_updater = pyqtSignal(str, dict)
     rsi_bar_types = DT_BAR_TYPES
@@ -45,8 +47,6 @@ class IndicatorProcessor(QObject):
     @pyqtSlot(str, dict)
     def bufferUpdate(self, signal, sub_signal):
         print(f"IndicatorProcessor.bufferUpdate {signal}")
-        print(sub_signal)
-        print(self._tracking_stocks)
         if signal == Constants.HAS_NEW_DATA:
             uid = sub_signal['uid']
             if uid in self._tracking_stocks:
@@ -73,14 +73,20 @@ class IndicatorProcessor(QObject):
     
     def updatePrevious(self, uids, bar_types=DT_BAR_TYPES):
         for uid in uids:
-            for bar in bar_types:
-                self._previous_values[uid, bar_type] = self.data_buffers.getLatestRow(uid, bar_type)
+            for bar_type in bar_types:
+                if self.data_buffers.bufferExists(uid, bar_type):
+                    self._previous_values[uid, bar_type] = self.data_buffers.getLatestRow(uid, bar_type)
     
 
     def hasUpdated(self, uid, bar_type):
-        latest_row = self.data_buffers.getLatestRow(uid, bar_type)
-        previous_row = self._previous_values[uid, bar_type]
-        return latest_row == previous_row
+        if self.data_buffers.bufferExists(uid, bar_type):
+            latest_row = self.data_buffers.getLatestRow(uid, bar_type)
+            if (uid, bar_type) in self._previous_values:
+                previous_row = self._previous_values[uid, bar_type]
+                same_index_label = previous_row.name == latest_row.name
+                same_values = (previous_row[Constants.CLOSE] == latest_row[Constants.CLOSE]).all()
+                return same_index_label and same_values
+        return True
 
 
     def updateIndicators(self, updated_uids=None, bar_types=None, indicator_type=None, updated_from=None):
@@ -115,7 +121,7 @@ class IndicatorProcessor(QObject):
         
 
     def computeRSIs(self, updated_uids=None, updated_bar_types=None, from_indices=None):
-        print("IndicatorProcessor.computeRSIs")
+        print(f"IndicatorProcessor.computeRSIs {updated_uids} {updated_bar_types}")
         if updated_uids is None:
             updated_uids = self.getTrackingUIDs()
         if updated_bar_types is None:
