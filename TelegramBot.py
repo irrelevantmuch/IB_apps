@@ -35,6 +35,8 @@ class TelegramBot(QObject):
 
 
     def createMessage(self, symbol, latest_price, alert_lines, latest_daily_rsi):
+        tv_url = f"https://www.tradingview.com/chart/?symbol={symbol}"
+
         if latest_daily_rsi > 0:
             if latest_daily_rsi < 40:
                strength = "🔴"
@@ -43,9 +45,9 @@ class TelegramBot(QObject):
             else:
                 strength = "🟠"
             
-            message = f"<a href='https://www.tradingview.com/chart/?symbol={symbol}'>{symbol}</a> (<b>{latest_price:.2f}</b>) - RSI: <b>{latest_daily_rsi:.2f}</b> {strength}" 
+            message = f"<a href='{tv_url}'>{symbol}</a> (<b>{latest_price:.2f}</b>) - Daily RSI: <b>{latest_daily_rsi:.2f}</b> {strength}" 
         else:
-            message = f"<a href='https://www.tradingview.com/chart/?symbol={symbol}'>{symbol}</a> (<b>{latest_price:.2f}</b>):"
+            message = f"<a href='{tv_url}'>{symbol}</a> (<b>{latest_price:.2f}</b>):"
             
         print(alert_lines)
         print(alert_lines.keys())

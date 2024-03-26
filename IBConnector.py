@@ -8,6 +8,7 @@ from dataHandling.OptionManagement.OptionChainManager import OptionChainManager
 from dataHandling.TradeManagement.PositionDataManagement import PositionDataManager
 from dataHandling.DataManagement import DataManager
 from dataHandling.SymbolManager import SymbolDataManager
+from dataHandling.Constants import Constants
 from pubsub import pub
 
 
@@ -149,7 +150,6 @@ class IBConnector:
         option_chain_manager = OptionChainManager()
         option_chain_manager.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
         option_chain_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
-        # self.next_id += 1
 
         self.startWorkerThread('option_manager', option_chain_manager)
         
@@ -163,7 +163,6 @@ class IBConnector:
             self.local_address = self.address_line.text()
             self.trading_socket = self.socket_line.text()
             self.data_management.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
-            # self.next_id += 1
 
             self.data_thread = QThread()
             self.data_management.moveToThread(self.data_thread)

@@ -93,7 +93,7 @@ class BufferedDataManager(QObject):
             if len(self.queued_update_requests) > 0:
                 print("Request From QUEUE")
                 request = self.queued_update_requests.pop(0)
-                self.requestUpdates(update_bar=request['bar_type'], keep_up_to_date=request['keep_up_to_date'], propagate_updates=True, update_list=request['update_list'])
+                self.requestUpdates(update_bar=request['bar_type'], keep_up_to_date=request['keep_up_to_date'], propagate_updates=True, update_list=request['update_list'], allow_splitting=False)
             else:
                 print("")
                 self.api_updater.emit(Constants.ALL_DATA_LOADED, dict())
@@ -201,7 +201,7 @@ class BufferedDataManager(QObject):
 
 
     @pyqtSlot(str, bool, bool)
-    def requestUpdates(self, update_bar=Constants.ONE_MIN_BAR, keep_up_to_date=False, propagate_updates=False, update_list=None, needs_disconnect=False):
+    def requestUpdates(self, update_bar=Constants.ONE_MIN_BAR, keep_up_to_date=False, propagate_updates=False, update_list=None, needs_disconnect=False, allow_splitting=True):
         print(f"BufferedManager.requestUpdates {update_bar} {keep_up_to_date} {propagate_updates}")
 
         if needs_disconnect: self.history_manager.cleanup_done_signal.disconnect()
@@ -209,7 +209,7 @@ class BufferedDataManager(QObject):
         if update_list is None:
             update_list = self._buffering_stocks.copy()
 
-        if self.smallerThanFiveMin(update_bar):
+        if allow_splitting and self.smallerThanFiveMin(update_bar):
             self.requestSmallUpdates(update_bar, keep_up_to_date, propagate_updates, update_list)
         else:
             for uid in update_list:

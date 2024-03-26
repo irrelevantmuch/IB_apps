@@ -68,18 +68,19 @@ class TradeMaker(TradingWindow):
         self.stair_tracker = self.order_manager.getStairTracker()
         self.order_manager.setDataObject(self.data_buffers)
 
-        
+        self.setupOrderTable(self.order_buffer)
+        self.setupStairTable(self.stair_tracker)
+        self.setBaseGuiValues()
+
         self.prepTickerProcessor(history_manager)
         self.connectSignalSlots()
         
         self.product_label.setText(self.stock_list[self.selected_key]['long_name']) 
         
         
-        self.setupOrderTable(self.order_buffer)
-        self.setupStairTable(self.stair_tracker)
-        self.setBaseGuiValues()
         self.processor_thread.start()
         
+        # self.order_manager.open_order_request.emit()
         self.tickerSelection(0)
 
 
@@ -437,8 +438,6 @@ class TradeMaker(TradingWindow):
 
 
     def stepBuySellSelection(self, button, value):
-        print("TradeMMaker.stepBuySellSelection")
-
         if button == self.step_buy_radio and value:
             self.step_action_type = Constants.BUY
             self.step_entry_trigger_offset_box.setValue(0.01)
@@ -454,7 +453,6 @@ class TradeMaker(TradingWindow):
 
 
     def stepProfitSelection(self, button, value):
-        print("TradeMMaker.stepProfitSelection")
         if button == self.step_profit_factor_radio and value:
             self.step_profit_type = 'Factor'
         elif button == self.step_profit_offset_radio and value:

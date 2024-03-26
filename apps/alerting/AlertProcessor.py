@@ -51,13 +51,6 @@ class AlertProcessor(QObject):
         self.down_checks = {tf: False for tf in DT_BAR_TYPES}
 
 
-    # def initalizeThresholds(self):
-    #     self.cross_down_thresholds = {tf: 30 for tf in DT_BAR_TYPES}
-    #     self.cross_up_thresholds = {tf: 70 for tf in DT_BAR_TYPES}
-    #     self.step_up_thresholds = {tf: 6 for tf in DT_BAR_TYPES}
-    #     self.step_down_thresholds = {tf:  for tf in DT_BAR_TYPES}
-
-
     @pyqtSlot(str)        
     def addStockList(self, stock_list):
         self.stock_lists.append(stock_list)
@@ -217,14 +210,18 @@ class AlertProcessor(QObject):
 
 
     def sendAlert(self, uid):
-        print(f"AlertProcessor.sendAlert {uid}")
+        
         latest_price = self.data_buffers.getLatestPrice(uid)
         symbol = self.full_stock_list[uid][Constants.SYMBOL]
+
+            #in the beginning a daily RSI may not have been downloaded yet
         if self.data_buffers.bufferExists(uid, Constants.DAY_BAR):
-            daily_rsi = self.data_buffers.getLatestRow(uid, Constants.DAY_BAR)['rsi']
-            self.telegram_signal.emit(symbol, latest_price, self.alert_tracker[uid].copy(), daily_rsi)
-        else:
-            self.telegram_signal.emit(symbol, latest_price, self.alert_tracker[uid].copy(), -1.0)
+            daily_row = self.data_buffers.getLatestRow(uid, Constants.DAY_BAR)
+            if 'rsi' in daily_row:
+                self.telegram_signal.emit(symbol, latest_price, self.alert_tracker[uid].copy(), daily_row['rsi'])
+                return
+        
+        self.telegram_signal.emit(symbol, latest_price, self.alert_tracker[uid].copy(), -1.0)
 
 
     def stopUpdating(self):
@@ -245,19 +242,9 @@ class AlertProcessorFinazon(AlertProcessor):
             self.stopUpdating()
 
 
-
-            
-    # @pyqtSlot(str, dict)
-    # def bufferUpdate(self, signal, sub_signal):
-    #     print(f"AlertProcessor.bufferUpdate {signal}")
-    #     if signal == Constants.ALL_DATA_LOADED:
-    #         if self.initial_fetch:
-    #             self.buffered_manager.requestUpdates(keep_up_to_date=True)
-    #             self.initial_fetch = False
-    
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
-        print(f"AlertProcessor.apiUpdate {signal} {self.initial_fetch}")
+        print(f"AlertProcessor.apiUpdate {signal}")
         if signal == Constants.ALL_DATA_LOADED:
             if self.initial_fetch:
                 self.buffered_manager.requestUpdates(keep_up_to_date=True, propagate_updates=True)

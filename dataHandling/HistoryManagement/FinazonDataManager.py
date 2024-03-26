@@ -144,9 +144,10 @@ class FinazonDataManager(QObject):
 
     update_counter = 0
 
-    def __init__(self, tickers=["BTC/USDC"], channel="binance"):
+    def __init__(self):
         super().__init__()
         self.data_buffers = DataBuffers()
+
 
     def moveToThread(self, thread):
         self.data_buffers.moveToThread(thread)
@@ -159,9 +160,6 @@ class FinazonDataManager(QObject):
 
     def run(self):
         print("We start running")
-        # print("We start running?")
-        # self.run_ib_client_signal.emit()  # Emit a signal to run ib_client in worker thread context
-        # print("Do we come here though?")
         
 
     @pyqtSlot(dict)
@@ -412,16 +410,32 @@ class FinazonDataManager(QObject):
 
     @pyqtSlot(DetailObject, datetime, datetime, str)
     def createRequestsForContract(self, contract_details, start_date, end_date, bar_type):
-        # print(f"FinazonDataManager.createRequestsForContract {contract_details.symbol} {bar_type}")
         new_request = {"contract": contract_details, "start_date": start_date, "end_date": end_date, "bar_type": bar_type}
         self.request_buffer.append(new_request)
 
 
     @pyqtSlot(int)
     def iterateHistoryRequests(self, delay=11_000): #this delay is only to match the interface of the IBKR historymanager. Needs to be removed
-        # print("FinazonDataManager.iterateHistoryRequests not even here")
-        # print(self.request_buffer)
-        smallest_index = self.getSmallestBarIndex()   #does this work under the assumption that the first request is always for one minute?
+
+        one_min_bars, start_date = self.getOneMinForOutsideHours()
+        
+        while len(self.request_buffer) > 0:
+            request = self.request_buffer.pop()
+            if request['start_date'] >= start_date:
+                completed_req = self.barsFromSmallerData(request, one_min_bars, start_date)
+            else:     
+                one_min_converted = one_min_bars['data'].resample(self.resampleFrame[request["bar_type"]]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+                completed_req = self.getBarsForRequest(request)
+                completed_req['data'] = one_min_converted.combine_first(completed_req['data'])
+
+            self.data_buffers.processData(completed_req)
+        
+        #working under the assumption that all these requests are for a single contract
+        self.api_updater.emit(Constants.HISTORICAL_GROUP_COMPLETE, {"uid": request["contract"].numeric_id})
+
+
+    def getOneMinForOutsideHours(self):
+        smallest_index = self.getSmallestBarIndex()
 
             #only bars smaller than 5 mins give us outside regular hours data, so we need some of those for supplementing!
         if self.request_buffer[smallest_index] == Constants.ONE_MIN_BAR:
@@ -438,25 +452,10 @@ class FinazonDataManager(QObject):
             one_min_bars = self.getBarsForRequest(base_request, is_one_min_update=False)
         
         start_date = base_request['start_date']
-        one_min_bars = self.getBarsForRequest(base_request, is_one_min_update=False)
-        
-        while len(self.request_buffer) > 0:
-            request = self.request_buffer.pop()
-            if request['start_date'] >= start_date or request['bar_type'] == Constants.FOUR_HOUR_BAR:
-                completed_req = self.barsFromSmallerData(request, one_min_bars, start_date)
-            else:     
-                one_min_converted = one_min_bars['data'].resample(self.resampleFrame[request["bar_type"]]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
-                completed_req = self.getBarsForRequest(request)
-                completed_req['data'] = one_min_converted.combine_first(completed_req['data'])
-
-            self.data_buffers.processData(completed_req)
-        
-        #working under the assumption that all these requests are for a single contract
-        self.api_updater.emit(Constants.HISTORICAL_GROUP_COMPLETE, {"uid": request["contract"].numeric_id})
+        return one_min_bars, start_date
 
 
     def getSmallestBarIndex(self):
-        # print("FinazonDataManager.getSmallestRequest")
         smallest_bar_type = self.request_buffer[0]['bar_type']
         smallest_index = 0
         for index in range(1, len(self.request_buffer)):
@@ -518,57 +517,6 @@ class FinazonDataManager(QObject):
         return completed_req
     
 
-
-    @pyqtSlot(list)
-    def fetchEarliestDates(self, stock_list, delay=50):
-        pass
-        # self.earliest_request_buffer = dict()
-        # self.earliest_uid_by_req = dict()
-        # self.earliest_date_by_uid = dict()
-
-        # for index, (uid, contract_details) in enumerate(stock_list.items()):        
-        #     req_id = Constants.BASE_HIST_EARLIEST_REQID + index
-        #     self.earliest_uid_by_req[req_id] = uid
-
-        #     self.earliest_request_buffer[req_id] = contract_details
-        # self.iterateEarliestDateReqs(delay)
-  
-
-    def iterateEarliestDateReqs(self, delay):
-        pass
-        # self.earliest_req_timer = QTimer()
-        # self.earliest_req_timer.timeout.connect(self.executeEarliestDateReq)
-        # self.earliest_req_timer.start(delay)
-
-
-    def executeEarliestDateReq(self):
-        pass
-        # if len(self.earliest_request_buffer) > 0:
-        #     (req_id, contract_details) = self.earliest_request_buffer.popitem()
-
-        #     contract = Contract()
-        #     contract.exchange = Constants.SMART
-        #     contract.secType = Constants.STOCK
-        #     contract.symbol = contract_details[Constants.SYMBOL]
-        #     contract.conId = self.earliest_uid_by_req[req_id]   ##TODO this is not ok
-        #     contract.primaryExchange = contract_details[Constants.EXCHANGE]
-                
-        #     self.ib_interface.reqHeadTimeStamp(req_id, contract, Constants.TRADES, 0, 1)
-            
-        # if len(self.earliest_request_buffer) == 0:
-        #     self.earliest_req_timer.stop()
-
-############### IB Interface callbacks
-
-    
-    @pyqtSlot(int, str)
-    def relayEarliestDate(self, req_id, head_time_stamp):
-        pass
-
-
-    def connectSignalsToSlots(self):
-        super().connectSignalsToSlots()
- 
 
 
 class HistoryRequest():

@@ -17,10 +17,6 @@ from apps.optionVisualization.optionsVisualization import OptionVisualization
 from apps.comparisons.comparisonLists import ComparisonList
 from apps.alerting.alertManager import AlertManager
 from apps.tradeMaker.tradeMaker import TradeMaker
-from apps.tradeRunner.tradeRunner import TradeRunner
-from apps.dataAnalysis.dataAnalysis import DataAnalysis
-from apps.treeFitter.treeFitter import TreeFitter
-from apps.bayesianFitter.bayesianFitter import BayesianFitter
 from apps.movers.moversLists import MoversList
 from apps.positionManaging.positionManager import PositionManager
 from IBConnector import IBConnector
@@ -146,14 +142,6 @@ class AppLauncher(AppLauncherWindow, IBConnector):
         new_app.show()
 
 
-    def openAutoTraderApp(self):
-        order_manager = self.getOrderManager()
-        history_manager = self.getHistoryManager()
-        new_app = TradeRunner(order_manager, history_manager)
-        self.running_apps.append(new_app)
-        new_app.show()
-
-
     def openMoversApp(self):
         if not self.appRunning(MoversList):
             history_manager = self.getHistoryManager()
@@ -169,11 +157,6 @@ class AppLauncher(AppLauncherWindow, IBConnector):
             if isinstance(app, MoversList):
                 self.running_apps.remove(app)
                 break
-
-    def openFittingApp(self):
-        new_app = TreeFitter()
-        self.running_apps.append(new_app)
-        new_app.show()
 
 
     def openComparisonApp(self):
