@@ -1,7 +1,7 @@
 from datetime import datetime, time
 from pytz import timezone
 import numpy as np
-import time as timer
+import time
 import pandas as pd
 
 from dataHandling.Constants import Constants, MINUTES_PER_BAR
@@ -142,7 +142,7 @@ def subtract_months(count):
 
 def getLowsHighsCount(stock_frame):
 
-    lows, highs, closes, volume = getFilteredArrays(stock_frame)
+    lows, highs, closes = getFilteredArrays(stock_frame, count=50)
 
     last_high = highs[-1]
     last_low = lows[-1]
@@ -171,17 +171,12 @@ def getLowsHighsCount(stock_frame):
     return from_low_move, from_high_move, inner_bar_specs
 
 
-def getFilteredArrays(stock_frame):
-    lows = stock_frame[Constants.LOW].to_numpy()
-    highs = stock_frame[Constants.HIGH].to_numpy()
-    closes = stock_frame[Constants.CLOSE].to_numpy()
-    volume = stock_frame[Constants.VOLUME].to_numpy()
+def getFilteredArrays(stock_frame, count):
+    lows = stock_frame[Constants.LOW].to_numpy()[-count:]
+    highs = stock_frame[Constants.HIGH].to_numpy()[-count:]
+    closes = stock_frame[Constants.CLOSE].to_numpy()[-count:]
 
-    # lows = lows[volume > 0]
-    # highs = highs[volume > 0]
-    # closes = closes[volume > 0]
-
-    return lows, highs, closes, volume
+    return lows, highs, closes
 
 def greatherThan(value_1, value_2): return value_1 > value_2
 def smallerThan(value_1, value_2): return value_1 < value_2 
@@ -194,15 +189,17 @@ def calculateRSI(stock_frame):
 
 
 def addRSIsEMAs(stock_frame, from_index=None):
-        
+    start_time = time.time()
         #we need up/down emas to calculate RSI
     updated_indices, up_emas, down_emas = getEMAColumns(stock_frame, from_index)
-    rsi = calculateRSIfromEMAs(up_emas, down_emas)
+
+    rsi = calculateRSIfromEMAs(up_emas.to_numpy(), down_emas.to_numpy())
     stock_frame.loc[updated_indices, ['up_ema', 'down_ema', 'rsi']] = np.column_stack([up_emas, down_emas, rsi])
     
         #we want to remove any NaNs, not sure if this is still necesarry 
     stock_frame['rsi'].fillna(method='ffill', inplace=True)
     stock_frame['rsi'] = stock_frame['rsi'].round(1)
+    # print(f"this cost us: {time.time()-start_time}")
     return stock_frame
 
 
@@ -215,8 +212,8 @@ def calculateRSIfromEMAs(up_emas, down_emas):
 def getEMAColumns(stock_frame, from_index=None):
 
         #if have calculated EMAs before we just want to supplement what's there
-    up_ema_column_exists = ('up_ema' in stock_frame.columns) and (stock_frame['up_ema'].iloc[0] == 0)
-    down_ema_column_exists = ('down_ema' in stock_frame.columns) and (stock_frame['down_ema'].iloc[0] == 0)
+    up_ema_column_exists = ('up_ema' in stock_frame.columns) and (stock_frame['up_ema'].iloc[0] == 0.001)
+    down_ema_column_exists = ('down_ema' in stock_frame.columns) and (stock_frame['down_ema'].iloc[0] == 0.001)
     if up_ema_column_exists and down_ema_column_exists:
         return calculateEMAsFrom(stock_frame, from_index)
     else:
@@ -232,12 +229,12 @@ def calculateEMAsFromScratch(stock_frame):
 def calculateEMAs(closes, period=14):
 
         #we need up and down movements to calculate emas
-    ups, downs = getUpsAndDowns(closes)
+    ups, downs = getUpsAndDownsSeries(closes)
         #pandas provides the fastest way to calculate emas
     up_emas = pd.Series.ewm(ups, alpha=1/period).mean()
-    up_emas.iloc[0] = 0     #we don't want the initial NaN
+    up_emas.iloc[:14] = 0.001     #we don't want the initial NaN, we also don't want zero, because it doesnt divide
     down_emas = pd.Series.ewm(downs, alpha=1/period).mean()
-    down_emas.iloc[0] = 0   #we don't want the initial NaN
+    down_emas.iloc[:14] = 0.001   #we don't want the initial NaN
 
     return up_emas, down_emas
     
@@ -245,37 +242,50 @@ def calculateEMAs(closes, period=14):
 def calculateEMAsFrom(stock_frame, from_index):
     
         #we only want to recalculate those emas that are necesarry
-    alpha = 1/14
+    # alpha = 1/14
+    period = 14
+
     integer_index = getStartRecalcIndex(stock_frame, from_index)
     
     if integer_index < 10:
         return calculateEMAsFromScratch(stock_frame)
     else:
-            #we need to go back one more close to determine ups and downs
-        last_closes = stock_frame.iloc[(integer_index-1):][Constants.CLOSE]
-        ups, downs = getUpsAndDowns(last_closes)
+            #we need up and down movements to calculate emas
+        last_closes = stock_frame.iloc[max(0,(integer_index-15)):][Constants.CLOSE]
+        ups, downs = getUpsAndDownsSeries(last_closes)
+            #pandas provides the fastest way to calculate emas
+        up_emas = pd.Series.ewm(ups, alpha=1/period).mean()
+        down_emas = pd.Series.ewm(downs, alpha=1/period).mean()
+        return last_closes.index[15:], up_emas[15:], down_emas[15:]
+
+# def calculateEMAsFrom(stock_frame, from_index):
+    
+#         #we only want to recalculate those emas that are necesarry
+#     alpha = 1/14
+#     integer_index = getStartRecalcIndex(stock_frame, from_index)
+    
+#     if integer_index < 10:
+#         return calculateEMAsFromScratch(stock_frame)
+#     else:
+#             #we need to go back one more close to determine ups and downs
+#         last_closes = stock_frame.iloc[(integer_index-1):][Constants.CLOSE]
+#         ups, downs = getUpsAndDownsNumpy(last_closes)
         
-        ups = ups.to_numpy()[1:]   #and cut off again
-        up_emas = stock_frame['up_ema']
-        updatable_up_emas = up_emas.to_numpy()[(integer_index-1):]
+#         ups = ups[1:]   #and cut off again
+#         up_emas = stock_frame['up_ema'].to_numpy()
+#         updatable_up_emas = up_emas[(integer_index-1):]
 
-        for up_index in range(len(ups)):
-            updatable_up_emas[up_index+1] = ups[up_index] * alpha + (1 - alpha) * updatable_up_emas[up_index]
+#         for up_index in range(len(ups)):
+#             updatable_up_emas[up_index+1] = ups[up_index] * alpha + (1 - alpha) * updatable_up_emas[up_index]
 
-        downs = downs.to_numpy()[1:]   #and cut off again
-        down_emas = stock_frame['down_ema']
-        updatable_down_emas = down_emas.to_numpy()[(integer_index-1):]
+#         downs = downs[1:]   #and cut off again
+#         down_emas = stock_frame['down_ema'].to_numpy()
+#         updatable_down_emas = down_emas[(integer_index-1):]
 
-        for down_index in range(len(downs)):
-            updatable_down_emas[down_index+1] = downs[down_index] * alpha + (1 - alpha) * updatable_down_emas[down_index]
+#         for down_index in range(len(downs)):
+#             updatable_down_emas[down_index+1] = downs[down_index] * alpha + (1 - alpha) * updatable_down_emas[down_index]
 
-        return last_closes.index, updatable_up_emas, updatable_down_emas
-
-
-# def calculateNextEMA(last_price, previous_ema, period=14):
-
-#     return last_price * alpha + (1 - alpha) * previous_ema
-
+#         return last_closes.index, updatable_up_emas, updatable_down_emas
 
 def getStartRecalcIndex(stock_frame, from_index):
     
@@ -310,7 +320,20 @@ def getStartRecalcIndex(stock_frame, from_index):
     return indexer
 
 
-def getUpsAndDowns(closes):
+
+def getUpsAndDownsNumpy(closes):
+    diffs = closes.diff()
+
+    ups = diffs.to_numpy(copy=True)
+    downs = diffs.to_numpy(copy=True)
+    ups[ups < 0] = 0
+    downs[downs > 0] = 0
+    downs *= -1
+
+    return ups, downs
+
+
+def getUpsAndDownsSeries(closes):
     diffs = closes.diff()
 
     ups = diffs.copy()
@@ -321,14 +344,18 @@ def getUpsAndDowns(closes):
 
     return ups, downs
 
+# def getEma(prices, days=14, counter=0):
+#     if len(prices) > days and counter < 150:
+#         counter += 1
+#         alpha = 1/days
+#         return prices[-1] * alpha + (1 - alpha) * getEma(prices[:-1], days, counter)
+#     else:
+#         return prices.mean()
 
-def getEma(prices, days=14, counter=0):
-    if len(prices) > days and counter < 150:
-        counter += 1
-        alpha = 1/days
-        return prices[-1] * alpha + (1 - alpha) * getEma(prices[:-1], days, counter)
-    else:
-        return prices.mean()
+
+# def calculateNextEMA(last_price, previous_ema, period=14):
+
+#     return last_price * alpha + (1 - alpha) * previous_ema
 
 
 def calculateCorrelation(frame_1, frame_2):
