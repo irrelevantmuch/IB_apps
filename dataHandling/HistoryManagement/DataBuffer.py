@@ -24,9 +24,9 @@ class DataBuffers(QObject):
         if not ((uid, bar_type) in self._locks):
             self._locks[uid, bar_type] = QReadWriteLock()
 
+
         self._locks[uid, bar_type].lockForWrite()
         self._buffers[uid, bar_type] = buffered_data
-
         if ranges is not None:
             self._date_ranges[uid, bar_type] = ranges
         self._locks[uid, bar_type].unlock()
@@ -81,14 +81,9 @@ class DataBuffers(QObject):
 
 
     def addToBuffer(self, uid, bar_type, new_data, new_range):
-        
         self._locks[uid, bar_type].lockForWrite()
         
-        if len(new_data) <= 2:
-            for idx, row in new_data.iterrows():
-                self._buffers[uid, bar_type].loc[idx] = row
-        else: 
-            self._buffers[uid, bar_type] = new_data.combine_first(self._buffers[uid, bar_type])
+        self._buffers[uid, bar_type] = new_data.combine_first(self._buffers[uid, bar_type])
         
         if new_range is not None:
             self._date_ranges[uid, bar_type].append(new_range)            
@@ -269,6 +264,7 @@ class DataBuffers(QObject):
         temp_df = self._buffers[uid, bar_type][self._buffers[uid, bar_type].columns.difference(cols_to_exclude)]
         temp_df.attrs['ranges'] = self._date_ranges[uid, bar_type]
         temp_df.to_pickle(file_name)
+        # self._buffers[uid, bar_type].to_pickle(file_name)
 
         self._locks[uid, bar_type].unlock()
 
@@ -285,8 +281,6 @@ class DataBuffers(QObject):
 
 
     def processData(self, data_dict):
-
-        print(f"DataBuffer.processData is performed on {int(QThread.currentThreadId())}")
         uid = data_dict['key']
         bar_type = data_dict['bar type']
         new_data = data_dict['data']
@@ -362,6 +356,7 @@ class DataBuffers(QObject):
                 # print(origin_bars)
                 # print(RESAMPLING_BARS[to_bar_type])
                 updated_bars = origin_bars.resample(RESAMPLING_BARS[to_bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+                # print(updated_bars)
                 self.addToBuffer(uid, to_bar_type, updated_bars, new_range)
             else:
                     #if no data for the time frame excisted we simply whole frame to update

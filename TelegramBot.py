@@ -4,6 +4,7 @@ from telebot import types
 
 import json
 
+new_session_message = "\t🔵🔵🔵🔵🔵🔵🔵🔵🔵\n\n**🚀 New Session Alert 🚀**"
 
 class TelegramBot(QObject):
 
@@ -15,7 +16,8 @@ class TelegramBot(QObject):
         self.bot_inf = self.readBotInfo()
         print(self.bot_inf)
         self.bot = telebot.TeleBot(self.bot_inf['token'])
-        # self.bot.send_message(self.bot_inf['chat_id'], "<b>bold</b> bold", parse_mode= 'HTML')
+    
+        self.bot.send_message(self.bot_inf['chat_id'], new_session_message, parse_mode= 'HTML')
         self.createHandlers()
 
     def createHandlers(self):
@@ -29,9 +31,8 @@ class TelegramBot(QObject):
 
         new_message = self.createMessage(symbol, latest_price, alert_lines, latest_daily_rsi)
         if symbol in self.message_tracker:
-            self.bot.edit_message_text(new_message, chat_id=self.bot_inf['chat_id'], message_id=self.message_tracker[symbol].message_id, disable_web_page_preview=True, parse_mode= 'HTML')
-        else:
-            self.message_tracker[symbol] = self.bot.send_message(self.bot_inf['chat_id'], new_message, disable_web_page_preview=True, parse_mode= 'HTML')
+            self.bot.delete_message(chat_id=self.bot_inf['chat_id'], message_id=self.message_tracker[symbol].message_id)
+        self.message_tracker[symbol] = self.bot.send_message(self.bot_inf['chat_id'], new_message, disable_web_page_preview=True, parse_mode= 'HTML')
 
 
     def createMessage(self, symbol, latest_price, alert_lines, latest_daily_rsi):
@@ -49,20 +50,26 @@ class TelegramBot(QObject):
         else:
             message = f"<a href='{tv_url}'>{symbol}</a> (<b>{latest_price:.2f}</b>):"
             
-        print(alert_lines)
-        print(alert_lines.keys())
-        for (bar_type, alert_type), level in alert_lines.items():
-            print(f"We should add for {bar_type} {alert_type}")
-            if (alert_type == "down steps") or (alert_type == "rsi crossing down"):
-                emoticon = "🔴"
-            elif (alert_type == "up steps") or (alert_type == "rsi crossing up"):
-                emoticon = "🟢"
+        for (bar_type, alert_type), alert_object in alert_lines.items():
+            print(f"We should add for {bar_type} {alert_type} {type(alert_type)}")
+            print(alert_object)
+            if (alert_type == 'down steps') or (alert_type == 'up steps broken') or (alert_type == 'rsi crossing down'):
+                emoticon = '🔴'
+            elif (alert_type == 'up steps') or (alert_type == 'down steps broken') or (alert_type == 'rsi crossing up'):
+                emoticon = '🟢'
             else:
-                emoticon = "🟠"
-
+                emoticon = '🟠'
 
             message += "\n"
-            message += f"{emoticon} {level} {alert_type} on the {bar_type}"
+            print(alert_type.startswith('up steps'))
+            if alert_type.startswith('up steps'):
+                print(f"{emoticon} {alert_object['UpSteps']} {alert_type} ({alert_object['UpMove']:.2f}%) on the {bar_type}")
+                message += f"{emoticon} {alert_object['UpSteps']} {alert_type} ({alert_object['UpMove']:.2f}%) on the {bar_type}"
+            elif alert_type.startswith('down steps'):
+                print(f"{emoticon} {alert_object['DownSteps']} {alert_type} ({alert_object['DownMove']:.2f}%) on the {bar_type}")
+                message += f"{emoticon} {alert_object['DownSteps']} {alert_type} ({alert_object['DownMove']:.2f}%) on the {bar_type}"
+            else:    
+                message += f"{emoticon} {alert_object} {alert_type} on the {bar_type}"
 
         return message
 

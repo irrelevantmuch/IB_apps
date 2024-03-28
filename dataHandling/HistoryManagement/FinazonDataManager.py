@@ -15,7 +15,7 @@ from dataHandling.IBConnectivity import IBConnectivity
 from generalFunctionality.GenFunctions import dateFromString, dateToString, pdDateFromIBString, dateFromIBString
 from dataHandling.UserDataManagement import readApiKeys
 from dataHandling.HistoryManagement.DataBuffer import DataBuffers
-
+import rel
 import asyncio
 import websockets, websocket
 import json
@@ -25,6 +25,7 @@ import threading
 
 api_keys = readApiKeys()
 
+
 class WebsocketManager(QObject):
     message_received = pyqtSignal(dict)
     socket_address = f"wss://ws.finazon.io/v1?apikey={api_keys[Constants.FINAZON_SOURCE]}"
@@ -32,9 +33,9 @@ class WebsocketManager(QObject):
     is_running = True
     finished = pyqtSignal()
 
-    last_ticker_time = dict()
-    last_unsent_time = dict()
-    last_unsent_message = dict()
+    # last_ticker_time = dict()
+    # last_unsent_time = dict()
+    # last_unsent_message = dict()
 
     def __init__(self, tickers=["BTC/USDC"], channel="binance"):
         super().__init__()
@@ -50,45 +51,30 @@ class WebsocketManager(QObject):
             "aggregation": "1m"
         }
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(lambda: self.checkForUnsentUpdates())
-        self.timer.start(3_000)
+        # self.timer = QTimer()
+        # self.timer.timeout.connect(lambda: self.checkForUnsentUpdates())
+        # self.timer.start(3_000)
 
     def onMessage(self, ws, message):
-        print("FinazonDataManager.onMessage")
-        print(message)
+        print(f"We get back {message}")
         now_time = datetime.now(timezone(Constants.NYC_TIMEZONE))
         delay_dif = timedelta(seconds=3)
         
         json_dict = json.loads(message)
         if 's' in json_dict:
-            symbol = json_dict['s']
-            if symbol in self.last_ticker_time:
-                if self.last_ticker_time[symbol] < (now_time-delay_dif):
-                    self.last_ticker_time[symbol] = now_time
-                    self.message_received.emit(json_dict)
+            self.message_received.emit(json_dict)
 
-                    del self.last_unsent_message[symbol]
-                    del self.last_unsent_time[symbol]
-                else:
-                    self.last_unsent_message[symbol] = json_dict
-                    self.last_unsent_time[symbol] = now_time
-            else:
-                self.last_ticker_time[symbol] = now_time
-                self.message_received.emit(json_dict)
-
-
-    def checkForUnsentUpdates(self):
-        now_time = datetime.now(timezone(Constants.NYC_TIMEZONE))
-        delay_dif = timedelta(seconds=3)
+    # def checkForUnsentUpdates(self):
+    #     now_time = datetime.now(timezone(Constants.NYC_TIMEZONE))
+    #     delay_dif = timedelta(seconds=3)
         
-        dict_copy = self.last_unsent_time.copy()
-        for symbol, time in dict_copy.items():
-            if time < (now_time-delay_dif):
-                if symbol in self.last_unsent_message:
-                    self.message_received.emit(self.last_unsent_message[symbol])
-                    del self.last_unsent_message[symbol]
-                    del self.last_unsent_time[symbol]
+    #     dict_copy = self.last_unsent_time.copy()
+    #     for symbol, time in dict_copy.items():
+    #         if time < (now_time-delay_dif):
+    #             if symbol in self.last_unsent_message:
+    #                 self.message_received.emit(self.last_unsent_message[symbol])
+    #                 del self.last_unsent_message[symbol]
+    #                 del self.last_unsent_time[symbol]
 
 
     def onError(self, ws, error):
@@ -105,7 +91,13 @@ class WebsocketManager(QObject):
 
     def run(self):
         self.ws = websocket.WebSocketApp(self.socket_address, on_open=self.onOpen, on_message=self.onMessage, on_error=self.onError, on_close=self.onClose)
-        self.ws.run_forever()
+        self.ws.run_forever(
+                # Set dispatcher to automatic reconnection, 5 second reconnect delay if connection closed unexpectedly
+                # dispatcher=rel, 
+            reconnect=5,
+                # Sending ping with specified interval to prevent disconnecting
+            ping_interval=30, ping_timeout=10,
+        )
 
     # @pyqtSlot()
     def close(self):
@@ -115,7 +107,7 @@ class WebsocketManager(QObject):
 class FinazonDataManager(QObject):
 
     bar_conversion = {Constants.ONE_MIN_BAR: "1m", Constants.TWO_MIN_BAR: "2m", Constants.THREE_MIN_BAR: "3m", Constants.FIVE_MIN_BAR: "5m",
-                        Constants.FIFTEEN_MIN_BAR: "15m", Constants.HOUR_BAR: "1h", Constants.FOUR_HOUR_BAR: "1h", Constants.DAY_BAR: "1d"}
+                        Constants.FIFTEEN_MIN_BAR: "15m", Constants.HOUR_BAR: "1h", Constants.FOUR_HOUR_BAR: "4h", Constants.DAY_BAR: "1d"}
 
 
     backward_bar_conversion = {"1m": Constants.ONE_MIN_BAR, "2m": Constants.TWO_MIN_BAR, "3m": Constants.THREE_MIN_BAR, "5m": Constants.FIVE_MIN_BAR,
@@ -418,15 +410,20 @@ class FinazonDataManager(QObject):
     def iterateHistoryRequests(self, delay=11_000): #this delay is only to match the interface of the IBKR historymanager. Needs to be removed
 
         one_min_bars, start_date = self.getOneMinForOutsideHours()
-        
         while len(self.request_buffer) > 0:
             request = self.request_buffer.pop()
             if request['start_date'] >= start_date:
                 completed_req = self.barsFromSmallerData(request, one_min_bars, start_date)
-            else:     
-                one_min_converted = one_min_bars['data'].resample(self.resampleFrame[request["bar_type"]]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+            else:
+                one_min_resampled = one_min_bars['data'].resample(self.resampleFrame[request["bar_type"]]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+                # if request['bar_type'] == Constants.FOUR_HOUR_BAR:
+                #     print(f"For {request['contract'].symbol} we get:")
+                #     print(one_min_resampled)
                 completed_req = self.getBarsForRequest(request)
-                completed_req['data'] = one_min_converted.combine_first(completed_req['data'])
+                completed_req['data'] = one_min_resampled.combine_first(completed_req['data'])
+                # if request['bar_type'] == Constants.FOUR_HOUR_BAR:
+                #     print(f"Final result:")
+                #     print(completed_req['data'].tail(15))
 
             self.data_buffers.processData(completed_req)
         
@@ -460,11 +457,9 @@ class FinazonDataManager(QObject):
         smallest_index = 0
         for index in range(1, len(self.request_buffer)):
             request_bar_type = self.request_buffer[index]['bar_type']
-            print(f"Request bar type: {request_bar_type}")
             if self.isSmallerBar(request_bar_type, smallest_bar_type):
                 smallest_bar_type = request_bar_type
                 smallest_index = index
-                print(f"{request_bar_type} is smaller than {smallest_bar_type}")
         return smallest_index
 
 

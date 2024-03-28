@@ -174,30 +174,34 @@ class AlertProcessor(QObject):
     def checkStepEvents(self, uid, bar_type):
         up_move = self.data_buffers.getIndicatorValues(uid, bar_type, ['UpSteps','UpMove'])
 
-        if self.alertExistsFor(uid, bar_type, "up steps"):
-            old_level = self.alert_tracker[uid][bar_type, "up steps"]
-            if up_move['UpSteps'] < old_level:
-                # self.sendAlert("up steps", uid, bar_type, old_level, 'broke')
-                del self.alert_tracker[uid][bar_type, "up steps"]
-            elif up_move['UpSteps'] > old_level:
-                self.logAlertFor(uid, bar_type, "up steps", up_move['UpSteps'])
+        if self.alertExistsFor(uid, bar_type, 'up steps'):
+            old_steps_object = self.alert_tracker[uid][bar_type, 'up steps']
+            if up_move['UpSteps'] < old_steps_object['UpSteps']:
+                self.logAlertFor(uid, bar_type, 'up steps broken', old_steps_object)
+                del self.alert_tracker[uid][bar_type, 'up steps']
+                self.sendAlert(uid)
+                del self.alert_tracker[uid][bar_type, 'up steps broken']
+            elif up_move['UpSteps'] > old_steps_object['UpSteps']:
+                self.logAlertFor(uid, bar_type, 'up steps', up_move)
                 self.sendAlert(uid)
         elif (up_move['UpSteps'] > self.step_up_thresholds[bar_type]) and (up_move['UpMove'] > 1.0):
-            self.logAlertFor(uid, bar_type, "up steps", up_move['UpSteps'])
+            self.logAlertFor(uid, bar_type, 'up steps', up_move)
             self.sendAlert(uid)
         
         down_move = self.data_buffers.getIndicatorValues(uid, bar_type, ['DownSteps','DownMove'])
         
-        if self.alertExistsFor(uid, bar_type, "down steps"):
-            old_level = self.alert_tracker[uid][bar_type, "down steps"]
-            if down_move['DownSteps'] < old_level:
-                # self.sendAlert("down steps", uid, bar_type, old_level, 'broke')
-                del self.alert_tracker[uid][bar_type, "down steps"]
-            elif down_move['DownSteps'] > old_level:
-                self.logAlertFor(uid, bar_type, "down steps", down_move['DownSteps'])
+        if self.alertExistsFor(uid, bar_type, 'down steps'):
+            old_steps_object = self.alert_tracker[uid][bar_type, 'down steps']
+            if down_move['DownSteps'] < old_steps_object['DownSteps']:
+                self.logAlertFor(uid, bar_type, 'down steps broken', down_move)
+                del self.alert_tracker[uid][bar_type, 'down steps']
+                self.sendAlert(uid)
+                del self.alert_tracker[uid][bar_type, 'down steps broken']
+            elif down_move['DownSteps'] > old_steps_object['DownSteps']:
+                self.logAlertFor(uid, bar_type, 'down steps', down_move)
                 self.sendAlert(uid)
         elif (down_move['DownSteps'] > self.step_down_thresholds[bar_type]) and (down_move['DownMove'] < -1.0):
-            self.logAlertFor(uid, bar_type, "down steps", down_move['DownSteps'])
+            self.logAlertFor(uid, bar_type, 'down steps', down_move)
             self.sendAlert(uid)
                 
 
@@ -213,6 +217,7 @@ class AlertProcessor(QObject):
         
         latest_price = self.data_buffers.getLatestPrice(uid)
         symbol = self.full_stock_list[uid][Constants.SYMBOL]
+        print(f"AlertProcessor.sendAlert {symbol}")
 
             #in the beginning a daily RSI may not have been downloaded yet
         if self.data_buffers.bufferExists(uid, Constants.DAY_BAR):
