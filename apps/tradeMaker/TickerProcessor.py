@@ -1,11 +1,6 @@
-from PyQt5.QtCore import QThread, pyqtSignal, QObject, pyqtSlot, Qt
+from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot, Qt
 from dataHandling.Constants import Constants
-from datetime import datetime, timedelta
-import pandas as pd
-from pytz import timezone
-import time
 from dataHandling.DataStructures import DetailObject
-import itertools
 from dataHandling.HistoryManagement.LiveBufferedManager import LiveDataManager
 
 class LiveTickerProcessor(QObject):

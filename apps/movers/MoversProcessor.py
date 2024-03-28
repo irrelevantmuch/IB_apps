@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import itertools
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QReadWriteLock, QThread, Qt
+from PyQt5.QtCore import pyqtSlot, QThread
 
 import time
 from datetime import datetime, timedelta
@@ -12,8 +12,7 @@ from dataHandling.Constants import Constants, TableType
 from dataHandling.DataProcessor import DataProcessor
 from .MoversFrame import MoversFrame
 from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
-from generalFunctionality.GenFunctions import subtract_days, subtract_weeks, subtract_months, addRSIsEMAs, getLowsHighsCount, calculateCorrelation, calculateRSI
-
+from generalFunctionality.GenFunctions import subtract_days, subtract_weeks, subtract_months, addRSIsEMAs, getLowsHighsCount, calculateCorrelation
 
 class MoversProcessor(DataProcessor):
 

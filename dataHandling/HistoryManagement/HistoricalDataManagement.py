@@ -14,8 +14,7 @@ from operator import attrgetter
 
 from dataHandling.Constants import Constants
 from dataHandling.DataStructures import DetailObject
-from dataHandling.IBConnectivity import IBConnectivity
-from generalFunctionality.GenFunctions import dateFromString, dateToString, pdDateFromIBString, dateFromIBString, standardBeginDateFor
+from generalFunctionality.GenFunctions import dateFromString, dateToString, pdDateFromIBString, dateFromIBString
 
 from dataHandling.DataManagement import DataManager
 from dataHandling.HistoryManagement.DataBuffer import DataBuffers

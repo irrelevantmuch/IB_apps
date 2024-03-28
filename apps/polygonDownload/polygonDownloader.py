@@ -1,12 +1,7 @@
 import requests
-import datetime
-import json
 import pandas as pd
 from dataHandling.Constants import Constants
-from dateutil.relativedelta import relativedelta
 from dataHandling.UserDataManagement import readApiKeys
-import time
-import sys
 from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal
 
 api_keys = readApiKeys()

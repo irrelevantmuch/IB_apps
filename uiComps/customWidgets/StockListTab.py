@@ -9,12 +9,10 @@
 
 from PyQt5.QtGui import QBrush, QColor
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import pyqtSignal
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QTableWidgetItem, QWidget
-import numpy as np
 from uiComps.qtGeneration.StockListTab_UI import Ui_Form as StockTab
-import pandas as pd
 
 from generalFunctionality.UIFunctions import findRowForValue, getNumericItem, AlignDelegate, PriceAlignDelegate
 from dataHandling.Constants import Constants

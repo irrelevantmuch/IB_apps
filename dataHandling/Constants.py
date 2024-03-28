@@ -119,7 +119,7 @@ class Constants:
     NAMES: Final = 'NAMES'
     DAYS_TILL_EXP: Final = 'DAYS_TILL_EXP'
 
-    DEFAULT_OPT_EXC: Final = "CBOE" #"AMEX" #
+    DEFAULT_OPT_EXC: Final = "CBOE" #"AMEX"
     EXCHANGE: Final = 'exchange'
     SMART: Final = "SMART"
 
@@ -127,7 +127,6 @@ class Constants:
 
     OPTION_DATA_EXP: Final = "Expiration Type"
     OPTION_DATA_STRIKE: Final = "Strike Type"
-
 
     UP_STEPS: Final = 'up_steps'
     DOWN_STEPS: Final = 'down_steps'
@@ -206,7 +205,7 @@ class Constants:
 QUICK_BAR_TYPES: Final = [Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR]
 MAIN_BAR_TYPES: Final = [Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR, Constants.DAY_BAR]
 DT_BAR_TYPES: Final = [Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR, Constants.DAY_BAR] 
-RESAMPLING_BARS: Final = {Constants.TWO_MIN_BAR: '2T', Constants.THREE_MIN_BAR: '3T', Constants.FIVE_MIN_BAR: '5T', Constants.FIFTEEN_MIN_BAR: '15T', Constants.HOUR_BAR: '1H', Constants.FOUR_HOUR_BAR: '4H', Constants.DAY_BAR: 'D'}
+RESAMPLING_BARS: Final = {Constants.TWO_MIN_BAR: '2min', Constants.THREE_MIN_BAR: '3min', Constants.FIVE_MIN_BAR: '5min', Constants.FIFTEEN_MIN_BAR: '15min', Constants.HOUR_BAR: '1h', Constants.FOUR_HOUR_BAR: '4h', Constants.DAY_BAR: 'D'}
 
 
 MINUTES_PER_BAR: Final = {Constants.ONE_MIN_BAR: 1, Constants.TWO_MIN_BAR: 2, Constants.THREE_MIN_BAR: 3, Constants.FIVE_MIN_BAR: 5, Constants.FIFTEEN_MIN_BAR: 15, Constants.HOUR_BAR: 60, Constants.FOUR_HOUR_BAR: 240, Constants.DAY_BAR: 1440}

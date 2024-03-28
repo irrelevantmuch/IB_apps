@@ -1,8 +1,7 @@
 from PyQt5.QtCore import pyqtSignal, QObject, QReadWriteLock, QThread
-from dataHandling.Constants import Constants, OptionConstrType
-
+from dataHandling.Constants import Constants
 import numpy as np
-import pandas as pd
+
 
 class ComputableDataFrame(QObject):
 

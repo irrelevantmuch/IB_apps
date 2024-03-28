@@ -1,21 +1,12 @@
 from datetime import datetime, timedelta, time, date
-from dateutil.relativedelta import relativedelta
-from pandas import to_datetime as to_pandas_datetime
 from pytz import timezone
 
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
-from PyQt5 import QtCore
-
-from scipy.stats import linregress
-
-import requests
+from PyQt5.QtCore import pyqtSlot
 import numpy as np
 import pandas as pd
-import json
 
-from generalFunctionality.GenFunctions import calculateCorrelation
-from dataHandling.Constants import Constants, TableType, MINUTES_PER_BAR, RESAMPLING_BARS
+from dataHandling.Constants import Constants, MINUTES_PER_BAR, RESAMPLING_BARS
 from dataHandling.DataProcessor import DataProcessor
 from .ComparisonDataWrapper import ComparisonDataWrapper
 from dataHandling.HistoryManagement.SpecBufferedManager import SpecBufferedDataManager as BufferedDataManager

@@ -1,14 +1,15 @@
-import json
-from dataHandling.Constants import Constants, MAIN_BAR_TYPES, DT_BAR_TYPES, MINUTES_PER_BAR, RESAMPLING_BARS
-import pandas as pd
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread, QObject, Qt
+import time
+
+from dataHandling.Constants import Constants, DT_BAR_TYPES
+
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, Qt
 import itertools
 from generalFunctionality.GenFunctions import addRSIsEMAs, getLowsHighsCount
 
 class IndicatorProcessor(QObject):
 
     last_uid_update = dict()
-    indicators = set(['rsi', 'steps'])
+    indicators = {'rsi', 'steps'}
 
     finished = pyqtSignal()
 
@@ -58,9 +59,7 @@ class IndicatorProcessor(QObject):
                 else:
                     updated_from = None
                 bars = [bar_type for bar_type in bars if self.hasUpdated(uid, bar_type)]
-                print(f"We redo indicators for bars {bars} for {self._tracking_stocks[uid][Constants.SYMBOL]}")
                 if len(bars) > 0:
-
                     self.updateIndicators(updated_uids=[uid], bar_types=bars, updated_from=updated_from)
                     self.updatePrevious([uid], bars)
 
@@ -110,7 +109,6 @@ class IndicatorProcessor(QObject):
         for uid, bar_type in itertools.product(updated_uids, bar_types):
 
             if self.data_buffers.bufferExists(uid, bar_type):
-                print(f"For {self._tracking_stocks[uid][Constants.SYMBOL]} we calculate STEPS for {bar_type}")
                 stock_frame = self.data_buffers.getBufferFor(uid, bar_type)
                 
                 low_move, high_move, inner_bar_specs = getLowsHighsCount(stock_frame)
@@ -136,8 +134,10 @@ class IndicatorProcessor(QObject):
             if (from_indices is not None) and (bar_type in from_indices):
                 starting_index = from_indices[bar_type]
             if self.data_buffers.bufferExists(uid, bar_type):
-                print(f"For {self._tracking_stocks[uid][Constants.SYMBOL]} we calculate RSI for {bar_type}")
                 stock_frame = self.data_buffers.getBufferFor(uid, bar_type)
+                if bar_type == Constants.ONE_MIN_BAR:
+                    print("so this is delayed?")
+                    print(stock_frame.iloc[-1].name)
                 if len(stock_frame) > 14:
                     rsi_padded_frame = addRSIsEMAs(stock_frame, starting_index)
                     self.data_buffers.setBufferFor(uid, bar_type, rsi_padded_frame)

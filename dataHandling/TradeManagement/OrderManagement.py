@@ -3,20 +3,10 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QObject, QReadWriteLock
 from ibapi.contract import Contract
 
 from dataHandling.Constants import Constants
-import pandas as pd
-
-from math import ceil
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
-from pytz import timezone
-import sys, time
-from operator import attrgetter
+import time
 from ibapi.order import Order
 
 import itertools
-from generalFunctionality.GenFunctions import dateFromString, dateToString #TODO: Should there be two?
-
-from threading import Condition
 from dataHandling.DataManagement import DataManager
 
 from functools import wraps

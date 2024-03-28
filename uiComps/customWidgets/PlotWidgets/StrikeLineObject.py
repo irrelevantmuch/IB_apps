@@ -3,7 +3,6 @@ import pyqtgraph as pg
 
 from generalFunctionality.GenFunctions import findNearest
 
-
 class StrikeLineObject:
 
     delegate = None
@@ -20,10 +19,6 @@ class StrikeLineObject:
         self.proxy_strike_line_finished = pg.SignalProxy(self.strike_line.sigPositionChangeFinished, slot=self.strikeLineDraggingEnded)
         plotItem.addItem(self.strike_line)
 
-        # self.upper_line = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(0,120,0),width=5, style=QtCore.Qt.DashLine),movable=False)
-        # self.lower_line = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(0,120,0),width=5, style=QtCore.Qt.DashLine),movable=False)
-        # plotItem.addItem(self.upper_line)
-        # plotItem.addItem(self.lower_line)
 
 
     def strikeLineDragging(self, evt):

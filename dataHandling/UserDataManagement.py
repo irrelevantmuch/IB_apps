@@ -1,8 +1,6 @@
 import json
 import re
 
-from dataHandling.Constants import Constants
-
 from os import walk
 
 def fetchPositionNotes():

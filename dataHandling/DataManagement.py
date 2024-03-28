@@ -1,10 +1,5 @@
-
-
 from PyQt5.QtCore import pyqtSignal, Qt, QObject, QThread, pyqtSlot
-from PyQt5 import QtCore
 from ibapi.contract import Contract
-import threading
-from pubsub import pub
 
 from dataHandling.DataStructures import DetailObject
 from dataHandling.Constants import Constants

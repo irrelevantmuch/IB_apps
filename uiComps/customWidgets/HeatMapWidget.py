@@ -1,9 +1,7 @@
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore
-import numpy as np
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSlider
 from PyQt5.QtCore import Qt
-import pandas as pd
 
 class RotatedAxisItem(pg.AxisItem):
     def drawPicture(self, p, axisSpec, tickSpecs, textSpecs):

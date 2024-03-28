@@ -5,7 +5,6 @@ from dataHandling.Constants import Constants
 import numpy as np
 import pandas as pd
 
-
 from dataHandling.DataManagement import DataManager
 
 

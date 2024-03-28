@@ -1,15 +1,7 @@
-from PyQt5.QtCore import QThread, pyqtSignal, QObject, pyqtSlot, Qt
-from dataHandling.Constants import Constants, MAIN_BAR_TYPES, DT_BAR_TYPES
-from datetime import datetime, timedelta
-import pandas as pd
-from pytz import timezone
-from dataHandling.DataStructures import DetailObject
-import itertools, json
+from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot, Qt
+from dataHandling.Constants import Constants, DT_BAR_TYPES
 from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
 from dataHandling.UserDataManagement import readStockList
-from dataHandling.HistoryManagement.FinazonDataManager import FinazonDataManager
-from dataHandling.HistoryManagement.HistoricalDataManagement import HistoricalDataManager
-import time
 
 
 class AlertProcessor(QObject):

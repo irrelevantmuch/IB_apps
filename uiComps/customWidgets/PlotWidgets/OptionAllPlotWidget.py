@@ -1,14 +1,10 @@
-from PyQt5.QtCore import Qt, QThread, QRectF
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMenu, QAction
-from PyQt5.QtGui import QBrush, QColor, QPainter
 
 import pyqtgraph as pg
-from pyqtgraph import exporters, DateAxisItem
 
 import numpy as np
-from dataHandling.Constants import Constants
-import random, sys, time
-from generalFunctionality.GenFunctions import findNearest
+import time
 
 pg.setConfigOption("background", "w")
 pg.setConfigOptions(antialias=False)

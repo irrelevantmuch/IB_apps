@@ -1,4 +1,3 @@
-import json
 from dataHandling.Constants import Constants, MAIN_BAR_TYPES, DT_BAR_TYPES, MINUTES_PER_BAR, RESAMPLING_BARS
 import pandas as pd
 from PyQt5.QtCore import pyqtSignal, QThread, QReadWriteLock, QObject

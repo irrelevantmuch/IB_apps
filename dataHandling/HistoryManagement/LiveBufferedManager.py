@@ -1,19 +1,11 @@
 
-from dataHandling.Constants import Constants, MAIN_BAR_TYPES, QUICK_BAR_TYPES, DT_BAR_TYPES, MINUTES_PER_BAR
+from dataHandling.Constants import Constants, QUICK_BAR_TYPES
 from dataHandling.DataStructures import DetailObject
-from dataHandling.UserDataManagement import readStockList
-from datetime import datetime
 from pytz import timezone
 from dateutil.relativedelta import relativedelta
-from datetime import datetime, timedelta
-from generalFunctionality.GenFunctions import barStartTime, barEndTime, standardBeginDateFor
+from datetime import datetime
 
-import sys
-import time
-import numpy as np
-import pandas as pd
-
-from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot, QThread, Qt, QEventLoop
+from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot, QThread, Qt
 
 
 class LiveDataManager(QObject):

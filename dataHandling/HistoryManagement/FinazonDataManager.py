@@ -3,25 +3,18 @@ from PyQt5.QtCore import QTimer, QThread, pyqtSlot, QObject, Qt, pyqtSignal
 import pandas as pd
 
 from datetime import datetime, timedelta, time
-from dateutil.relativedelta import relativedelta
 from pytz import timezone
-import pytz
-import sys, math
-from operator import attrgetter
+import math
 
-from dataHandling.Constants import Constants, MINUTES_PER_BAR
+from dataHandling.Constants import Constants, MINUTES_PER_BAR, RESAMPLING_BARS
 from dataHandling.DataStructures import DetailObject
-from dataHandling.IBConnectivity import IBConnectivity
-from generalFunctionality.GenFunctions import dateFromString, dateToString, pdDateFromIBString, dateFromIBString
+from generalFunctionality.GenFunctions import dateToString
 from dataHandling.UserDataManagement import readApiKeys
 from dataHandling.HistoryManagement.DataBuffer import DataBuffers
-import rel
-import asyncio
-import websockets, websocket
+import websocket
 import json
 import requests
 
-import threading
 
 api_keys = readApiKeys()
 
@@ -29,13 +22,8 @@ api_keys = readApiKeys()
 class WebsocketManager(QObject):
     message_received = pyqtSignal(dict)
     socket_address = f"wss://ws.finazon.io/v1?apikey={api_keys[Constants.FINAZON_SOURCE]}"
-    # run_async_socket = pyqtSignal()
     is_running = True
     finished = pyqtSignal()
-
-    # last_ticker_time = dict()
-    # last_unsent_time = dict()
-    # last_unsent_message = dict()
 
     def __init__(self, tickers=["BTC/USDC"], channel="binance"):
         super().__init__()
@@ -51,15 +39,10 @@ class WebsocketManager(QObject):
             "aggregation": "1m"
         }
 
-        # self.timer = QTimer()
-        # self.timer.timeout.connect(lambda: self.checkForUnsentUpdates())
-        # self.timer.start(3_000)
-
     def onMessage(self, ws, message):
-        print(f"We get back {message}")
-        now_time = datetime.now(timezone(Constants.NYC_TIMEZONE))
-        delay_dif = timedelta(seconds=3)
-        
+        # now_time = datetime.now(timezone(Constants.NYC_TIMEZONE))
+        # delay_dif = timedelta(seconds=3)
+        #
         json_dict = json.loads(message)
         if 's' in json_dict:
             self.message_received.emit(json_dict)
@@ -112,9 +95,6 @@ class FinazonDataManager(QObject):
 
     backward_bar_conversion = {"1m": Constants.ONE_MIN_BAR, "2m": Constants.TWO_MIN_BAR, "3m": Constants.THREE_MIN_BAR, "5m": Constants.FIVE_MIN_BAR,
                         "15m": Constants.FIFTEEN_MIN_BAR, "1h": Constants.HOUR_BAR, "4h": Constants.FOUR_HOUR_BAR, "1d": Constants.DAY_BAR}
-
-
-    resampleFrame = {Constants.TWO_MIN_BAR: '2T', Constants.THREE_MIN_BAR: '3T', Constants.FIVE_MIN_BAR: '5T', Constants.FIFTEEN_MIN_BAR: '15T', Constants.HOUR_BAR: '1H', Constants.FOUR_HOUR_BAR: '4H', Constants.DAY_BAR: 'D'}
 
 
     api_updater = pyqtSignal(str, dict)
@@ -415,7 +395,7 @@ class FinazonDataManager(QObject):
             if request['start_date'] >= start_date:
                 completed_req = self.barsFromSmallerData(request, one_min_bars, start_date)
             else:
-                one_min_resampled = one_min_bars['data'].resample(self.resampleFrame[request["bar_type"]]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+                one_min_resampled = one_min_bars['data'].resample(RESAMPLING_BARS[request["bar_type"]]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
                 # if request['bar_type'] == Constants.FOUR_HOUR_BAR:
                 #     print(f"For {request['contract'].symbol} we get:")
                 #     print(one_min_resampled)
@@ -475,7 +455,7 @@ class FinazonDataManager(QObject):
         # print(f"FinazonDataManager.barsFromSmallerData {bar_type}")
         uid = request['contract'].numeric_id
         end_date = request['end_date']
-        new_data = smallest_bars['data'].resample(self.resampleFrame[bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+        new_data = smallest_bars['data'].resample(RESAMPLING_BARS[bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
         completed_req = self.createCompletedReq(uid, bar_type, start_date, end_date)
         completed_req['data'] = new_data
         return completed_req

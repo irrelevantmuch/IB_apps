@@ -1,5 +1,5 @@
 from PyQt5.QtGui import QColor, QBrush
-from PyQt5.QtWidgets import QMainWindow, QApplication, QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem, QLabel, QHBoxLayout, QTableWidgetItem
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QLabel, QHBoxLayout, QTableWidgetItem
 from datetime import datetime
 from dataHandling.Constants import Constants
 

@@ -9,25 +9,21 @@
 
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QMainWindow, QHeaderView, QPushButton
+from PyQt5.QtWidgets import QMainWindow
 
-import numpy as np
 from dataHandling.Constants import Constants, DT_BAR_TYPES, TableType
 from .MoversWindow import MoversWindow
 
-from generalFunctionality.GenFunctions import printPriority
 from .MoversProcessor import MoversProcessor as DataProcessor
-import sys #, threading, math
+import sys
 
 from ibapi.contract import Contract
-from uiComps.TableModels import StepModel, RSIModel, LevelModel, OverviewModel, CorrModel, ListCorrModel
+from uiComps.TableModels import StepModel, RSIModel, LevelModel, OverviewModel, CorrModel
 from uiComps.customWidgets.OrderDialog import StepOrderDialog
 from uiComps.customWidgets.PlotWidgets.QuickChart import QuickChart
 
 import webbrowser
 from dataHandling.UserDataManagement import readStockList
-from dataHandling.ibFTPdata import getShortDataFor
-
 
 class MoversList(MoversWindow):
 

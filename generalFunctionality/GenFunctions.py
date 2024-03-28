@@ -1,7 +1,6 @@
 from datetime import datetime, time
 from pytz import timezone
 import numpy as np
-import time as timer
 import pandas as pd
 
 from dataHandling.Constants import Constants, MINUTES_PER_BAR
@@ -201,7 +200,8 @@ def addRSIsEMAs(stock_frame, from_index=None):
     stock_frame.loc[updated_indices, ['up_ema', 'down_ema', 'rsi']] = np.column_stack([up_emas, down_emas, rsi])
     
         #we want to remove any NaNs, not sure if this is still necesarry 
-    stock_frame['rsi'].fillna(method='ffill', inplace=True)
+    # stock_frame['rsi'].fillna(method='ffill', inplace=True)
+    stock_frame['rsi'] = stock_frame['rsi'].ffill()
     stock_frame['rsi'] = stock_frame['rsi'].round(1)
     return stock_frame
 

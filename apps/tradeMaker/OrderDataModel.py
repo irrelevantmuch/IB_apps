@@ -2,7 +2,6 @@ from PyQt5.QtCore import Qt, QAbstractTableModel, pyqtSignal, pyqtSlot, QEvent
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QDoubleSpinBox, QSpinBox, QPushButton, QStyledItemDelegate
 from dataHandling.Constants import Constants
-import pandas as pd
 
 class SpinBoxDelegate(QStyledItemDelegate):
     

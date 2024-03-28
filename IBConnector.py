@@ -5,7 +5,6 @@ from dataHandling.HistoryManagement.IndicatorProcessor import IndicatorProcessor
 from dataHandling.HistoryManagement.FinazonDataManager import FinazonDataManager
 from dataHandling.TradeManagement.OrderManagement import OrderManager
 from dataHandling.OptionManagement.OptionChainManager import OptionChainManager
-from dataHandling.TradeManagement.PositionDataManagement import PositionDataManager
 from dataHandling.DataManagement import DataManager
 from dataHandling.SymbolManager import SymbolDataManager
 from dataHandling.Constants import Constants
@@ -64,7 +63,7 @@ class IBConnector:
         if self.indicator_processor is None:
 
             self.indicator_processor = IndicatorProcessor(data_object)
-            self.startWorkerThread('general_indicator', self.indicator_processor)
+            self.startWorkerThread('general_indicator', self.indicator_processor, thread_priority=QThread.HighestPriority)
             
         return self.indicator_processor
 
@@ -92,13 +91,16 @@ class IBConnector:
             return history_manager
 
 
-    def startWorkerThread(self, identifier, worker, run_function=None):
+    def startWorkerThread(self, identifier, worker, run_function=None, thread_priority=None):
         thread = QThread()
         worker.moveToThread(thread)
         if run_function is None:
             thread.started.connect(worker.run)
         else:
             thread.started.connect(run_function)
+
+        if thread_priority is not None:
+            thread.setPriority(thread_priority)
         worker.finished.connect(lambda: self.cleanupWorkerThread(identifier), Qt.QueuedConnection)
         self.running_workers[identifier] = (worker, thread)
         thread.start()

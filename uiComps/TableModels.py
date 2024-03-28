@@ -1,9 +1,7 @@
 from PyQt5.QtCore import Qt, QAbstractTableModel, pyqtSignal, QSize, QTimer, pyqtSlot
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore
 from dataHandling.Constants import Constants
 from math import isnan
-import pandas as pd
-import numpy as np
 from PyQt5.QtGui import QBrush, QColor
 
 

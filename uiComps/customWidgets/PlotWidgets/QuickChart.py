@@ -1,13 +1,9 @@
-from PyQt5 import QtWidgets, QtChart, QtCore
-from PyQt5.QtChart import QChart, QChartView, QBarCategoryAxis
-from PyQt5.QtCore import Qt, QDateTime, pyqtSignal
-from PyQt5.QtGui import QColor
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtChart import QChartView
+from PyQt5.QtCore import pyqtSignal
 
 from uiComps.customWidgets.PlotWidgets.CandlePlotWidget import CandlePlotWidget
-from dataHandling.Constants import Constants, TableType
 
-import numpy as np
-import math
 
 class MouseChartView(QChartView):
 

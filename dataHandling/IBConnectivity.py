@@ -1,25 +1,19 @@
-from PyQt5.QtCore import QThread, QObject, QMetaObject, Qt, Q_ARG, pyqtSignal, pyqtSlot, QTimer, QDateTime
+from PyQt5.QtCore import QThread, QObject, Qt, pyqtSignal, pyqtSlot, QTimer
 from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
 from ibapi.contract import Contract
 from ibapi.order import Order
-from ibapi.order_state import OrderState
 from ibapi.common import BarData
 from ibapi.ticktype import TickTypeEnum
-from pprint import pprint
-import inspect
 
-import time
 
 from queue import Queue
 
 from dataHandling.DataStructures import DetailObject
 from dataHandling.Constants import Constants
 from pubsub import pub
-from generalFunctionality.GenFunctions import dateFromString
-from threading import Thread, Event
-# import logging
-# logging.basicConfig(level=logging.DEBUG)
+from threading import Thread
+
 
 
 class IBConnectivity(EClient, EWrapper, QObject):

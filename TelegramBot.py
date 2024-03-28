@@ -4,7 +4,7 @@ from telebot import types
 
 import json
 
-new_session_message = "\t🔵🔵🔵🔵🔵🔵🔵🔵🔵\n\n**🚀 New Session Alert 🚀**"
+new_session_message = "\t_____________________\n\n**🚀 New Session Alert 🚀**"
 
 class TelegramBot(QObject):
 
@@ -51,8 +51,6 @@ class TelegramBot(QObject):
             message = f"<a href='{tv_url}'>{symbol}</a> (<b>{latest_price:.2f}</b>):"
             
         for (bar_type, alert_type), alert_object in alert_lines.items():
-            print(f"We should add for {bar_type} {alert_type} {type(alert_type)}")
-            print(alert_object)
             if (alert_type == 'down steps') or (alert_type == 'up steps broken') or (alert_type == 'rsi crossing down'):
                 emoticon = '🔴'
             elif (alert_type == 'up steps') or (alert_type == 'down steps broken') or (alert_type == 'rsi crossing up'):
@@ -61,12 +59,9 @@ class TelegramBot(QObject):
                 emoticon = '🟠'
 
             message += "\n"
-            print(alert_type.startswith('up steps'))
             if alert_type.startswith('up steps'):
-                print(f"{emoticon} {alert_object['UpSteps']} {alert_type} ({alert_object['UpMove']:.2f}%) on the {bar_type}")
                 message += f"{emoticon} {alert_object['UpSteps']} {alert_type} ({alert_object['UpMove']:.2f}%) on the {bar_type}"
             elif alert_type.startswith('down steps'):
-                print(f"{emoticon} {alert_object['DownSteps']} {alert_type} ({alert_object['DownMove']:.2f}%) on the {bar_type}")
                 message += f"{emoticon} {alert_object['DownSteps']} {alert_type} ({alert_object['DownMove']:.2f}%) on the {bar_type}"
             else:    
                 message += f"{emoticon} {alert_object} {alert_type} on the {bar_type}"

@@ -5,8 +5,6 @@ from AppLauncherWindow import AppLauncherWindow
 
 import sys, os, time
 from uiComps.Logging import Logger
-import yappi
-import asyncio
 
 from dataHandling.ibFTPdata import downloadShortData
 
@@ -33,8 +31,8 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
     def __init__(self):
         super().__init__()
-        self.loggin_instance = Logger.instance()
-        self.loggin_instance.setLogWindow(self.log_window)
+        self.logging_instance = Logger.instance()
+        self.logging_instance.setLogWindow(self.log_window)
         self.real_tws_button.setChecked(True)
         self.connectionSelection()
         self.updateConnectionStatus('closed')
@@ -201,6 +199,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 if __name__ == "__main__":
 
         # Set the environment variables
+    os.nice(-10)
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("macos")
     app.aboutToQuit.connect(app.deleteLater)

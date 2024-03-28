@@ -1,10 +1,8 @@
-from PyQt5.QtCore import QThread, pyqtSignal, QObject, pyqtSlot, Qt
+from PyQt5.QtCore import QThread, QObject, pyqtSlot, Qt
 from dataHandling.Constants import Constants
 from datetime import datetime, timedelta
 import pandas as pd
 from pytz import timezone
-import itertools
-
 
 class DataProcessor(QObject):
 

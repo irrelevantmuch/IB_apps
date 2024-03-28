@@ -5,7 +5,7 @@ from pyqtgraph import exporters, DateAxisItem
 
 import numpy as np
 from dataHandling.Constants import Constants
-import random, sys
+import sys
 from generalFunctionality.GenFunctions import findNearest
 
 pg.setConfigOption("background", "w")

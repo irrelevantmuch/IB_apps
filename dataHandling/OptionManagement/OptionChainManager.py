@@ -1,7 +1,6 @@
 from PyQt5.QtCore import QTimer, Qt, QThread, pyqtSlot, pyqtSignal
 
 from ibapi.contract import Contract, ComboLeg
-#from ibapi.ComboLeg import ComboLeg
 
 from dataHandling.Constants import Constants, OptionConstrType
 import pandas as pd

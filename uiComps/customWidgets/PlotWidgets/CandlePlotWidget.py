@@ -1,4 +1,4 @@
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import QTimer
 import pyqtgraph as pg
 from pyqtgraph import DateAxisItem
 from pyqtgraph import QtCore, QtGui
@@ -7,7 +7,6 @@ import pandas as pd
 import numpy as np
 
 from dataHandling.Constants import Constants
-from generalFunctionality.GenFunctions import findNearest
 
 pg.setConfigOption("background", "w")
 

@@ -1,7 +1,6 @@
 from PyQt5 import QtCore
 import pyqtgraph as pg
 import numpy as np
-from dataHandling.Constants import Constants
 from generalFunctionality.GenFunctions import findNearest
 from .StrikeLineObject import StrikeLineObject
 
