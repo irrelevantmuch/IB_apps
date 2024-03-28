@@ -69,6 +69,7 @@ class AlertManager(AlertWindow):
         self.reversal_box_all.setChecked(True)
         self.cross_box_all.setChecked(True)
 
+
     def setupTelegramBot(self):
                 # Setup the bot logic and thread
         self.telegram_bot = TelegramBot()  # Replace with your actual token
