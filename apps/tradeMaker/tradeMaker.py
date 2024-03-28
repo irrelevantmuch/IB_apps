@@ -67,21 +67,21 @@ class TradeMaker(TradingWindow):
         self.order_buffer = self.order_manager.getOrderBuffer()
         self.stair_tracker = self.order_manager.getStairTracker()
         self.order_manager.setDataObject(self.data_buffers)
-
+        
+        self.prepTickerProcessor(history_manager)
         self.setupOrderTable(self.order_buffer)
         self.setupStairTable(self.stair_tracker)
         self.setBaseGuiValues()
 
-        self.prepTickerProcessor(history_manager)
+        
         self.connectSignalSlots()
         
         self.product_label.setText(self.stock_list[self.selected_key]['long_name']) 
         
-        
-        self.processor_thread.start()
-        
+    
         # self.order_manager.open_order_request.emit()
         self.tickerSelection(0)
+        self.processor_thread.start()
 
 
     def setupStairTable(self, stair_tracker):

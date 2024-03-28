@@ -8,7 +8,8 @@ new_session_message = "\t🔵🔵🔵🔵🔵🔵🔵🔵🔵\n\n**🚀 New Sess
 
 class TelegramBot(QObject):
 
-    message_tracker = dict()
+    alert_tracker = dict()
+    message_id_tracker = set()
 
     def __init__(self): #, api_id, api_hash, bot_token, bot_username, message):
         super().__init__()
@@ -17,7 +18,7 @@ class TelegramBot(QObject):
         print(self.bot_inf)
         self.bot = telebot.TeleBot(self.bot_inf['token'])
     
-        self.bot.send_message(self.bot_inf['chat_id'], new_session_message, parse_mode= 'HTML')
+        self.message_id_tracker.add(self.bot.send_message(self.bot_inf['chat_id'], new_session_message, parse_mode= 'HTML'))
         self.createHandlers()
 
     def createHandlers(self):
@@ -30,9 +31,16 @@ class TelegramBot(QObject):
     def sendMessage(self, symbol, latest_price, alert_lines, latest_daily_rsi):
 
         new_message = self.createMessage(symbol, latest_price, alert_lines, latest_daily_rsi)
-        if symbol in self.message_tracker:
-            self.bot.delete_message(chat_id=self.bot_inf['chat_id'], message_id=self.message_tracker[symbol].message_id)
-        self.message_tracker[symbol] = self.bot.send_message(self.bot_inf['chat_id'], new_message, disable_web_page_preview=True, parse_mode= 'HTML')
+        if symbol in self.alert_tracker:
+            self.deleteMessage(self.alert_tracker[symbol].message_id)
+        message_id = self.bot.send_message(self.bot_inf['chat_id'], new_message, disable_web_page_preview=True, parse_mode= 'HTML')
+        self.alert_tracker[symbol] = message_id
+        self.message_id_tracker.add(message_id)
+
+
+    def deleteMessage(self, message_id):
+        self.bot.delete_message(chat_id=self.bot_inf['chat_id'], message_id=message_id)
+        self.message_id_tracker.remove(self.alert_tracker[symbol].message_id)
 
 
     def createMessage(self, symbol, latest_price, alert_lines, latest_daily_rsi):
@@ -46,7 +54,7 @@ class TelegramBot(QObject):
             else:
                 strength = "🟠"
             
-            message = f"<a href='{tv_url}'>{symbol}</a> (<b>{latest_price:.2f}</b>) - Daily RSI: <b>{latest_daily_rsi:.2f}</b> {strength}" 
+            message = f"<a href='{tv_url}'>{symbol}</a> (<b>{latest_price:.2f}</b>) - Daily rsi: <b>{latest_daily_rsi:.1f}</b> {strength}" 
         else:
             message = f"<a href='{tv_url}'>{symbol}</a> (<b>{latest_price:.2f}</b>):"
             
@@ -72,6 +80,11 @@ class TelegramBot(QObject):
                 message += f"{emoticon} {alert_object} {alert_type} on the {bar_type}"
 
         return message
+
+
+    def cleanupMessages(self):
+        for message_id in message_id_tracker:
+            self.bot.delete_message(chat_id=self.bot_inf['chat_id'], message_id=message_id)
 
 
     @pyqtSlot()
