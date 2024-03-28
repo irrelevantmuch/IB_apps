@@ -119,7 +119,6 @@ class MoversProcessor(DataProcessor):
 
 
     def updateFrameForHistory(self, updates_uids=None, bar_types=None, updated_from=None):
-        start_time = time.time()
 
         if self.stock_df is None:
             self.initDataFrame()
