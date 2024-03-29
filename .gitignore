@@ -1,6 +1,7 @@
 .DS_Store
 appLauncher.sublime-workspace
 
+.idea/*
 junkFolder/*
 **/__pycache__/
 

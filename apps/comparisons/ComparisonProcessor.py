@@ -33,8 +33,8 @@ class ComparisonProcessor(DataProcessor):
 
     selected_date = date.today()
 
-    def __init__(self, history_manager, bar_types, stock_list):
-        self.buffered_manager = BufferedDataManager(history_manager, name="CommparisonBuffer")
+    def __init__(self, buffered_manager, bar_types, stock_list):
+        self.buffered_manager = buffered_manager
         super().__init__(stock_list)
         self.data_object = ComparisonDataWrapper()
         

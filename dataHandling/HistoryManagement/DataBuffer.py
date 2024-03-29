@@ -17,6 +17,10 @@ class DataBuffers(QObject):
     bars_to_propagate = DT_BAR_TYPES
 
 
+    def __init__(self, data_folder):
+        super().__init__()
+        self.data_folder = data_folder
+
     ###### read/write protected buffer interactions
 
     def setBufferFor(self, uid, bar_type, buffered_data, ranges=None):
@@ -247,7 +251,7 @@ class DataBuffers(QObject):
 
     def loadExistingBuffer(self, uid, bar_type):
         try:
-            file_name = Constants.BUFFER_FOLDER + uid + '_' + bar_type + '.pkl'
+            file_name = self.data_folder + uid + '_' + bar_type + '.pkl'
             existing_buffer = pd.read_pickle(file_name)
             self.setBufferFor(uid, bar_type, pd.read_pickle(file_name), existing_buffer.attrs['ranges'])
         except Exception as inst:
@@ -256,7 +260,7 @@ class DataBuffers(QObject):
 
 
     def saveBuffer(self, uid, bar_type):
-        file_name = Constants.BUFFER_FOLDER + uid + '_' + bar_type + '.pkl'
+        file_name = self.data_folder + uid + '_' + bar_type + '.pkl'
         self._locks[uid, bar_type].lockForRead()
         
         cols_to_exclude = ['rsi', 'up_ema', 'down_ema']

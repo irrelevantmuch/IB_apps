@@ -47,14 +47,15 @@ class DataManager(QObject):
         print(f"Datamanagement.run  on {int(QThread.currentThreadId())}")
         # self.run_ib_client_signal.connect(self.run_ib_client_slot, Qt.QueuedConnection)
         
-        self.ib_thread = QThread()
+        # self.ib_thread = QThread()
         self.ib_interface = IBConnectivity(self.local_address, self.trading_socket, self.client_id, self.name)
-        self.ib_interface.moveToThread(self.ib_thread)
+        # self.ib_interface.moveToThread(self.ib_thread)
         self.connectSignalsToSlots()
-        self.ib_thread.started.connect(self.ib_interface.startConnection)
+        # self.ib_thread.started.connect(self.ib_interface.startConnection)
         print(f"Datamanagement we start with {self.client_id}")
         # self.run_ib_client_signal.emit()  # Emit a signal to run ib_client in worker thread cofntext
-        self.ib_thread.start()
+        # self.ib_thread.start()
+        self.ib_interface.startConnection()
 
                 
     def printPriority(self, thread_priority):

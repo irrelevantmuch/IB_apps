@@ -46,6 +46,10 @@ class BufferedDataManager(QObject):
         self.connectSignalsToSlots()
 
 
+    def getDataBuffer(self):
+        return self.data_buffers
+        
+
     def connectSignalsToSlots(self):
         print("BufferedManager.connectSignalsToSlots")
         print(self.history_manager)

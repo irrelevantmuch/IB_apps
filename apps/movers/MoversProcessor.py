@@ -50,9 +50,9 @@ class MoversProcessor(DataProcessor):
                     "1 Year": subtract_months(12)}
 
 
-    def __init__(self, history_manager, bar_types, stock_list, index_list=None):
+    def __init__(self, buffered_manager, bar_types, stock_list, index_list=None):
         self.data_wrapper = MoversFrame()
-        self.buffered_manager = BufferedDataManager(history_manager, name="MoversBuffer")
+        self.buffered_manager = buffered_manager
         super().__init__(stock_list, index_list)
         self.bar_types = bar_types
         

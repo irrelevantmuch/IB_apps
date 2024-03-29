@@ -10,8 +10,8 @@
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot
-from dataHandling.HistoryManagement.HistoricalDataManagement import HistoricalDataManager
-from dataHandling.HistoryManagement.FinazonDataManager import FinazonDataManager
+from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
+from dataHandling.HistoryManagement.FinazonBufferedManager import FinazonBufferedDataManager 
 from .AlertWindow import AlertWindow
 
 from PyQt5.QtWidgets import QMainWindow
@@ -39,16 +39,15 @@ class AlertManager(AlertWindow):
     last_update_id = 0
     
 
-    def __init__(self, history_manager, indicator_processor):
+    def __init__(self, buffered_manager, indicator_processor, processor_thread):
         super().__init__()
 
-        history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
+        buffered_manager.history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
 
         self.setupTelegramBot()
         self.loadLists()
         file_name, _ = self.stock_lists[0]
-        self.history_manager = history_manager
-        self.prepAlertProcessor(history_manager, indicator_processor)
+        self.prepAlertProcessor(buffered_manager, indicator_processor, processor_thread)
         self.setDefaultThresholds()
 
 
@@ -70,12 +69,12 @@ class AlertManager(AlertWindow):
         self.telegram_signal.connect(self.telegram_bot.sendMessage, Qt.QueuedConnection)
 
 
-    def prepAlertProcessor(self, history_manager, indicator_processor):
-        if isinstance(history_manager, FinazonDataManager):
-            self.alert_processor = AlertProcessorFinazon(history_manager, indicator_processor, self.telegram_signal)
-        elif isinstance(history_manager, HistoricalDataManager):
-            self.alert_processor = AlertProcessorIB(history_manager, indicator_processor, self.telegram_signal)
-        self.processor_thread = QThread()
+    def prepAlertProcessor(self, buffered_manager, indicator_processor, processor_thread):
+        if isinstance(buffered_manager, FinazonBufferedDataManager):
+            self.alert_processor = AlertProcessorFinazon(buffered_manager, indicator_processor, self.telegram_signal)
+        elif isinstance(buffered_manager, BufferedDataManager):
+            self.alert_processor = AlertProcessorIB(buffered_manager, indicator_processor, self.telegram_signal)
+        self.processor_thread = processor_thread
         self.alert_processor.moveToThread(self.processor_thread)
         
         self.update_signal.connect(self.alert_processor.runUpdates, Qt.QueuedConnection)
@@ -107,7 +106,6 @@ class AlertManager(AlertWindow):
     def startUpdating(self):
         if not self.updating:
             self.updating = True
-            # self.history_manager.lockForCentralUpdating(self)
             self.comp_checkable_lists.disableSelection()
             self.list_selection_button.setEnabled(False)
             self.rotation_button.setText("Stop Updates")
@@ -115,7 +113,6 @@ class AlertManager(AlertWindow):
         else:
             self.update_signal.emit(False)
             self.comp_checkable_lists.enableSelection()
-            # self.history_manager.unlockCentralUpdating()
             self.list_selection_button.setEnabled(True)
             self.rotation_button.setText("Rotating Updates")
 
@@ -167,7 +164,8 @@ class AlertManager(AlertWindow):
 
 
     def closeEvent(self, *args, **kwargs):
-        
+        self.telegram_bot.cleanupMessages()
+
         self.alert_processor.deleteLater()
         self.processor_thread.quit()
         self.processor_thread.wait()

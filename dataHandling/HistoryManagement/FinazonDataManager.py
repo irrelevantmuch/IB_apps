@@ -118,7 +118,7 @@ class FinazonDataManager(QObject):
 
     def __init__(self):
         super().__init__()
-        self.data_buffers = DataBuffers()
+        self.data_buffers = DataBuffers(Constants.FINAZON_BUFFER_FOLDER)
 
 
     def moveToThread(self, thread):
@@ -385,8 +385,7 @@ class FinazonDataManager(QObject):
         self.request_buffer.append(new_request)
 
 
-    @pyqtSlot(int)
-    def iterateHistoryRequests(self, delay=11_000): #this delay is only to match the interface of the IBKR historymanager. Needs to be removed
+    def iterateHistoryRequests(self): #this delay is only to match the interface of the IBKR historymanager. Needs to be removed
 
         one_min_bars, start_date = self.getOneMinForOutsideHours()
         while len(self.request_buffer) > 0:

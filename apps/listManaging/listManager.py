@@ -26,12 +26,12 @@ class ListManager(ListManagerWindow):
     
     option_chain_requests = []
 
-    def __init__(self, symbol_manager, history_manager, option_manager):
+    def __init__(self, symbol_manager, buffered_manager, option_manager):
         super().__init__()
 
         self.loadData()
         self.symbol_manager = symbol_manager
-        self.history_manager = history_manager
+        self.buffered_manager = buffered_manager
         self.option_manager = option_manager
 
 
@@ -39,8 +39,7 @@ class ListManager(ListManagerWindow):
         self.symbol_manager.api_updater.connect(self.apiUpdate)
         self.history_manager.api_updater.connect(self.apiUpdate)
         self.history_manager.mostRecentFirst = True
-
-        self.buffered_manager = BufferedDataManager(history_manager, name="ListBuffer")
+        
         self.buffered_manager.setStockList(self.stock_list)
         self.fetchUnderlyingPrice.connect(self.option_manager.makeStockSelection) #, type=Qt.DirectConnection)
 

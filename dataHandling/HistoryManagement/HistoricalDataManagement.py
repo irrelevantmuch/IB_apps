@@ -55,7 +55,7 @@ class HistoricalDataManager(DataManager):
     
     def __init__(self, callback=None):
         super().__init__(callback=callback, name="HistoricalDataManager") 
-        self.data_buffers = DataBuffers()
+        self.data_buffers = DataBuffers(Constants.BUFFER_FOLDER)
 
 
     def moveToThread(self, thread):

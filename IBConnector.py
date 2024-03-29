@@ -4,6 +4,8 @@ from dataHandling.HistoryManagement.HistoricalDataManagement import HistoricalDa
 from dataHandling.HistoryManagement.IndicatorProcessor import IndicatorProcessor
 from dataHandling.HistoryManagement.FinazonDataManager import FinazonDataManager
 from dataHandling.TradeManagement.OrderManagement import OrderManager
+from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
+from dataHandling.HistoryManagement.FinazonBufferedManager import FinazonBufferedDataManager 
 from dataHandling.OptionManagement.OptionChainManager import OptionChainManager
 from dataHandling.DataManagement import DataManager
 from dataHandling.SymbolManager import SymbolDataManager
@@ -49,14 +51,14 @@ class IBConnector:
         return symbol_manager
 
 
-    def getHistoryWithIndicator(self):
+    def getBufferedManagerWithIndicator(self):
         if self.data_source == Constants.IB_SOURCE:
-            history_manager = self.getHistoryManagerIB('general_history')
+            buffered_manager = self.getBufferedManagerManagerIB('general_history')
         elif self.data_source == Constants.FINAZON_SOURCE:
-            history_manager = self.getFinazonManager('general_history')
+            buffered_manager = self.getFinazonManager('general_history')
 
-        indicator_processor = self.getInidicatorManager(history_manager.getDataBuffer())
-        return history_manager, indicator_processor
+        indicator_processor = self.getInidicatorManager(buffered_manager.getDataBuffer())
+        return buffered_manager, indicator_processor
 
 
     def getInidicatorManager(self, data_object):
@@ -68,16 +70,16 @@ class IBConnector:
         return self.indicator_processor
 
 
-    def getHistoryManager(self, identifier='general_history'):
+    def getBufferedManagerManager(self, identifier='general_history'):
         if self.data_source == Constants.IB_SOURCE:
-            return self.getHistoryManagerIB(identifier)
+            return self.getBufferedManagerManagerIB(identifier)
         elif self.data_source == Constants.FINAZON_SOURCE:
             return self.getFinazonManager(identifier)
 
 
-    def getHistoryManagerIB(self, identifier='general_history'):
+    def getBufferedManagerManagerIB(self, identifier='general_history'):
         if identifier == 'general_history' and (self.history_manager is not None):
-            return self.history_manager
+            history_manager = self.history_manager
         else:
             history_manager = HistoricalDataManager()
             history_manager.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
@@ -88,7 +90,7 @@ class IBConnector:
             if identifier == 'general_history':
                 self.history_manager = history_manager    
 
-            return history_manager
+        return BufferedDataManager(history_manager)
 
 
     def startWorkerThread(self, identifier, worker, run_function=None, thread_priority=None):
@@ -118,16 +120,17 @@ class IBConnector:
 
     def getFinazonManager(self, identifier='general_history'):
         if identifier == 'general_history' and (self.history_manager is not None):
-            return self.history_manager
+            finazon_history_manager = self.history_manager
         else:
-            finazon_manager = FinazonDataManager()
+            finazon_history_manager = FinazonDataManager()
             self.finazon_thread = QThread()
-            finazon_manager.moveToThread(self.finazon_thread)
-            self.finazon_thread.started.connect(finazon_manager.run) #_ib_client_slot)
+            finazon_history_manager.moveToThread(self.finazon_thread)
+            self.finazon_thread.started.connect(finazon_history_manager.run) #_ib_client_slot)
             self.finazon_thread.start()
             if identifier == 'general_history':
-                self.history_manager = finazon_manager
-            return finazon_manager
+                self.history_manager = finazon_history_manager
+
+        return FinazonBufferedDataManager(finazon_history_manager)
 
 
     def getOrderManager(self, identifier='general_order_manager'):

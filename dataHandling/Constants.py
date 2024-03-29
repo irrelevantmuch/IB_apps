@@ -69,6 +69,7 @@ class Constants:
     BUFFER_FOLDER: Final = './data/downloads/buffers/'
     ANAYLIS_RESULTS_FOLDER: Final = './data/treeAnalysis/'
     POLYGON_BUFFER_FOLDER: Final = './data/downloads/polygon_buffers/'
+    FINAZON_BUFFER_FOLDER: Final = './data/downloads/finazon_buffers/'
 
     BID: Final = "BID"
     ASK: Final = "ASK"

@@ -112,17 +112,11 @@ class AppLauncher(AppLauncherWindow, IBConnector):
     
 
     def openAlertApp(self):
-        history_manager, indicator_processor = self.getHistoryWithIndicator()
-        alert_app = AlertManager(history_manager, indicator_processor)
+        buffered_manager, indicator_processor = self.getBufferedManagerWithIndicator()
+        alert_app = AlertManager(buffered_manager, indicator_processor, QThread())
         self.running_apps.append(alert_app)
         alert_app.show()
 
-
-    def openAnalysisApp(self):
-        history_manager = self.getHistoryManager()
-        new_app = DataAnalysis(history_manager)
-        self.running_apps.append(new_app)
-        new_app.show()
 
 
     def openDataDetailsApp(self):
@@ -133,18 +127,18 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
     def openManualTraderApp(self):
         order_manager = self.getOrderManager()
-        history_manager = self.getHistoryManagerIB(identifier='manual_trader_history')
+        buffered_manager = self.getBufferedManagerManagerIB(identifier='manual_trader_history')
         symbol_manager = self.getNewSymbolManager(identifier='trader_symbol_manager')
-        new_app = TradeMaker(order_manager, history_manager, symbol_manager)
+        new_app = TradeMaker(order_manager, buffered_manager, symbol_manager)
         self.running_apps.append(new_app)
         new_app.show()
 
 
     def openMoversApp(self):
         if not self.appRunning(MoversList):
-            history_manager = self.getHistoryManager()
+            buffered_manager = self.getBufferedManager()
 
-            new_app = MoversList(history_manager, QThread())
+            new_app = MoversList(buffered_manager, QThread())
             self.running_apps.append(new_app)
             new_app.close_signal.connect(self.closedMoversApp)
             new_app.show()
@@ -158,17 +152,17 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
 
     def openComparisonApp(self):
-        history_manager = self.getHistoryManager()
-        new_app = ComparisonList(history_manager, QThread())
+        buffered_manager = self.getBufferedManager()
+        new_app = ComparisonList(buffered_manager, QThread())
         self.running_apps.append(new_app)
         new_app.show()
 
 
     def openListManager(self):
         symbol_manager = self.getNewSymbolManager(identifier='list_symbol_manager')
-        history_manager = self.getHistoryManager()
+        buffered_manager = self.getBufferedManager()
         option_manager = self.getNewOptionManager()
-        new_app = ListManager(symbol_manager, history_manager, option_manager)
+        new_app = ListManager(symbol_manager, buffered_manager, option_manager)
         self.running_apps.append(new_app)
         new_app.show()
 
