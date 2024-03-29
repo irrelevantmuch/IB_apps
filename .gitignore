@@ -1,6 +1,9 @@
+.DS_Store
+appLauncher.sublime-workspace
+
 junkFolder/*
 **/__pycache__/
-.DS_Store
+
 
 data/**/*
 !data/**/

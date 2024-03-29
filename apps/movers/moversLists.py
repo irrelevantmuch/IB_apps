@@ -45,7 +45,7 @@ class MoversList(MoversWindow):
     data_processor = None
 
 
-    def __init__(self, history_manager):
+    def __init__(self, history_manager, processor_thread):
         super().__init__(self.bar_types)
 
         file_name, _ = self.stock_lists[0]
@@ -54,7 +54,7 @@ class MoversList(MoversWindow):
 
         
         history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
-        self.setupProcessor(history_manager)
+        self.setupProcessor(history_manager, processor_thread)
 
         self.initTableModels()
         #self.fetchShortRates()
@@ -64,11 +64,11 @@ class MoversList(MoversWindow):
         sys.setrecursionlimit(20_000)
 
 
-    def setupProcessor(self, history_manager):
+    def setupProcessor(self, history_manager, processor_thread):
         self.data_processor = DataProcessor(history_manager, DT_BAR_TYPES, self.stock_list) #, self.index_list)
         self.table_data = self.data_processor.getDataObject()
         main_thread = QThread.currentThread()
-        self.processor_thread = QThread()
+        self.processor_thread = processor_thread
         self.data_processor.moveToThread(self.processor_thread)
 
         self.connectSignalToSlots()

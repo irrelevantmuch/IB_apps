@@ -67,12 +67,7 @@ class AlertManager(AlertWindow):
     def setupTelegramBot(self):
                 # Setup the bot logic and thread
         self.telegram_bot = TelegramBot()  # Replace with your actual token
-        # self.bot_thread = QThread()
-        
         self.telegram_signal.connect(self.telegram_bot.sendMessage, Qt.QueuedConnection)
-        # self.telegram_bot.moveToThread(self.bot_thread)
-        # self.bot_thread.started.connect(self.telegram_bot.run)
-        # self.bot_thread.start()
 
 
     def prepAlertProcessor(self, history_manager, indicator_processor):

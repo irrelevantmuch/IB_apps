@@ -90,11 +90,14 @@ class IndicatorProcessor(QObject):
 
 
     def updateIndicators(self, updated_uids=None, bar_types=None, indicator_type=None, updated_from=None, supress_signal=False):
+        
+        start_time = time.time()
         if 'rsi' in self.indicators:
             self.computeRSIs(updated_uids=updated_uids, updated_bar_types=bar_types, from_indices=updated_from, supress_signal=supress_signal)
 
         if 'steps' in self.indicators:
             self.computeSteps(updated_uids=updated_uids, updated_bar_types=bar_types, supress_signal=supress_signal)
+        print(f"IndicatorProcessor.updateIndicators takes {time.time() - start_time}")
             
     
     def computeSteps(self, updated_uids=None, updated_bar_types=None, supress_signal=False):

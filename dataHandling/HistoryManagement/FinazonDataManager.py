@@ -243,7 +243,6 @@ class FinazonDataManager(QObject):
         while len(self.request_buffer) > 0:
 
             request = self.request_buffer.pop()
-            print(f"requestUpdates: {request}")
             completed_req = self.getBarsForRequest(request, is_one_min_update=True)
             if completed_req is not None:
                 self.data_buffers.processUpdates(completed_req, propagate_updates)

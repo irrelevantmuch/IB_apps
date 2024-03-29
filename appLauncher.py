@@ -144,7 +144,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
         if not self.appRunning(MoversList):
             history_manager = self.getHistoryManager()
 
-            new_app = MoversList(history_manager)
+            new_app = MoversList(history_manager, QThread())
             self.running_apps.append(new_app)
             new_app.close_signal.connect(self.closedMoversApp)
             new_app.show()
@@ -159,7 +159,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
     def openComparisonApp(self):
         history_manager = self.getHistoryManager()
-        new_app = ComparisonList(history_manager)
+        new_app = ComparisonList(history_manager, QThread())
         self.running_apps.append(new_app)
         new_app.show()
 

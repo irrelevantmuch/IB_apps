@@ -39,7 +39,7 @@ class DataDownloader(DataDownloaderWindow):
     polygon_list_download = pyqtSignal(list, list, tuple)
 
 
-    def __init__(self):
+    def __init__(self, processor_thread):
         super().__init__(self.bar_types)
 
         file_name, _ = self.stock_lists[0]
@@ -49,19 +49,19 @@ class DataDownloader(DataDownloaderWindow):
         self.selected_bar_type = self.bar_types[0]
 
 
-        self.prepPolygonDownloader()
+        self.prepPolygonDownloader(processor_thread)
         self.generateColumnNames() #TODO: this is a bit ugly
         self.resetTickerList()
         self.resetDataFrames()
 
 
-    def prepPolygonDownloader(self):
+    def prepPolygonDownloader(self, processor_thread):
         self.polygonDownloader = PolygonDownloader()
         self.polygonDownloader.api_updater.connect(self.apiUpdate)
         self.polygon_symbol_download.connect(self.polygonDownloader.downloadForSymbol, Qt.QueuedConnection)
         self.polygon_list_download.connect(self.polygonDownloader.downloadForSymbols, Qt.QueuedConnection)
 
-        self.polygon_thread = QThread()
+        self.polygon_thread = processor_thread
         self.polygonDownloader.moveToThread(self.polygon_thread)
 
         self.polygon_thread.started.connect(self.polygonDownloader.run)

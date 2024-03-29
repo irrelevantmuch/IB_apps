@@ -44,11 +44,11 @@ class ComparisonList(ComparisonWindow):
     data_processor = None
     tops_and_bottoms = True
 
-    def __init__(self, history_manager):
+    def __init__(self, history_manager, processor_thread):
         super().__init__(self.bar_types)
 
         self.listSetup()    
-        self.setupProcessor(history_manager)
+        self.setupProcessor(history_manager, processor_thread)
         self.fillTickerLists()
         self.resetProcessor()
         sys.setrecursionlimit(20_000)
@@ -64,13 +64,13 @@ class ComparisonList(ComparisonWindow):
         # self.comp_list = self.generateCheckList(self.comparison_list) 
 
 
-    def setupProcessor(self, history_manager):
+    def setupProcessor(self, history_manager, processor_thread):
         self.data_processor = DataProcessor(history_manager, MAIN_BAR_TYPES, self.stock_list)
         self.data_container = self.data_processor.getDataObject()
         self.compare_plot.setData(self.data_container)
         # self.focus_plot.setData(self.data_container)
         self.plot_tf_selector.setCurrentText(self.data_processor.selected_bar_type)
-        self.processor_thread = QThread()
+        self.processor_thread = processor_thread
 
         self.data_processor.moveToThread(self.processor_thread)
         

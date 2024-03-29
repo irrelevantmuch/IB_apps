@@ -188,11 +188,12 @@ def calculateRSI(stock_frame):
 
 
 def addRSIsEMAs(stock_frame, from_index=None):
-    start_time = time.time()
         #we need up/down emas to calculate RSI
     updated_indices, up_emas, down_emas = getEMAColumns(stock_frame, from_index)
 
-    rsi = calculateRSIfromEMAs(up_emas.to_numpy(), down_emas.to_numpy())
+    up_emas = up_emas.to_numpy()
+    down_emas = down_emas.to_numpy()
+    rsi = calculateRSIfromEMAs(up_emas, down_emas)
     stock_frame.loc[updated_indices, ['up_ema', 'down_ema', 'rsi']] = np.column_stack([up_emas, down_emas, rsi])
     
         #we want to remove any NaNs, not sure if this is still necesarry 

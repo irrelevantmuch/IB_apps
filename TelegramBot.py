@@ -15,10 +15,10 @@ class TelegramBot(QObject):
         super().__init__()
         print("TelegramBot.__init__")
         self.bot_inf = self.readBotInfo()
-        print(self.bot_inf)
         self.bot = telebot.TeleBot(self.bot_inf['token'])
     
-        self.message_id_tracker.add(self.bot.send_message(self.bot_inf['chat_id'], new_session_message, parse_mode= 'HTML'))
+        session_message_object = self.bot.send_message(self.bot_inf['chat_id'], new_session_message, parse_mode= 'HTML')
+        self.message_id_tracker.add(session_message_object.message_id)
         self.createHandlers()
 
     def createHandlers(self):
@@ -33,15 +33,16 @@ class TelegramBot(QObject):
         new_message = self.createMessage(symbol, latest_price, alert_lines, latest_daily_rsi)
         if symbol in self.alert_tracker:
             self.deleteMessage(self.alert_tracker[symbol].message_id)
-        message_id = self.bot.send_message(self.bot_inf['chat_id'], new_message, disable_web_page_preview=True, parse_mode= 'HTML')
-        self.alert_tracker[symbol] = message_id
-        self.message_id_tracker.add(message_id)
-
+            del self.alert_tracker[symbol]
+        message_obj = self.bot.send_message(self.bot_inf['chat_id'], new_message, disable_web_page_preview=True, parse_mode= 'HTML')
+        self.alert_tracker[symbol] = message_obj
+        self.message_id_tracker.add(message_obj.message_id)
+        
 
     def deleteMessage(self, message_id):
         self.bot.delete_message(chat_id=self.bot_inf['chat_id'], message_id=message_id)
-        self.message_id_tracker.remove(self.alert_tracker[symbol].message_id)
-
+        self.message_id_tracker.remove(message_id)
+        
 
     def createMessage(self, symbol, latest_price, alert_lines, latest_daily_rsi):
         tv_url = f"https://www.tradingview.com/chart/?symbol={symbol}"
@@ -78,7 +79,7 @@ class TelegramBot(QObject):
 
 
     def cleanupMessages(self):
-        for message_id in message_id_tracker:
+        for message_id in self.message_id_tracker:
             self.bot.delete_message(chat_id=self.bot_inf['chat_id'], message_id=message_id)
 
 
