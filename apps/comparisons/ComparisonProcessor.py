@@ -98,7 +98,7 @@ class ComparisonProcessor(DataProcessor):
 
     def initDataFrame(self):
         keys = self._stock_list.keys()
-        self.stock_df = pd.DataFrame( {Constants.PRICE: pd.Series(dtype='float'),
+        self.stock_df = pd.DataFrame({Constants.PRICE: pd.Series(dtype='float'),
                                         Constants.CORR_VALUES: pd.Series(dtype='object'),
                                         Constants.STALE: pd.Series(dtype='bool'), Constants.CALCULATED_AT: pd.Series(dtype='datetime64[ns]'), Constants.LAST_FIVE_AT: pd.Series(dtype='datetime64[ns]')}
                                 , index=list(keys))

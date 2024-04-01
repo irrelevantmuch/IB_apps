@@ -211,8 +211,8 @@ def calculateRSIfromEMAs(up_emas, down_emas):
 def getEMAColumns(stock_frame, from_index=None):
 
         #if have calculated EMAs before we just want to supplement what's there
-    up_ema_column_exists = ('up_ema' in stock_frame.columns) and (stock_frame['up_ema'].iloc[0] == 0.001)
-    down_ema_column_exists = ('down_ema' in stock_frame.columns) and (stock_frame['down_ema'].iloc[0] == 0.001)
+    up_ema_column_exists = ('up_ema' in stock_frame.columns) and (stock_frame.iloc[0]['up_ema'] == 0.001)
+    down_ema_column_exists = ('down_ema' in stock_frame.columns) and (stock_frame.iloc[0]['down_ema'] == 0.001)
     if up_ema_column_exists and down_ema_column_exists:
         return calculateEMAsFrom(stock_frame, from_index)
     else:

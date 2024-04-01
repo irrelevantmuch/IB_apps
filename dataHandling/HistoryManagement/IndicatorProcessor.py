@@ -30,6 +30,7 @@ class IndicatorProcessor(QObject):
 
     def run(self):
         self.data_buffers.buffer_updater.connect(self.bufferUpdate, Qt.QueuedConnection)
+        print(f"IndicatorProcessor.run on {int(QThread.currentThreadId())}")
 
 
     @pyqtSlot(dict)

@@ -4,6 +4,7 @@ from dataHandling.HistoryManagement.HistoricalDataManagement import HistoricalDa
 from dataHandling.HistoryManagement.IndicatorProcessor import IndicatorProcessor
 from dataHandling.HistoryManagement.FinazonDataManager import FinazonDataManager
 from dataHandling.TradeManagement.OrderManagement import OrderManager
+from dataHandling.TradeManagement.PositionDataManagement import PositionDataManager
 from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
 from dataHandling.HistoryManagement.FinazonBufferedManager import FinazonBufferedDataManager 
 from dataHandling.OptionManagement.OptionChainManager import OptionChainManager
@@ -33,12 +34,11 @@ class IBConnector:
             
 
     def getNewPositionManager(self):
-        return None
-        # data_manager = PositionDataManager()
-        # data_manager.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
-        # data_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
-        # data_manager.start()
-        # return data_manager
+        position_manager = PositionDataManager()
+        position_manager.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
+        position_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
+        self.startWorkerThread('position_manager', position_manager)
+        return position_manager
         
 
     def getNewSymbolManager(self, identifier):
@@ -70,7 +70,7 @@ class IBConnector:
         return self.indicator_processor
 
 
-    def getBufferedManagerManager(self, identifier='general_history'):
+    def getBufferedManager(self, identifier='general_history'):
         if self.data_source == Constants.IB_SOURCE:
             return self.getBufferedManagerManagerIB(identifier)
         elif self.data_source == Constants.FINAZON_SOURCE:
@@ -151,7 +151,7 @@ class IBConnector:
             return order_manager
 
 
-    def getNewOptionManager(self):
+    def getOptionManager(self):
         option_chain_manager = OptionChainManager()
         option_chain_manager.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
         option_chain_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)

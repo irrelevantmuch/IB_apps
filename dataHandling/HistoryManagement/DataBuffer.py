@@ -24,6 +24,9 @@ class DataBuffers(QObject):
     ###### read/write protected buffer interactions
 
     def setBufferFor(self, uid, bar_type, buffered_data, ranges=None):
+
+        print(f"DataBuffer.setBufferFor on {int(QThread.currentThreadId())}")
+        print(buffered_data.index.dtype)
         if not ((uid, bar_type) in self._locks):
             self._locks[uid, bar_type] = QReadWriteLock()
 
@@ -86,7 +89,11 @@ class DataBuffers(QObject):
     def addToBuffer(self, uid, bar_type, new_data, new_range):
         self._locks[uid, bar_type].lockForWrite()
         
-        self._buffers[uid, bar_type] = new_data.combine_first(self._buffers[uid, bar_type])
+        if len(new_data) < 3:
+            for idx, row in new_data.iterrows():
+                self._buffers[uid, bar_type].loc[idx, row.keys()] = row
+        else: 
+            self._buffers[uid, bar_type] = new_data.combine_first(self._buffers[uid, bar_type])
         
         if new_range is not None:
             self._date_ranges[uid, bar_type].append(new_range)            
@@ -284,6 +291,7 @@ class DataBuffers(QObject):
 
 
     def processData(self, data_dict):
+        print(f"DataBuffer.processData on {int(QThread.currentThreadId())}")
         uid = data_dict['key']
         bar_type = data_dict['bar type']
         new_data = data_dict['data']
@@ -303,7 +311,7 @@ class DataBuffers(QObject):
                     
 
     def processUpdates(self, min_data, propagate_updates=False):
-
+        print(f"DataBuffer.processUpdates on {int(QThread.currentThreadId())}")
             #we want to reuse these so names for clarity
         curr_bar_type = min_data['bar type']
         updated_bar_types = [curr_bar_type]

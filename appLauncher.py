@@ -90,14 +90,15 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
 
     def openOptionPosApp(self):
-        new_app = OptionPositions(self.data_management.ib_interface)
+        position_manager = self.getNewPositionManager()
+        new_app = OptionPositions(position_manager)
         self.running_apps.append(new_app)
         new_app.show()
     
 
     def openOptionVizApp(self):
         if not self.appRunning(OptionVisualization):
-            option_manager = self.getNewOptionManager()
+            option_manager = self.getOptionManager()
             symbol_manager = self.getNewSymbolManager(identifier='option_symbol_manager')
             new_app = OptionVisualization(option_manager, symbol_manager)
             self.running_apps.append(new_app)
@@ -105,8 +106,8 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
 
     def openStocksApp(self):
-        data_manager = self.getNewPositionManager()
-        new_app = PositionManager(data_manager)
+        position_manager = self.getNewPositionManager()
+        new_app = PositionManager(position_manager)
         self.running_apps.append(new_app)
         new_app.show()
     
@@ -161,7 +162,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
     def openListManager(self):
         symbol_manager = self.getNewSymbolManager(identifier='list_symbol_manager')
         buffered_manager = self.getBufferedManager()
-        option_manager = self.getNewOptionManager()
+        option_manager = self.getOptionManager()
         new_app = ListManager(symbol_manager, buffered_manager, option_manager)
         self.running_apps.append(new_app)
         new_app.show()
@@ -193,7 +194,6 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 if __name__ == "__main__":
 
         # Set the environment variables
-    os.nice(-10)
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("macos")
     app.aboutToQuit.connect(app.deleteLater)
