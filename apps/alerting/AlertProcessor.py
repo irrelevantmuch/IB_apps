@@ -67,6 +67,15 @@ class AlertProcessor(QObject):
         pass
 
 
+    @pyqtSlot(str)
+    def updateFrequencyChange(self, freq_type):
+        print("THIS IS ONLY IMPLEMENTED FOR FINAZON!!!!!!")
+        print("THIS IS ONLY IMPLEMENTED FOR FINAZON!!!!!!")
+        print("THIS IS ONLY IMPLEMENTED FOR FINAZON!!!!!!")
+        print("THIS IS ONLY IMPLEMENTED FOR FINAZON!!!!!!")
+
+
+
     def updateStockList(self):
         self.full_stock_list = dict()
         for stock_list_name in self.stock_lists:
@@ -246,6 +255,9 @@ class AlertProcessorFinazon(AlertProcessor):
                 self.buffered_manager.requestUpdates(keep_up_to_date=True, propagate_updates=True)
                 self.initial_fetch = False        
         
+    @pyqtSlot(str)
+    def updateFrequencyChange(self, freq_type):
+        self.buffered_manager.history_manager.setFrequency(freq_type)
 
 
 class AlertProcessorIB(AlertProcessor):

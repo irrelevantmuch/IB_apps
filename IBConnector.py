@@ -9,7 +9,7 @@ from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
 from dataHandling.HistoryManagement.FinazonBufferedManager import FinazonBufferedDataManager 
 from dataHandling.OptionManagement.OptionChainManager import OptionChainManager
 from dataHandling.DataManagement import DataManager
-from dataHandling.SymbolManager import SymbolDataManager
+from dataHandling.SymbolManager import SymbolManager
 from dataHandling.Constants import Constants
 from pubsub import pub
 
@@ -42,7 +42,7 @@ class IBConnector:
         
 
     def getNewSymbolManager(self, identifier):
-        symbol_manager = SymbolDataManager(name=identifier)
+        symbol_manager = SymbolManager(name=identifier)
         symbol_manager.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
         symbol_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         symbol_manager = symbol_manager

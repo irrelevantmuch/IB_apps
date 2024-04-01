@@ -17,7 +17,7 @@ class AlertWindow(QMainWindow, Alert_UI):
 
     time_frame_names = ['all', '1m', '2m', '3m', '5m', '15m', '1h', '4h', '1d']
     bar_type_conv = {'1m': Constants.ONE_MIN_BAR,'2m': Constants.TWO_MIN_BAR,'3m': Constants.THREE_MIN_BAR,'5m': Constants.FIVE_MIN_BAR,'15m': Constants.FIFTEEN_MIN_BAR,'1h': Constants.HOUR_BAR,'4h': Constants.FOUR_HOUR_BAR,'1d': Constants.DAY_BAR}
-
+    frequency_choices = ['1s', '10s', '1m']
     
     def __init__(self):
         QMainWindow.__init__(self)
@@ -32,7 +32,9 @@ class AlertWindow(QMainWindow, Alert_UI):
         super().setupUi(self) #TODO this seems wrong....
         print("So we aint getting here first?")
         self.comp_checkable_lists = CheckableComboBox()
-        self.centralwidget.layout().addWidget(self.comp_checkable_lists, 3, 2, 1, 1)
+        self.processing_props_layout.layout().addWidget(self.comp_checkable_lists, 0, 1, 1, 1)
+        self.update_frequency_box.addItems(self.frequency_choices)
+        self.update_frequency_box.setCurrentIndex(self.frequency_choices.index('1m'))
     
 
 
@@ -124,6 +126,8 @@ class AlertWindow(QMainWindow, Alert_UI):
         self.rotation_button.clicked.connect(self.startUpdating)
         self.list_selection_button.clicked.connect(self.toggleSelection)
         self.comp_checkable_lists.activated.connect(self.listSelection)
+
+        self.update_frequency_box.currentTextChanged.connect(self.updateFrequencyUpdate)
 
         for tf in self.time_frame_names:
             self.widgetFor(f"cross_box_{tf}").toggled.connect(self.crossCheckChange)

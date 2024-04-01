@@ -25,17 +25,21 @@ class WebsocketManager(QObject):
     is_running = True
     finished = pyqtSignal()
 
-    def __init__(self, tickers=["BTC/USDC"], channel="binance"):
+    def __init__(self, tickers=["BTC/USDC"], channel="binance", freq_type="1m"):
         super().__init__()
         self.tickers = tickers
         self.channel = channel
+        if freq_type is None:
+            self.freq_type = "1m"
+        else:
+            self.freq_type = freq_type
 
         self.setup_message = {
             "event": "subscribe",
             "dataset": self.channel,
             "tickers": self.tickers,
             "channel": "bars",
-            "frequency": "10s",
+            "frequency": self.freq_type,
             "aggregation": "1m"
         }
 
@@ -113,7 +117,7 @@ class FinazonDataManager(QObject):
     process_owner = None
     socket_load = 26
     ws_managers = None
-
+    freq_type = None
     update_counter = 0
 
     def __init__(self):
@@ -161,6 +165,10 @@ class FinazonDataManager(QObject):
         return None
 
 
+    def setFrequency(self, freq_type):
+        self.freq_type = freq_type
+
+
     def createWebSocketForTickers(self, tickers):
         print("FinazonDataManager.createWebSocketForTickers")
         print(tickers)
@@ -174,7 +182,7 @@ class FinazonDataManager(QObject):
             end_index = (1+socket_index)*tickers_per_socket
             end_index = min(len(tickers),end_index)
 
-            self.ws_managers.insert(socket_count, WebsocketManager(tickers[start_index:end_index], channel="sip_non_pro"))
+            self.ws_managers.insert(socket_count, WebsocketManager(tickers[start_index:end_index], channel="sip_non_pro", freq_type=self.freq_type))
             self.ws_managers[socket_index].message_received.connect(self.updatedBars, Qt.QueuedConnection)
             self.close_signal.connect(self.ws_managers[socket_index].close)
             self.ws_threads.insert(socket_count, QThread())
@@ -253,7 +261,7 @@ class FinazonDataManager(QObject):
         if keep_up_to_date:
             self.timer = QTimer()
             self.timer.timeout.connect(lambda: self.performPeriodicUpdates(stock_list))
-            self.timer.start(100_000)
+            self.timer.start(300_000)
 
 
     def performPeriodicUpdates(self, stock_list):

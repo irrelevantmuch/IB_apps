@@ -31,6 +31,7 @@ class AlertManager(AlertWindow):
     list_addition_signal = pyqtSignal(str)
     list_removal_signal = pyqtSignal(str)
     alerting_signal = pyqtSignal(bool)
+    update_frequency_signal = pyqtSignal(str)
 
     telegram_signal = pyqtSignal(str, float, dict, float)
 
@@ -84,6 +85,7 @@ class AlertManager(AlertWindow):
         self.alert_processor.stock_count_signal.connect(self.stockCountUpdated, Qt.QueuedConnection)
         self.selection_signal_change.connect(self.alert_processor.selectionSignalChange, Qt.QueuedConnection)
         self.threshold_signal_change.connect(self.alert_processor.thresholdChangeSignal, Qt.QueuedConnection)
+        self.update_frequency_signal.connect(self.alert_processor.updateFrequencyChange, Qt.QueuedConnection)
 
         self.processor_thread.started.connect(self.alert_processor.run)
         self.processor_thread.start()
@@ -192,6 +194,10 @@ class AlertManager(AlertWindow):
     def getStockList(self, for_index):            
         file_name, _ = self.stock_lists[for_index]
 
+
+    def updateFrequencyUpdate(self, sel_value):
+        self.update_frequency_signal.emit(sel_value)
+        
 
     def parseCommands(self, message):
         token_list = re.split("[., !?:()]+", message)
