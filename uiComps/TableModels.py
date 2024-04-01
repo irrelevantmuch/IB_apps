@@ -7,7 +7,7 @@ from PyQt5.QtGui import QBrush, QColor
 
 class PandasDataModel(QAbstractTableModel):
 
-    model_updater = pyqtSignal(str, dict)
+    # model_updater = pyqtSignal(str, dict)
     greyout_stale = True
     changed_list = set()
 
@@ -245,9 +245,9 @@ class LevelModel(PandasStaleModel):
 
         column_name = self._mapping[col]
         if column_name.endswith('_Low') or column_name.endswith('_High'):
-            self.model_updater.emit(Constants.DATA_WILL_CHANGE, dict())
+            # self.model_updater.emit(Constants.DATA_WILL_CHANGE, dict())
             self._table_data.sortValuesForColumn(column_name + '_Diff', ascending=(order==Qt.AscendingOrder))
-            self.model_updater.emit(Constants.DATA_DID_CHANGE, dict())
+            # self.model_updater.emit(Constants.DATA_DID_CHANGE, dict())
         else:
             super().sort(col, order)
 

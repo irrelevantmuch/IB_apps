@@ -128,9 +128,9 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
     def openManualTraderApp(self):
         order_manager = self.getOrderManager()
-        buffered_manager = self.getBufferedManagerManagerIB(identifier='manual_trader_history')
+        history_manager = self.getHistoryManagerIB(identifier='manual_trader_history')
         symbol_manager = self.getNewSymbolManager(identifier='trader_symbol_manager')
-        new_app = TradeMaker(order_manager, buffered_manager, symbol_manager)
+        new_app = TradeMaker(order_manager, history_manager, symbol_manager)
         self.running_apps.append(new_app)
         new_app.show()
 

@@ -60,7 +60,7 @@ class StockListTab(QWidget):
             
             mkt_value = position['PRICE'] * position['COUNT']
             
-            self.stock_table.setItem(index, 0, QTableWidgetItem(position['INSTRUMENT']))
+            self.stock_table.setItem(index, 0, QTableWidgetItem(position[Constants.SYMBOL]))
             self.stock_table.setItem(index, 1, getNumericItem(position['PRICE']))
             self.stock_table.setItem(index, 2, getNumericItem(position['COUNT']))
             self.stock_table.setItem(index, 3, getNumericItem(mkt_value))
@@ -95,7 +95,7 @@ class StockListTab(QWidget):
 
 class SelectableTabWidget(StockListTab):
 
-    list_updater = pyqtSignal(str)
+    list_updater = pyqtSignal(str, dict)
     position_types = dict()
     split_counts = dict()
 
@@ -142,7 +142,7 @@ class SelectableTabWidget(StockListTab):
             self.stock_table.setCellWidget(index, 1, count_edit)
 
             self.stock_table.setItem(index, 2, QTableWidgetItem(numeric_id))
-            self.stock_table.setItem(index, 3, QTableWidgetItem(position['INSTRUMENT']))
+            self.stock_table.setItem(index, 3, QTableWidgetItem(position[Constants.SYMBOL]))
             self.stock_table.setItem(index, 5, getNumericItem(position['COUNT']))
 
             price_edit = self.getPriceWidget(numeric_id)
@@ -178,18 +178,18 @@ class SelectableTabWidget(StockListTab):
 
     def splitUpdate(self, text, numeric_id):
         self.split_counts[numeric_id] = int(text)
-        self.list_updater.emit(Constants.LIST_SELECTION_UPDATE)
+        self.list_updater.emit(Constants.LIST_SELECTION_UPDATE, dict())
 
 
     def purchasePriceUpdate(self, text, numeric_id):
         self.purchase_price[numeric_id] = float(text)
-        self.list_updater.emit(Constants.LIST_SELECTION_UPDATE)
+        self.list_updater.emit(Constants.LIST_SELECTION_UPDATE, dict())
 
 
     def typeSelection(self, button, selection, numeric_id):
         if selection:
             self.position_types[numeric_id] = button.text()
-            self.list_updater.emit(Constants.LIST_SELECTION_UPDATE)
+            self.list_updater.emit(Constants.LIST_SELECTION_UPDATE, dict())
 
             if button.text() == "Split":
                 index = findRowForValue(self.stock_table, numeric_id, 2)
@@ -234,4 +234,4 @@ class SelectableTabWidget(StockListTab):
     #         if checkbox.isChecked():
     #             self.selected_ids.append(int(self.options_table.item(row, 1).text()))
 
-        self.list_updater.emit(Constants.LIST_SELECTION_UPDATE)
+        self.list_updater.emit(Constants.LIST_SELECTION_UPDATE, dict())

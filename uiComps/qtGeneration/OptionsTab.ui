@@ -15,50 +15,9 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
-    <layout class="QVBoxLayout" name="verticalLayout_2" stretch="8">
+    <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0">
      <item>
-      <widget class="QTableWidget" name="options_table">
-       <column>
-        <property name="text">
-         <string>Instrument</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Type</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Expiration</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Strike</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Count</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Price</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Mkt Value</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>UPNL</string>
-        </property>
-       </column>
-      </widget>
+      <widget class="QTableView" name="options_table"/>
      </item>
     </layout>
    </item>

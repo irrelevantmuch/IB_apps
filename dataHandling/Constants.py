@@ -83,6 +83,7 @@ class Constants:
     LOW: Final = 'LOW'
     VOLUME: Final = 'VOLUME'
     STOCK: Final = 'STK'
+    OPTION: Final = 'OPT'
     CFD: Final = 'CFD'
     CASH: Final = 'CASH'
     COMMODITY: Final = 'CMDTY'
@@ -136,7 +137,7 @@ class Constants:
     TOP_REVERSAL: Final = 'top_reversal'
     BOTTOM_REVERSAL: Final = 'bottom_reversal'
 
-    POSITIONS_RETRIEVED: Final = "Positions retrieved"
+    POSITIONS_UPDATED: Final = "Positions updated"
     DATES_RETRIEVED: Final = "Dates retrieved"
     OPTION_INFO_LOADED: Final = "Options info loaded"
     OPTION_PRICE_UPDATE: Final = "Option Price Updated"

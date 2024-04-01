@@ -5,6 +5,7 @@ from ibapi.contract import Contract
 from ibapi.order import Order
 from ibapi.common import BarData
 from ibapi.ticktype import TickTypeEnum
+from ibapi.account_summary_tags import AccountSummaryTags
 
 
 from queue import Queue
@@ -33,6 +34,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
     history_error = pyqtSignal(int)
     historical_dates_signal = pyqtSignal(int, str)
 
+    account_updater = pyqtSignal(str, dict)
 
     option_error_signal = pyqtSignal(int)
     contract_detail_complete_signal = pyqtSignal(int)
@@ -87,9 +89,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
         self.tws_thread = Thread(target=target, daemon=True)
         self.tws_thread.start()
-
-
-
 
 
     def error(self, something):
@@ -164,7 +163,9 @@ class IBConnectivity(EClient, EWrapper, QObject):
     def readyForRequests(self):
         return (self._connection_status == Constants.CONNECTION_OPEN) and self.managed_accounts_initialized and self.next_valid_initialized
 
+
     def contractDetails(self, req_id, contract_details):
+        print(f"IBConnectivity.contractDetails {req_id}")
         contract = contract_details.contract
         
         if self.isOptionInfRequest(req_id):
@@ -197,35 +198,28 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
     @pyqtSlot(dict)
     def makeRequest(self, request):
-        # print(f"IBConnectivity.makeRequest {self.name}({self.client_id}) {int(QThread.currentThreadId())} {self.queue_timer.isActive()}")
         self.request_queue.put(request)
-        # print("------- CHECK IF WE NEED TO START")
         if (not (self.queue_timer.isActive())) and self.readyForRequests():
-            # print(f"------- WE START {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
             self.restart_timer.emit()
 
 
     @pyqtSlot()
     def startProcessingQueue(self, interval=50):
-        # print(f"IBConnectivity.startProcessingQueue {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
         self.queue_timer.start(interval)
 
 
     @pyqtSlot()
     def processQueue(self):
-        # print(f"IBConnectivity.processQueue {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
         if not self.request_queue.empty():
             request = self.request_queue.get_nowait()
             self.processRequest(request)
             self.request_queue.task_done()
         
         if self.request_queue.empty():
-            # print(f"------- WE STOP THE TIMER {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
             self.queue_timer.stop()
 
 
     def processRequest(self, request):
-        # print(f"IBConnectivity.processRequest {request}")
         req_type = request['type']
 
         if req_type == 'reqHistoricalData':
@@ -236,8 +230,13 @@ class IBConnectivity(EClient, EWrapper, QObject):
             self.reqHeadTimeStamp(request['req_id'], request['contract'], request['data_type'], request['use_rth'], request['format_date'])
         elif req_type == 'reqOpenOrders':
             self.reqOpenOrders()
+        elif req_type == 'reqAccountUpdates':
+            self.reqAccountUpdates(request['subscribe'], request['account_number'])
         elif req_type == 'reqAutoOpenOrders':
             self.reqAutoOpenOrders(request['reqAutoOpenOrders'])
+        elif req_type == 'reqAccountSummary':
+            print("IBConnectivity.processRequest")
+            self.reqAccountSummary(Constants.ACCOUNT_SUMMARY_REQID, "All", AccountSummaryTags.AccountType)
         elif req_type == 'reqIds':
             self.reqIds(request['num_ids'])
         elif req_type == 'reqSecDefOptParams':
@@ -321,16 +320,22 @@ class IBConnectivity(EClient, EWrapper, QObject):
         self.snapshot_end_signal.emit(req_id)
 
 
+    def updateAccountValue(self, key: str, val: str, currency: str, accountName: str):  
+        super().updateAccountValue(key, val, currency, accountName)
+        print("UpdateAccountValue. Key:", key, "Value:", val, "Currency:", currency, "AccountName:", accountName)
+        self.account_updater.emit('some_constants', {'key': key, 'val': val, 'accountName': accountName})
+
+
     def updatePortfolio(self, contract: Contract, position, marketPrice, marketValue, averageCost, unrealizedPNL, realizedPNL, accountName):
         super().updatePortfolio(contract, position, marketPrice, marketValue, averageCost, unrealizedPNL, realizedPNL, accountName)
-        for x in range(10):
-            print("NOT IMPLEMENTEDEEDEDEEEDEEDEED")
+        # print("IBConnectivity.updatePortfolio")
+        # print({'contract': contract.symbol, 'position': position, 'market_price': marketPrice})
+        self.account_updater.emit('whats_this', {'contract': contract, 'position': position, 'account_name': accountName, 'unrealized_pnl': unrealizedPNL, 'market_price': marketPrice})
         
 
     def accountDownloadEnd(self, accountName: str):
         super().accountDownloadEnd(accountName)
-        for x in range(10):
-            print("NOooooooooT IMPLEMENTED")
+        self.account_updater.emit("anotheranother", {'account_number': accountName})
         
 
     def tickPrice(self, req_id, tickType, price, attrib):
@@ -381,9 +386,9 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
     def accountSummary(self, req_id: int, account: str, tag: str, value: str, currency: str):
         super().accountSummary(req_id, account, tag, value, currency)
-        for x in range(10): print("ANOTHEr NOT IMPLEMENTED")
-        #self.delegate.returnAccount(account)
-        print("AccountSummary. ReqId:", req_id, "Account:", account, "Tag: ", tag, "Value:", value, "Currency:", currency)
+        # print("AccountSummary. ReqId:", req_id, "Account:", account, "Tag: ", tag, "Value:", value, "Currency:", currency)
+        self.account_updater.emit('another_constnats', {'account': account, 'req_id': req_id})
+        
 
 
     def accountSummaryEnd(self, req_id: int):
