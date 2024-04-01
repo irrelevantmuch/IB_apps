@@ -187,18 +187,31 @@ def calculateRSI(stock_frame):
     return rsi
 
 
-def addRSIsEMAs(stock_frame, from_index=None):
+def addRSIsEMAs(stock_frame, from_index=None, with_print=False):
+    if with_print:
+        print('GenFunctions.addRSIsEMAs for 5 mins')
         #we need up/down emas to calculate RSI
-    updated_indices, up_emas, down_emas = getEMAColumns(stock_frame, from_index)
-
+    updated_indices, up_emas, down_emas = getEMAColumns(stock_frame, from_index, with_print)
+    
+    if with_print:
+        print(stock_frame.tail())
+    
     up_emas = up_emas.to_numpy()
     down_emas = down_emas.to_numpy()
     rsi = calculateRSIfromEMAs(up_emas, down_emas)
+    
     stock_frame.loc[updated_indices, ['up_ema', 'down_ema', 'rsi']] = np.column_stack([up_emas, down_emas, rsi])
     
+    if with_print:
+        print(stock_frame.tail())
+
         #we want to remove any NaNs, not sure if this is still necesarry 
     stock_frame['rsi'] = stock_frame['rsi'].ffill()
     stock_frame['rsi'] = stock_frame['rsi'].round(1)
+
+    if with_print:
+        print(stock_frame.tail())
+
     return stock_frame
 
 
@@ -208,15 +221,18 @@ def calculateRSIfromEMAs(up_emas, down_emas):
     return rsi
 
 
-def getEMAColumns(stock_frame, from_index=None):
+def getEMAColumns(stock_frame, from_index=None, with_print=False):
 
         #if have calculated EMAs before we just want to supplement what's there
     up_ema_column_exists = ('up_ema' in stock_frame.columns) and (stock_frame.iloc[0]['up_ema'] == 0.001)
     down_ema_column_exists = ('down_ema' in stock_frame.columns) and (stock_frame.iloc[0]['down_ema'] == 0.001)
     if up_ema_column_exists and down_ema_column_exists:
-        return calculateEMAsFrom(stock_frame, from_index)
+        if with_print: print("We go from index")
+        return calculateEMAsFromIndex(stock_frame, from_index)
     else:
+        if with_print: print("We go from scratch")
         return calculateEMAsFromScratch(stock_frame)
+
 
 def calculateEMAsFromScratch(stock_frame):
     closes = stock_frame[Constants.CLOSE]
@@ -238,11 +254,11 @@ def calculateEMAs(closes, period=14):
     return up_emas, down_emas
     
 
-def calculateEMAsFrom(stock_frame, from_index):
+def calculateEMAsFromIndex(stock_frame, from_index):
     
         #we only want to recalculate those emas that are necesarry
-    # alpha = 1/14
-    period = 14
+    alpha = 1/14
+    buffer = min(30, len(stock_frame))
 
     integer_index = getStartRecalcIndex(stock_frame, from_index)
     
@@ -250,12 +266,12 @@ def calculateEMAsFrom(stock_frame, from_index):
         return calculateEMAsFromScratch(stock_frame)
     else:
             #we need up and down movements to calculate emas
-        last_closes = stock_frame.iloc[max(0,(integer_index-15)):][Constants.CLOSE]
+        last_closes = stock_frame.iloc[max(0,(integer_index-buffer)):][Constants.CLOSE]
         ups, downs = getUpsAndDownsSeries(last_closes)
             #pandas provides the fastest way to calculate emas
-        up_emas = pd.Series.ewm(ups, alpha=1/period).mean()
-        down_emas = pd.Series.ewm(downs, alpha=1/period).mean()
-        return last_closes.index[15:], up_emas[15:], down_emas[15:]
+        up_emas = pd.Series.ewm(ups, alpha=alpha).mean()
+        down_emas = pd.Series.ewm(downs, alpha=alpha).mean()
+        return last_closes.index[buffer:], up_emas[buffer:], down_emas[buffer:]
 
 # def calculateEMAsFrom(stock_frame, from_index):
     

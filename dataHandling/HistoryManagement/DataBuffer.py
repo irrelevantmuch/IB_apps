@@ -25,8 +25,6 @@ class DataBuffers(QObject):
 
     def setBufferFor(self, uid, bar_type, buffered_data, ranges=None):
 
-        print(f"DataBuffer.setBufferFor on {int(QThread.currentThreadId())}")
-        print(buffered_data.index.dtype)
         if not ((uid, bar_type) in self._locks):
             self._locks[uid, bar_type] = QReadWriteLock()
 
@@ -243,7 +241,6 @@ class DataBuffers(QObject):
     ##################### Loading and saving
 
     def loadBuffers(self, stock_list=None, force_load=False, reset_existing_buffers=False, bar_types=MAIN_BAR_TYPES):
-        print(f"DataBuffer.loadBuffers is performed on {int(QThread.currentThreadId())}")
         if reset_existing_buffers:
             self._buffers = dict()
         
@@ -260,7 +257,7 @@ class DataBuffers(QObject):
         try:
             file_name = self.data_folder + uid + '_' + bar_type + '.pkl'
             existing_buffer = pd.read_pickle(file_name)
-            self.setBufferFor(uid, bar_type, pd.read_pickle(file_name), existing_buffer.attrs['ranges'])
+            self.setBufferFor(uid, bar_type, existing_buffer, existing_buffer.attrs['ranges'])
         except Exception as inst:
             pass
             #print(f"Cannot load {uid} due to: {inst}")
@@ -274,7 +271,6 @@ class DataBuffers(QObject):
         temp_df = self._buffers[uid, bar_type][self._buffers[uid, bar_type].columns.difference(cols_to_exclude)]
         temp_df.attrs['ranges'] = self._date_ranges[uid, bar_type]
         temp_df.to_pickle(file_name)
-        # self._buffers[uid, bar_type].to_pickle(file_name)
 
         self._locks[uid, bar_type].unlock()
 
@@ -291,7 +287,6 @@ class DataBuffers(QObject):
 
 
     def processData(self, data_dict):
-        print(f"DataBuffer.processData on {int(QThread.currentThreadId())}")
         uid = data_dict['key']
         bar_type = data_dict['bar type']
         new_data = data_dict['data']
@@ -311,7 +306,6 @@ class DataBuffers(QObject):
                     
 
     def processUpdates(self, min_data, propagate_updates=False):
-        print(f"DataBuffer.processUpdates on {int(QThread.currentThreadId())}")
             #we want to reuse these so names for clarity
         curr_bar_type = min_data['bar type']
         updated_bar_types = [curr_bar_type]

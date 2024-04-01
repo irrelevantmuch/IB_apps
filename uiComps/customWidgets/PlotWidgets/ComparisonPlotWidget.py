@@ -105,7 +105,6 @@ class ComparisonPlotWidget(pg.PlotWidget):
 
 
     def setupCurves(self, show_tops_bottoms):
-        print("ComparisonPlotWidget.setupCurves")
         self.resetPlot()
         line_ids, line_count = self.data_object.getPlotParameters(self.plot_type)
         
@@ -147,8 +146,6 @@ class ComparisonPlotWidget(pg.PlotWidget):
 
 
     def createCurve(self, key, time_indices, line_points, pen, label):
-        print(f"ComparisonPlotWidget.createCurve {type(line_points)}")
-        print(line_points)
         self.curves[key] = self.plot(time_indices, line_points, pen=pen, symbol='o', symbolPen=pen, name=label)
         self.curves[key].setSymbolSize(1)
         self.curve_points[key] = pg.CurvePoint(self.curves[key])
@@ -212,7 +209,6 @@ class ComparisonPlotWidget(pg.PlotWidget):
 
 
     def updateCurves(self, uids):
-        print("ComparisonPlotWidget.updateCurves")
         for uid in uids:
             time_indices, line_points, low_points, high_points = self.getPlotLines(uid)
 
@@ -243,8 +239,6 @@ class ComparisonPlotWidget(pg.PlotWidget):
         
 
     def setData(self, data_object):
-        print("ComparisonPlotWidget.setData")
-        print(data_object)
         self.data_object = data_object
         self.data_object.processing_updater.connect(self.dataUpdate, Qt.QueuedConnection)
         self.setupCurves(True)

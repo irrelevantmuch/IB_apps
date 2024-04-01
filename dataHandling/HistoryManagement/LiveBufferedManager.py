@@ -23,10 +23,8 @@ class LiveDataManager(QObject):
     execute_request_signal = pyqtSignal(int)
 
 
-    def __init__(self, history_manager, name="BufferedManager"):
+    def __init__(self, history_manager):
         super().__init__()
-
-        self.name = name
         self.history_manager = history_manager
         self.data_buffers = history_manager.getDataBuffer()
         self.data_buffers.bars_to_propagate = QUICK_BAR_TYPES

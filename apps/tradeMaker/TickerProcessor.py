@@ -17,7 +17,7 @@ class LiveTickerProcessor(QObject):
         super().__init__()
 
         self.history_manager = history_manager
-        self.buffered_manager = LiveDataManager(history_manager, name="TickerManager")
+        self.buffered_manager = LiveDataManager(history_manager)
         self.connectSignalsToSlots()
         
 

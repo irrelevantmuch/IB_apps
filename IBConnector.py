@@ -72,12 +72,12 @@ class IBConnector:
 
     def getBufferedManager(self, identifier='general_history'):
         if self.data_source == Constants.IB_SOURCE:
-            return self.getBufferedManagerManagerIB(identifier)
+            return self.getBufferedManagerIB(identifier)
         elif self.data_source == Constants.FINAZON_SOURCE:
             return self.getFinazonManager(identifier)
 
 
-    def getBufferedManagerManagerIB(self, identifier='general_history'):
+    def getHistoryManagerIB(self, identifier='general_history'):
         if identifier == 'general_history' and (self.history_manager is not None):
             history_manager = self.history_manager
         else:
@@ -90,6 +90,11 @@ class IBConnector:
             if identifier == 'general_history':
                 self.history_manager = history_manager    
 
+        return history_manager
+
+
+    def getBufferedManagerIB(self, identifier='general_history'):
+        history_manager = self.getHistoryManagerIB(identifier)
         return BufferedDataManager(history_manager)
 
 

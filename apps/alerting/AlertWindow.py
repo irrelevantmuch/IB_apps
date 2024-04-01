@@ -32,7 +32,7 @@ class AlertWindow(QMainWindow, Alert_UI):
         super().setupUi(self) #TODO this seems wrong....
         print("So we aint getting here first?")
         self.comp_checkable_lists = CheckableComboBox()
-        self.processing_props_layout.layout().addWidget(self.comp_checkable_lists, 0, 1, 1, 1)
+        self.processing_props_layout.layout().addWidget(self.comp_checkable_lists, 0, 2, 1, 1)
         self.update_frequency_box.addItems(self.frequency_choices)
         self.update_frequency_box.setCurrentIndex(self.frequency_choices.index('1m'))
     

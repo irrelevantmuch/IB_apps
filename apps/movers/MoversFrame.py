@@ -1,3 +1,6 @@
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 from PyQt5.QtCore import QObject, QReadWriteLock, pyqtSignal
 from dataHandling.Constants import Constants
 

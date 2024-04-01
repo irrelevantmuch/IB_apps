@@ -266,7 +266,6 @@ class MoversProcessor(DataProcessor):
             if self.data_buffers.bufferExists(uid, bar_type):
                 stock_frame = self.data_buffers.getBufferFor(uid, bar_type)
                 rsi_padded_frame = addRSIsEMAs(stock_frame, starting_index)
-                # print(f"And get {rsi_padded_frame}")
                 self.data_buffers.setBufferFor(uid, bar_type, rsi_padded_frame)
                 latest_rsi = rsi_padded_frame.iloc[-1]['rsi']
                 self.data_wrapper.updateValueFor(uid, bar_type + "_RSI", latest_rsi)
