@@ -7,7 +7,7 @@ from .Constants import Constants
 from .DataManagement import DataManager
 
 
-class SymbolDataManager(DataManager):
+class SymbolManager(DataManager):
 
     _item_list = set()
     sec_type = Constants.STOCK
@@ -15,19 +15,19 @@ class SymbolDataManager(DataManager):
 
     def __init__(self, callback=None, name=None):
         if name is None:
-            super().__init__(callback, name="SymbolDataManager")
+            super().__init__(callback, name="SymbolManager")
         else:
             super().__init__(callback, name=name)
 
 
     def connectSignalsToSlots(self):
+        super().connectSignalsToSlots()
         self.ib_interface.contract_details_signal.connect(self.relayContractDetails, Qt.QueuedConnection)
         self.ib_interface.contract_details_finished_signal.connect(self.contractDetailFetchComplete, Qt.QueuedConnection)
 
 
     @pyqtSlot(DetailObject)
     def relayContractDetails(self, details):
-        print("SymbolDataManager.relayContractDetails")
         self._item_list.add(details)
         self.api_updater.emit(Constants.CONTRACT_DETAILS_RETRIEVED, dict())
 
@@ -41,7 +41,7 @@ class SymbolDataManager(DataManager):
         contract.symbol = symbol_name
         contract.secType = self.sec_type
         contract.exchange = Constants.SMART
-        self.ib_interface.reqContractDetails(Constants.SYMBOL_SEARCH_REQID, contract)
+        self.ib_request_signal.emit({'type': 'reqContractDetails', 'req_id': Constants.SYMBOL_SEARCH_REQID, 'contract': contract})
 
 
     def setSelectedSectype(self, to_type):

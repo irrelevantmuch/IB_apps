@@ -37,8 +37,8 @@ class ListManager(ListManagerWindow):
 
         self.option_manager.api_updater.connect(self.apiUpdate)
         self.symbol_manager.api_updater.connect(self.apiUpdate)
-        self.history_manager.api_updater.connect(self.apiUpdate)
-        self.history_manager.mostRecentFirst = True
+        self.buffered_manager.history_manager.api_updater.connect(self.apiUpdate)
+        self.buffered_manager.history_manager.mostRecentFirst = True
         
         self.buffered_manager.setStockList(self.stock_list)
         self.fetchUnderlyingPrice.connect(self.option_manager.makeStockSelection) #, type=Qt.DirectConnection)
