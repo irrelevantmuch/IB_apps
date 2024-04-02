@@ -53,7 +53,7 @@ class IBConnector:
 
     def getBufferedManagerWithIndicator(self):
         if self.data_source == Constants.IB_SOURCE:
-            buffered_manager = self.getBufferedManagerManagerIB('general_history')
+            buffered_manager = self.getBufferedManagerIB('general_history')
         elif self.data_source == Constants.FINAZON_SOURCE:
             buffered_manager = self.getFinazonManager('general_history')
 
