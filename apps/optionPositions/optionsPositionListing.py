@@ -69,7 +69,6 @@ class OptionPositions(OptionPositionWindow):
         print(f"OptionPositions.positionUpdate {signal}")
         print(sub_signal)
         if signal == Constants.DATA_WILL_CHANGE:
-            print("THIS IS TOO REPETITIVE")
             self.processData()
         elif signal == Constants.UNDERLYING_PRICE_UPDATE:
             if self.current_tab is not None:
@@ -105,11 +104,9 @@ class OptionPositions(OptionPositionWindow):
         positions = self.data_object.getOptionPositions()
         for instrument in positions[Constants.SYMBOL].unique():
             if not self.tabExists(instrument):
-                pass
-                # instrument_tab = self.addOptionTab(instrument)
-
-        self.setNotes()
-        self.myTabBar.update()
+                instrument_tab = self.addOptionTab(instrument)
+                self.setNotes()
+                self.myTabBar.update()
 
 
     def setNotes(self):

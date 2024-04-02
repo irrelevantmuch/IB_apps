@@ -28,94 +28,22 @@ class OptionTabWidget(QWidget):
         super().__init__()
         
         self.setupUi()
-        # self.setupAlignment()
-        # self.options_table.setSortingEnabled(True)
-
-        # header = self.options_table.horizontalHeader()
-        # header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
-        # header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
-
         self.setModelData(data_object, selection_type, parameter)
+
 
     def setupUi(self):
         print("OptionsTab.setupUI")
         new_form = OptionsTab() 
         new_form.setupUi(self)
-        self.getFormReferences(new_form)  
-
-    def getFormReferences(self, new_form):
         self.options_table = new_form.options_table
+        self.options_table.setSortingEnabled(True)
 
 
     def setModelData(self, data_object, selection_type, parameter=None):
+        print("OptionsTabWidget.setModelData")
         self.data_model = PositionDataModel(data_object, selection_type, parameter)
         self.options_table.setModel(self.data_model)
-    # def setData(self, positions):
 
-        # self.options_table.clearContents()
-        # self.options_table.setRowCount(len(positions.index))
-        
-        # index = 0
-        
-        # for _, position in positions.iterrows():
-        #     print(position)
-        #     mkt_value = position['PRICE'] * float(position['CONTRACT'].multiplier) * float(position['COUNT'])
-
-        #     self.options_table.setItem(index, 0, QTableWidgetItem(position[Constants.SYMBOL]))
-        #     self.options_table.setItem(index, 1, QTableWidgetItem(position['CONTRACT'].right))
-
-        #     datetime_obj = datetime.strptime(position['CONTRACT'].lastTradeDateOrContractMonth, '%Y%m%d')
-        #     expiration = datetime_obj.date().strftime("%d %B %Y")
-        #     self.options_table.setItem(index, 2, QTableWidgetItem(expiration))
-        #     self.options_table.setItem(index, 3, getNumericItem(position['CONTRACT'].strike))
-        #     self.options_table.setItem(index, 4, getNumericItem(position['COUNT']))
-        #     self.options_table.setItem(index, 5, getNumericItem(position['PRICE']))
-        #     self.options_table.setItem(index, 6, getNumericItem(mkt_value))
-        #     self.options_table.setItem(index, 7, getNumericItem(position['UNREALIZED_PNL']))
-            
-        #     index += 1
-
-
-    # def setupAlignment(self):
-
-    #     delegate = AlignDelegate(self.options_table)
-    #     price_delegate = PriceAlignDelegate(self.options_table)
-    #     self.options_table.setItemDelegateForColumn(2, delegate)
-    #     self.options_table.setItemDelegateForColumn(3, delegate)
-    #     self.options_table.setItemDelegateForColumn(4, delegate)
-    #     self.options_table.setItemDelegateForColumn(5, price_delegate)
-    #     self.options_table.setItemDelegateForColumn(6, price_delegate)   
-    #     self.options_table.setItemDelegateForColumn(7, price_delegate)   
-        
-
-class OptionTabWidgetExt(OptionTabWidget):
-
-
-    def __init__(self):
-        super().__init__()
-
-        self.options_table.insertColumn(8)
-        self.options_table.setHorizontalHeaderItem(8, QTableWidgetItem('DPNL'))
-        
-        
-    # def setData(self, positions):
-    #     super().setData(positions)
-    #     self.options_table.setRowCount(len(positions.index))
-        
-    #     index = 0
-        
-    #     for _, position in positions.iterrows():
-            
-    #         self.options_table.setItem(index, 7, getNumericItem(position['UPNL']))
-    #         self.options_table.setItem(index, 8, getNumericItem(position['DPNL']))            
-    #         index += 1
-
-
-    def setupAlignment(self):
-        super().setupAlignment()
-        delegate = PriceAlignDelegate(self.options_table)
-        self.options_table.setItemDelegateForColumn(7, delegate)
-        self.options_table.setItemDelegateForColumn(8, delegate)   
     
 
 class SpecOptionTabWidget(OptionTabWidget):
@@ -139,7 +67,7 @@ class SpecOptionTabWidget(OptionTabWidget):
         return self.notes_window.toPlainText()
 
     def getFormReferences(self, new_form):
-        super().getFormReferences(new_form)
+        self.options_table = new_form.options_table
         self.days_till_label = new_form.days_till_label
         self.total_value_label = new_form.total_value_label
         self.unrealized_pnl_label = new_form.unrealized_pnl_label

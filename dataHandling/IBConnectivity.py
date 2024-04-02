@@ -328,7 +328,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
     def updatePortfolio(self, contract: Contract, position, marketPrice, marketValue, averageCost, unrealizedPNL, realizedPNL, accountName):
         super().updatePortfolio(contract, position, marketPrice, marketValue, averageCost, unrealizedPNL, realizedPNL, accountName)
-        # print("IBConnectivity.updatePortfolio")
+        print(f"IBConnectivity.updatePortfolio {accountName} {contract.symbol} {position} {averageCost} {marketValue} {unrealizedPNL} {realizedPNL}")
         # print({'contract': contract.symbol, 'position': position, 'market_price': marketPrice})
         self.account_updater.emit('whats_this', {'contract': contract, 'position': position, 'account_name': accountName, 'unrealized_pnl': unrealizedPNL, 'market_price': marketPrice})
         
@@ -385,6 +385,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
 
     def accountSummary(self, req_id: int, account: str, tag: str, value: str, currency: str):
+        print("IBConnectivity.AccountSummary")
         super().accountSummary(req_id, account, tag, value, currency)
         # print("AccountSummary. ReqId:", req_id, "Account:", account, "Tag: ", tag, "Value:", value, "Currency:", currency)
         self.account_updater.emit('another_constnats', {'account': account, 'req_id': req_id})

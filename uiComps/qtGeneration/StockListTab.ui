@@ -15,40 +15,9 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
-    <layout class="QVBoxLayout" name="verticalLayout_2" stretch="8,1">
+    <layout class="QVBoxLayout" name="verticalLayout_2" stretch="5,1">
      <item>
-      <widget class="QTableWidget" name="stock_table">
-       <column>
-        <property name="text">
-         <string>Stock</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Price</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Position</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Mkt Value</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Unr PNL</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Daily PNL</string>
-        </property>
-       </column>
-      </widget>
+      <widget class="QTableView" name="stock_table"/>
      </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
