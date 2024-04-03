@@ -13,6 +13,7 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QTableWidgetItem, QWidget
 from uiComps.qtGeneration.StockListTab_UI import Ui_Form as StockTab
+from dataHandling.TradeManagement.PositionDataManagement import PositionDataModel
 
 from generalFunctionality.UIFunctions import findRowForValue, getNumericItem, AlignDelegate, PriceAlignDelegate
 from dataHandling.Constants import Constants
@@ -25,17 +26,19 @@ class StockListTab(QWidget):
     tab_name = ""
     text_updater = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, data_object, selection_type, parameter=None):
         super().__init__()
         
         self.setupUi()
-        self.setupAlignment()
+        # self.setupAlignment()
+        self.data_model = PositionDataModel(data_object, selection_type, parameter)
+        self.stock_table.setModel(self.data_model)
         self.stock_table.setSortingEnabled(True)
 
-        header = self.stock_table.horizontalHeader()
-        header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
+        # header = self.stock_table.horizontalHeader()
+        # header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
 
-
+    
     def setupUi(self):
         new_form = StockTab() 
         new_form.setupUi(self)
@@ -47,71 +50,72 @@ class StockListTab(QWidget):
         self.unrealized_pnl_label = new_form.unrealized_pnl_label
 
 
-    def setData(self, positions):
+    # def setData(self, positions):
 
-        self.stock_table.clearContents()
-        self.stock_table.setRowCount(len(positions.index))
+    #     self.stock_table.clearContents()
+    #     self.stock_table.setRowCount(len(positions.index))
         
-        index = 0
-        total_mkt_value = 0.0
-        unrealized_pnl = 0.0
+    #     index = 0
+    #     total_mkt_value = 0.0
+    #     unrealized_pnl = 0.0
 
-        for _, position in positions.iterrows():
+    #     for _, position in positions.iterrows():
             
-            mkt_value = position['PRICE'] * position['COUNT']
+    #         mkt_value = position['PRICE'] * position['COUNT']
             
-            self.stock_table.setItem(index, 0, QTableWidgetItem(position['INSTRUMENT']))
-            self.stock_table.setItem(index, 1, getNumericItem(position['PRICE']))
-            self.stock_table.setItem(index, 2, getNumericItem(position['COUNT']))
-            self.stock_table.setItem(index, 3, getNumericItem(mkt_value))
-            self.stock_table.setItem(index, 4, getNumericItem(position['UNREALIZED_PNL']))
-            self.stock_table.setItem(index, 5, getNumericItem(position['DPNL']))
+    #         self.stock_table.setItem(index, 0, QTableWidgetItem(position[Constants.SYMBOL]))
+    #         self.stock_table.setItem(index, 1, getNumericItem(position['PRICE']))
+    #         self.stock_table.setItem(index, 2, getNumericItem(position['COUNT']))
+    #         self.stock_table.setItem(index, 3, getNumericItem(mkt_value))
+    #         self.stock_table.setItem(index, 4, getNumericItem(position['UNREALIZED_PNL']))
+    #         self.stock_table.setItem(index, 5, getNumericItem(position['DPNL']))
 
-            if position['DPNL'] < 0:
-                self.stock_table.item(index, 5).setForeground(QBrush(QColor(200, 0, 0)))
-            elif position['DPNL'] > 0:
-                self.stock_table.item(index, 5).setForeground(QBrush(QColor(0, 180, 0)))
+    #         if position['DPNL'] < 0:
+    #             self.stock_table.item(index, 5).setForeground(QBrush(QColor(200, 0, 0)))
+    #         elif position['DPNL'] > 0:
+    #             self.stock_table.item(index, 5).setForeground(QBrush(QColor(0, 180, 0)))
 
 
-            total_mkt_value += mkt_value
-            unrealized_pnl += position['UNREALIZED_PNL']
-            index +=1
+    #         total_mkt_value += mkt_value
+    #         unrealized_pnl += position['UNREALIZED_PNL']
+    #         index +=1
             
-        self.total_value_label.setText("{:.2f}".format(total_mkt_value))
-        self.unrealized_pnl_label.setText("{:.2f}".format(unrealized_pnl))
+    #     self.total_value_label.setText("{:.2f}".format(total_mkt_value))
+    #     self.unrealized_pnl_label.setText("{:.2f}".format(unrealized_pnl))
 
-    def setupAlignment(self):
+    # def setupAlignment(self):
 
-        delegate = AlignDelegate(self.stock_table)
-        num_delegate = PriceAlignDelegate(self.stock_table)
-        self.stock_table.setItemDelegateForColumn(1, num_delegate)
-        self.stock_table.setItemDelegateForColumn(2, delegate)
-        self.stock_table.setItemDelegateForColumn(3, num_delegate)
-        self.stock_table.setItemDelegateForColumn(4, num_delegate)
-        self.stock_table.setItemDelegateForColumn(5, num_delegate)
-        self.stock_table.setItemDelegateForColumn(6, num_delegate)   
+    #     delegate = AlignDelegate(self.stock_table)
+    #     num_delegate = PriceAlignDelegate(self.stock_table)
+    #     self.stock_table.setItemDelegateForColumn(1, num_delegate)
+    #     self.stock_table.setItemDelegateForColumn(2, delegate)
+    #     self.stock_table.setItemDelegateForColumn(3, num_delegate)
+    #     self.stock_table.setItemDelegateForColumn(4, num_delegate)
+    #     self.stock_table.setItemDelegateForColumn(5, num_delegate)
+    #     self.stock_table.setItemDelegateForColumn(6, num_delegate)   
 
 
 
 class SelectableTabWidget(StockListTab):
 
-    list_updater = pyqtSignal(str)
+    list_updater = pyqtSignal(str, dict)
     position_types = dict()
     split_counts = dict()
 
-    def __init__(self):
-        super().__init__()
-        self.stock_table.insertColumn(0)
-        self.stock_table.setHorizontalHeaderItem(0, QTableWidgetItem('Type'))
-        self.stock_table.insertColumn(1)
-        self.stock_table.setHorizontalHeaderItem(1, QTableWidgetItem('Invest Count'))
-        self.stock_table.insertColumn(2)
-        self.stock_table.setHorizontalHeaderItem(2, QTableWidgetItem('ID'))
-        self.stock_table.insertColumn(9)
-        self.stock_table.setHorizontalHeaderItem(9, QTableWidgetItem('Trade PP'))
+    def __init__(self, data_object, selection_type, parameter=None):
+        super().__init__(data_object, selection_type, parameter)
+    
+        # self.stock_table.insertColumn(0)
+        # self.stock_table.setHorizontalHeaderItem(0, QTableWidgetItem('Type'))
+        # self.stock_table.insertColumn(1)
+        # self.stock_table.setHorizontalHeaderItem(1, QTableWidgetItem('Invest Count'))
+        # self.stock_table.insertColumn(2)
+        # self.stock_table.setHorizontalHeaderItem(2, QTableWidgetItem('ID'))
+        # self.stock_table.insertColumn(9)
+        # self.stock_table.setHorizontalHeaderItem(9, QTableWidgetItem('Trade PP'))
         
-        header = self.stock_table.horizontalHeader()
-        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+        # header = self.stock_table.horizontalHeader()
+        # header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
         
 
     def setupAlignment(self):
@@ -142,7 +146,7 @@ class SelectableTabWidget(StockListTab):
             self.stock_table.setCellWidget(index, 1, count_edit)
 
             self.stock_table.setItem(index, 2, QTableWidgetItem(numeric_id))
-            self.stock_table.setItem(index, 3, QTableWidgetItem(position['INSTRUMENT']))
+            self.stock_table.setItem(index, 3, QTableWidgetItem(position[Constants.SYMBOL]))
             self.stock_table.setItem(index, 5, getNumericItem(position['COUNT']))
 
             price_edit = self.getPriceWidget(numeric_id)
@@ -178,18 +182,18 @@ class SelectableTabWidget(StockListTab):
 
     def splitUpdate(self, text, numeric_id):
         self.split_counts[numeric_id] = int(text)
-        self.list_updater.emit(Constants.LIST_SELECTION_UPDATE)
+        self.list_updater.emit(Constants.LIST_SELECTION_UPDATE, dict())
 
 
     def purchasePriceUpdate(self, text, numeric_id):
         self.purchase_price[numeric_id] = float(text)
-        self.list_updater.emit(Constants.LIST_SELECTION_UPDATE)
+        self.list_updater.emit(Constants.LIST_SELECTION_UPDATE, dict())
 
 
     def typeSelection(self, button, selection, numeric_id):
         if selection:
             self.position_types[numeric_id] = button.text()
-            self.list_updater.emit(Constants.LIST_SELECTION_UPDATE)
+            self.list_updater.emit(Constants.LIST_SELECTION_UPDATE, dict())
 
             if button.text() == "Split":
                 index = findRowForValue(self.stock_table, numeric_id, 2)
@@ -234,4 +238,4 @@ class SelectableTabWidget(StockListTab):
     #         if checkbox.isChecked():
     #             self.selected_ids.append(int(self.options_table.item(row, 1).text()))
 
-        self.list_updater.emit(Constants.LIST_SELECTION_UPDATE)
+        self.list_updater.emit(Constants.LIST_SELECTION_UPDATE, dict())

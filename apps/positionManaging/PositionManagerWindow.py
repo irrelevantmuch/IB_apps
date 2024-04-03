@@ -18,13 +18,3 @@ class PositionManagerWindow(QMainWindow, StockPosition_UI):
 
         self.setupUi(self)
 
-        # self.populateBoxes()
-        # self.setupGraphs()
-        self.setupActions()
-        # self.disableInterface() 
-        
-    def setupActions(self):
-        #self.connect_button.clicked.connect(self.openConnection)
-        self.position_button.clicked.connect(self.fetchPositions)
-
-

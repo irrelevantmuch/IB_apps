@@ -98,6 +98,7 @@ class IBConnector:
         return BufferedDataManager(history_manager)
 
 
+
     def startWorkerThread(self, identifier, worker, run_function=None, thread_priority=None):
         thread = QThread()
         worker.moveToThread(thread)
