@@ -66,8 +66,6 @@ class OptionPositions(OptionPositionWindow):
 
     @pyqtSlot(str, dict)
     def positionUpdate(self, signal, sub_signal):
-        print(f"OptionPositions.positionUpdate {signal}")
-        print(sub_signal)
         if signal == Constants.DATA_WILL_CHANGE:
             self.processData()
         elif signal == Constants.UNDERLYING_PRICE_UPDATE:

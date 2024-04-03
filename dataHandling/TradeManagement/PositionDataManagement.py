@@ -14,8 +14,6 @@ from dataHandling.DataManagement import DataManager
 
 class PositionDataManager(DataManager):
 
-    _open_positions = None
-    _stock_positions = None
     daily_pnl = 0.0
     unrealized_pnl = 0.0
     _pnl_requests = dict()
@@ -83,33 +81,6 @@ class PositionDataManager(DataManager):
         
 
 
-    # def stopPositionRequest(self):
-    #     print("Are we properly calling it quits?")
-    #     self.ib_interface.reqAccountUpdates(False, self.account_number)
-
-
-    
-    # def positionsFetched(self):
-    #     self.stopPositionRequest()
-
-    #     self._open_positions["UPNL"] = np.nan
-    #     self._open_positions["DPNL"] = np.nan
-
-    #     self.ib_interface.reqPnL(Constants.PNL_REQUID, str(self.account_number), "")
-
-    #     index = 0        
-    #     for id in pd.concat([self._stock_positions['UID'], self._open_positions['UID']]):
-            
-    #         if self.getCountFor(id) != 0:
-            
-    #             req_id = Constants.BASE_PNL_REQUID+index
-    #             self._pnl_data_reqs.add(req_id)
-    #             self.ib_interface.reqPnLSingle(req_id, str(self.account_number), "", int(id))
-    #             self._pnl_requests[req_id] = id
-    #             index += 1
-
-
-
 class PositionObject(QObject):
 
     _open_positions = None
@@ -117,6 +88,10 @@ class PositionObject(QObject):
     account_downloading_complete = False
     _lock = QReadWriteLock()
     position_signal = pyqtSignal(str, dict)
+
+        #made a buffer, because this object serves many TableViews all needing slightly different lists a buffer makes thing speedier
+    _frame_buffer = dict()      
+    _needs_update = dict()
 
     def __init__(self):
         super().__init__()
@@ -143,12 +118,6 @@ class PositionObject(QObject):
 
 
     def updatePositions(self, new_positions):
-        print("PositionObject.updatePositions")
-        
-        # if self.account_downloading_complete:
-        #     self.resetDataFrame()
-        #     self.account_downloading_complete = False            
-
         contract = new_positions['contract']
         marketPrice = new_positions['market_price']
         position = new_positions['position']
@@ -158,40 +127,50 @@ class PositionObject(QObject):
 
         self._lock.lockForWrite()
         prior_count = len(self._open_positions)
-        new_position = pd.DataFrame.from_records([{'UID': str(contract.conId), Constants.SYMBOL: contract.symbol, 'CONTRACT': contract, 'SECURITY_TYPE': contract.secType, 'PRICE': marketPrice, 'SECURITY_TYPE': contract.secType, 'COUNT': position, 'UNREALIZED_PNL': unrealizedPNL}])
-        self._open_positions = pd.concat([self._open_positions, new_position], ignore_index=True)
-        new_index = self._open_positions.index[-1]
+        self._open_positions.loc[contract.conId] = {Constants.SYMBOL: contract.symbol, 'CONTRACT': contract, 'SECURITY_TYPE': contract.secType, 'PRICE': marketPrice, 'SECURITY_TYPE': contract.secType, 'COUNT': position, 'UNREALIZED_PNL': unrealizedPNL}
+        
         self._lock.unlock()
 
-        print(self._open_positions)
+        self._needs_update = {key: True for key in self._needs_update}
 
-        self.position_signal.emit(Constants.DATA_STRUCTURE_CHANGED, {'index': new_index})
-        self.position_signal.emit(Constants.DATA_DID_CHANGE, {'index': new_index})
-
-
-    def getIndicesForUpdate(self, sub_signal):
-        return None
+        self.position_signal.emit(Constants.DATA_STRUCTURE_CHANGED, {'index': contract.conId})
+        self.position_signal.emit(Constants.DATA_DID_CHANGE, {'index': contract.conId})
 
 
-    def getFrameFor(self, selection_type, identifier=None):
+    def getFrameFor(self, selection_type, identifier='general'):
         if selection_type == 'OPTIONS_BY_INSTRUMENT':
-            return self._open_positions[(self._open_positions['SECURITY_TYPE'] == Constants.OPTION) & (self._open_positions[Constants.SYMBOL] == identifier)]
+            selection = (self._open_positions['SECURITY_TYPE'] == Constants.OPTION) & (self._open_positions[Constants.SYMBOL] == identifier)
+    
         elif selection_type == Constants.OPTION:
-            return self._open_positions[self._open_positions['SECURITY_TYPE'] == Constants.OPTION]
+            selection = (self._open_positions['SECURITY_TYPE'] == Constants.OPTION)
         elif selection_type == Constants.STOCK:
-            return self._open_positions[self._open_positions['SECURITY_TYPE'] == Constants.STOCK]
+            selection = (self._open_positions['SECURITY_TYPE'] == Constants.STOCK)
         elif selection_type == 'STOCKS_LONG':
-            return self._open_positions[(self._open_positions['SECURITY_TYPE'] == Constants.STOCK) & (self._open_positions['COUNT'] > 0)]
+            selection = (self._open_positions['SECURITY_TYPE'] == Constants.STOCK) & (self._open_positions['COUNT'] > 0)
         elif selection_type == 'STOCKS_SHORT':
-            return self._open_positions[(self._open_positions['SECURITY_TYPE'] == Constants.STOCK) & (self._open_positions['COUNT'] < 0)]
-        return None
+            selection = (self._open_positions['SECURITY_TYPE'] == Constants.STOCK) & (self._open_positions['COUNT'] < 0)
+        elif selection_type == 'ALL':
+            return self._open_positions
+
+        if selection is not None:
+            if not((selection_type, identifier) in self._frame_buffer) or self.needsUpdateFor(selection_type, identifier):
+                self._frame_buffer[selection_type, identifier] = self._open_positions[selection]
+                self._needs_update[selection_type, identifier] = False
+            return self._frame_buffer[selection_type, identifier]
+        else:
+            return None
 
 
-    def getRowCountFor(self, selection_type, identifier=None):
+    def needsUpdateFor(self, selection_type, identifier):
+        if (selection_type, identifier) in self._needs_update:
+            return self._needs_update[selection_type, identifier]
+        return False
+
+    def getRowCountFor(self, selection_type, identifier='general'):
         return len(self.getFrameFor(selection_type, identifier))
 
 
-    def getColumnCountFor(self, selection_type, identifier=None):
+    def getColumnCountFor(self, selection_type, identifier='general'):
         try:
             return len(self.getFrameFor(selection_type, identifier).iloc[0])
         except:
@@ -220,13 +199,11 @@ class PositionObject(QObject):
 
     def sortByColumn(self, column_name, ascending=True):
         self._open_positions.sort_values(by=column_name, ascending=ascending, inplace=True)
+        self._needs_update = {key: True for key in self._needs_update}
 
 
 class PositionDataModel(QAbstractTableModel):
 
-    # model_updater = pyqtSignal(str, dict)
-    # greyout_stale = True
-    # changed_list = set()
 
     def __init__(self, table_data, selection_type, parameter, **kwargs):
         super().__init__(**kwargs)
@@ -235,21 +212,9 @@ class PositionDataModel(QAbstractTableModel):
         self._selection_type = selection_type
         self._parameter = parameter
 
-        self._headers = ['UID',Constants.SYMBOL, 'COUNT', 'PRICE']
-        self._function_labels = [lambda x: str(x), lambda x: x, lambda x: f"{x:.0f}", lambda x: f"{x:.2f}"]
-        print(f"PositionDataManager._function_labels {len(self._function_labels)}")
-        print(self._function_labels)
-                # self._table_data.processing_updater.connect(self.tableDataUpdate, Qt.QueuedConnection)
+        self._headers = [Constants.SYMBOL, 'COUNT', 'PRICE', 'EST MKT VALUE']
+        self._function_labels = [lambda x: x, lambda x: f"{x:.0f}", lambda x: f"{x:.2f}", lambda x: f"{x:.2f}"]
 
-        # if header_labels is not None:
-        #     self.header_labels = header_labels
-        # else:
-        #     self.header_labels = list(self._mapping.values())
-
-        # if output_functions is not None:
-        #     self.output_functions = output_functions
-        # else:
-        #     self.output_functions = [str] * self.columnCount()
 
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
@@ -269,18 +234,22 @@ class PositionDataModel(QAbstractTableModel):
 
 
     def data(self, index, role=Qt.DisplayRole):
-        # print(f"PositionDataModel.data {index}")
         if role == Qt.DisplayRole:
-            column_name = self._headers[index.column()]
-            # print(str(self._table_data.getValueForColRow(index.column(),index.row(), self._selection_type, self._parameter)))
-            current_function = self._function_labels[index.column()]
-            cell_string = current_function(self._table_data.getValueForColRow(column_name, index.row(), self._selection_type, self._parameter))
-            return cell_string
- 
+            column_index = index.column()
+            column_name = self._headers[column_index]
+            if column_name == 'EST MKT VALUE':
+                price = self._table_data.getValueForColRow('PRICE', index.row(), self._selection_type, self._parameter)
+                count = self._table_data.getValueForColRow('COUNT', index.row(), self._selection_type, self._parameter)
+                cell_value = price * float(count)
+            else:
+                cell_value = self._table_data.getValueForColRow(column_name, index.row(), self._selection_type, self._parameter)
+            
+            current_function = self._function_labels[column_index]
+            return current_function(cell_value)
+            
 
     @pyqtSlot(str, dict)
     def tableDataUpdate(self, signal, sub_signal):
-        print(f"PositionDataModel.tableDataUpdate {signal}")
         if signal == Constants.DATA_WILL_CHANGE:
             self.layoutAboutToBeChanged.emit()
         elif signal == Constants.DATA_DID_CHANGE:

@@ -20,15 +20,4 @@ class OptionPositionWindow(QMainWindow, Position_UI):
 
         self.setupUi(self)
 
-        # self.populateBoxes()
-        # self.setupGraphs()
-        self.setupActions()
-        # self.disableInterface() 
-        
-    def setupActions(self):
-        self.position_button.clicked.connect(self.fetchPositions)
-        self.expiration_button.clicked.connect(self.orderExpiration)
-        self.value_button.clicked.connect(self.orderValue)
-        self.type_button.clicked.connect(self.orderExpiration)
-
 

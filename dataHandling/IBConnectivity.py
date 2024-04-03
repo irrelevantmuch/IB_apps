@@ -58,8 +58,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
 
     def __init__(self, local_address, trading_socket, client_id, name='Unidentified'):
-        print(f"IBConnectivity.__init__ {client_id}")
-        print(f"IBConnectivity before running {int(QThread.currentThreadId())}")
         self.local_address = local_address
         self.trading_socket = trading_socket
         self.client_id = client_id
@@ -68,7 +66,8 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
         
         EClient.__init__(self, self)
-        QObject.__init__(self)
+        super(QObject, self).__init__()
+        # QObject.__init__(self)
 
     
     ################ General Connection
@@ -82,7 +81,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
             self.connect(self.local_address, self.trading_socket, self.client_id)
             self.run()
         
-        print(f"IBConnectivity.startConnection {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
         self.queue_timer = QTimer()
         self.queue_timer.timeout.connect(self.processQueue)
         self.restart_timer.connect(self.startProcessingQueue, Qt.QueuedConnection)
@@ -91,12 +89,8 @@ class IBConnectivity(EClient, EWrapper, QObject):
         self.tws_thread.start()
 
 
-    def error(self, something):
-        print("_____")
-        print("KKKKKK")
-        print("------")
-        print(something)      
-
+    def error(self, message):
+        pub.sendMessage('log', message=f"Error: {message}")
 
 
     def error(self, req_id, errorCode, errorString, advancedOrderRejectJson=None):
@@ -110,7 +104,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
                 self.option_error_signal.emit(req_id)
             elif self.isPriceRequest(req_id):
                 pass
-                print("REIMPLEMENT PLEASE")
+                #What was this for?
                 #self.delegate.mktDataError(req_id)
             elif self.isHistoryRequest(req_id):
                 self.history_error.emit(req_id)
@@ -120,7 +114,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
         
     def connectAck(self):
         super().connectAck()
-        print(f"------$$$$$$$ THE CONNECTION IS ACKNOWLEDGED {self.name}({self.client_id})")
         self._connection_status = Constants.CONNECTION_OPEN
         self.connection_signal.emit(Constants.CONNECTION_OPEN)
         print(f"IBConnectivity.connectAck {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
@@ -128,20 +121,13 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
     def connectionClosed(self):
         super().connectionClosed()
-        print(f"IBConnectivity.connectionClosed {self.name}({self.client_id})")
         self._connection_status = Constants.CONNECTION_CLOSED
         self.connection_signal.emit(Constants.CONNECTION_CLOSED)
         pub.sendMessage('log', message=f"Connection for {self.name} ({self.client_id}) closed")
         print(f"####@@@@ ###  WE BE CLOSING, but is the thread still running? {self.thread().isRunning()}")
         
 
-    def reqIds(self, numIds):
-        print(f"IBConnectivity.reqIds {self.name}({self.client_id}) {numIds}")
-        super().reqIds(numIds)
-
-
     def nextValidId(self, orderId):
-        print(f"IBConnectivity.nextValidId {self.name} {self.client_id} {int(QThread.currentThreadId())}")
         super().nextValidId(orderId)
 
         self.next_order_ID = orderId
@@ -153,7 +139,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
         
 
     def managedAccounts(self, accountsList: str):
-        print(f"IBConnectivity.managedAccounts {self.name}({self.client_id}) {accountsList}")
         if self.next_valid_initialized:
             if (not self.queue_timer.isActive()) and not(self.request_queue.empty()):
                 self.restart_timer.emit()
@@ -165,7 +150,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
 
     def contractDetails(self, req_id, contract_details):
-        print(f"IBConnectivity.contractDetails {req_id}")
         contract = contract_details.contract
         
         if self.isOptionInfRequest(req_id):
@@ -293,22 +277,17 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
     def orderStatus(self, orderId: int, status: str, filled: float, remaining: float, avgFillPrice: float, permId: int, parentId: int, lastFillPrice: float, clientId: int, whyHeld: str, mktCapPrice: float):
         super().orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice) 
-        print(f"IBConnectivity.orderStatus {self.name}")
-        print(f"{orderId} {status} {filled} {remaining} {avgFillPrice} {permId} {parentId} {lastFillPrice} {clientId} {whyHeld} {mktCapPrice}")
         self.order_update_signal.emit(orderId, {'status': status, 'filled': filled, 'remaining': remaining})
         
 
     def openOrder(self, orderId: int, contract: Contract, order: Order, orderState):
         super().openOrder(orderId, contract, order, orderState)
-        print(f"########### {orderId} {orderState.status}")
         self.order_update_signal.emit(orderId, {'order': order, 'contract': contract, 'status': orderState.status})
 
 
     def securityDefinitionOptionParameter(self, req_id: int, exchange: str, underlyingConId: int, tradingClass: str, multiplier: str, expirations, strikes):
-        print(f"IBConnectivity.securityDefinitionOptionParameter {req_id} {exchange}")
         super().securityDefinitionOptionParameter(req_id, exchange, underlyingConId, tradingClass, multiplier, expirations, strikes)
         if exchange == Constants.DEFAULT_OPT_EXC:
-            print("We report back")
             self.report_expirations_signal.emit(expirations, strikes)
 
 
@@ -329,7 +308,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
     def updatePortfolio(self, contract: Contract, position, marketPrice, marketValue, averageCost, unrealizedPNL, realizedPNL, accountName):
         super().updatePortfolio(contract, position, marketPrice, marketValue, averageCost, unrealizedPNL, realizedPNL, accountName)
         print(f"IBConnectivity.updatePortfolio {accountName} {contract.symbol} {position} {averageCost} {marketValue} {unrealizedPNL} {realizedPNL}")
-        # print({'contract': contract.symbol, 'position': position, 'market_price': marketPrice})
+        print(contract)
         self.account_updater.emit('whats_this', {'contract': contract, 'position': position, 'account_name': accountName, 'unrealized_pnl': unrealizedPNL, 'market_price': marketPrice})
         
 

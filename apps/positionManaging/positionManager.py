@@ -31,215 +31,23 @@ class PositionManager(PositionManagerWindow):
         self.data_object.position_signal.connect(self.positionUpdate, Qt.QueuedConnection)
     
         self.addTabs()
-
-        self.manage_tab.list_updater.connect(self.guiUpdate)
-
         
 
     def addTabs(self):
         self.long_tab = StockListTab(self.data_object, 'STOCKS_LONG')
         self.short_tab = StockListTab(self.data_object, 'STOCKS_SHORT')
-        self.hodl_tab = StockListTab(self.data_object, Constants.STOCK)
+        self.all_tab = StockListTab(self.data_object, 'ALL')
         self.options_tab = OptionTabWidget(self.data_object, Constants.OPTION)
-        self.manage_tab = SelectableTabWidget(self.data_object, Constants.STOCK)
         self.tabWidget.addTab(self.long_tab, "Longs")
         self.tabWidget.addTab(self.short_tab, "Shorts")
         self.tabWidget.addTab(self.options_tab, "Options")
-        self.tabWidget.addTab(self.hodl_tab, "Hodl")
-        self.tabWidget.addTab(self.manage_tab, "Manage")
+        self.tabWidget.addTab(self.all_tab, "All")
 
 
     @pyqtSlot(str, dict)
     def positionUpdate(self, signal, sub_signal):
-        print(f"OptionPositions.positionUpdate {signal}")
-        print(sub_signal)
-        # if signal == Constants.DATA_WILL_CHANGE:
-        #     self.processData()
-        # elif signal == Constants.UNDERLYING_PRICE_UPDATE:
-        #     if self.current_tab is not None:
-        #         self.current_tab.setPrice(self.position_manager.price)
-        # elif signal == Constants.CONTRACT_DETAILS_FINISHED:
-        #     while self.position_manager.hasNewItem():
-        #         item = self.position_manager.getLatestItem()
-
-    # @pyqtSlot(str, dict)
-    # def positionUpdate(self, signal, sub_signal):
-    #     if signal == Constants.PNL_RETRIEVED:
-    #         self.overall_dpnl_label.setText(f"<font color={'green' if (self.data_object.daily_pnl > 0) else 'red'}>{self.data_object.daily_pnl:10.2f}</font>")
-    #         self.overall_upnl_label.setText(f"{self.data_object.unrealized_pnl:10.2f}")
-    #     elif signal == Constants.IND_PNL_COMPLETED:
-    #         self.fillOutTablePositions()
-
-    #     elif signal == Constants.POSITIONS_UPDATED:
-    #         self.fillOutTablePositions()
-
-
-    def guiUpdate(self, signal, sub_signal):
-        print(f"StockPostions.guiUpdate: {signal}")
-        if signal == Constants.LIST_SELECTION_UPDATE:
-            self.position_types = self.manage_tab.position_types
-            self.split_counts = self.manage_tab.split_counts
-            self.purchase_price = self.manage_tab.purchase_price
-            writePositionTypes({"types": self.position_types, "split_counts": self.split_counts, "purchase_price": self.purchase_price})
-
-
-    def fillOutTablePositions(self):
         pass
-        # stock_positions = self.data_object.getStockPositions()
-        # option_positions = self.data_object.getOptionPositions()
-        
-        # full_positions = self.combinePositionList(stock_positions, option_positions)
 
-        # position_dict = readPositionTypes()
-        # self.position_types = position_dict["types"]
-        # self.split_counts = position_dict["split_counts"]
-        # self.purchase_price = position_dict["purchase_price"]
-        # for numeric_id in full_positions.ID:
-        #     if not(numeric_id in self.position_types):
-        #         self.position_types[numeric_id] = "Trade"
-
-        # long_positions, short_positions, daily_options, hodl_positions = self.splitTradePositions(stock_positions, option_positions)
-
-        # self.setPNLData(long_positions, short_positions, daily_options, hodl_positions)
-
-        # daily_options = self.collapseOptions(daily_options)
-
-        # # self.long_tab.setData(long_positions)
-        # # self.short_tab.setData(short_positions)
-        # # self.options_tab.setData(daily_options)
-        # # self.hodl_tab.setData(hodl_positions)
-
-        # self.manage_tab.position_types = self.position_types
-        # self.manage_tab.split_counts = self.split_counts
-        # self.manage_tab.purchase_price = self.purchase_price    
-        # self.manage_tab.setData(full_positions)
-
-
-    def setPNLData(self, long_positions, short_positions, daily_options, hodl_positions):
-        pass
-        # self.long_value_label.setText("{:.2f}".format((long_positions.PRICE * long_positions.COUNT).sum()))
-        # self.short_value_label.setText("{:.2f}".format((short_positions.PRICE * short_positions.COUNT).sum()))
-        # self.option_value_label.setText("{:.2f}".format((daily_options.PRICE * abs(daily_options.COUNT)).sum()))
-        # self.hodl_value_label.setText("{:.2f}".format((hodl_positions.PRICE * hodl_positions.COUNT).sum()))
-
-        # long_DPNL = long_positions.DPNL.sum()
-        # self.long_dpnl_label.setText(f"<font color={'green' if (long_DPNL > 0) else 'red'}>{long_DPNL:10.2f}</font>")
-        # short_DPNL = short_positions.DPNL.sum()
-        # self.short_dpnl_label.setText(f"<font color={'green' if (short_DPNL > 0) else 'red'}>{short_DPNL:10.2f}</font>")
-        # daily_DPNL = daily_options.DPNL.sum()
-        # self.option_dpnl_label.setText(f"<font color={'green' if (daily_DPNL > 0) else 'red'}>{daily_DPNL:10.2f}</font>")
-        # hodl_DPNL = hodl_positions.DPNL.sum()
-        # self.hodl_dpnl_label.setText(f"<font color={'green' if (hodl_DPNL > 0) else 'red'}>{hodl_DPNL:10.2f}</font>")
-        
-        # d = decimal.Decimal(daily_options.UPNL.sum())
-
-        # self.long_upnl_label.setText(format(d, '.2f')) #"{:10.2f}".format(long_positions.UPNL.sum()))
-        # self.short_upnl_label.setText(format(d, '.2f')) #"{:10.2f}".format(short_positions.UPNL.sum()))
-        # self.option_upnl_label.setText(format(d, '.2f'))
-        # self.hodl_upnl_label.setText(format(d, '.2f')) # "{:10.2f}".format(hodl_positions.UPNL.sum()))
-
-
-    def splitTradePositions(self, stock_positions, option_positions):
-        pass
-        # trade_list, split_list, invest_list = self.getListsByType()
-
-        # long_trade, short_trade, daily_options = self.getTradePositions(stock_positions, option_positions, trade_list, split_list)
-        
-        # hodl_list = self.getInvestmentPositions(stock_positions, option_positions, invest_list, split_list)
-
-        # return long_trade, short_trade, daily_options, hodl_list
-
-
-    def getInvestmentPositions(self, stock_positions, option_positions, invest_list, split_list):
-        pass
-        # invest_stock_df = stock_positions[stock_positions["ID"].isin(invest_list)]
-        # for numeric_id in split_list:
-        #     if numeric_id in invest_stock_df["ID"].values:
-        #         count = invest_stock_df.loc[invest_stock_df["ID"] == numeric_id, "COUNT"]
-        #         invest_prop = (self.split_counts[numeric_id]/count)
-        #         invest_stock_df.loc[invest_stock_df["ID"] == numeric_id, "UNREALIZED_PNL"] *= invest_prop
-        #         invest_stock_df.loc[invest_stock_df["ID"] == numeric_id, "UPNL"] *= invest_prop
-        #         invest_stock_df.loc[invest_stock_df["ID"] == numeric_id, "DPNL"] *= invest_prop
-        #         invest_stock_df.loc[invest_stock_df["ID"] == numeric_id, "COUNT"] = self.split_counts[numeric_id]
-                
-        # invest_option = option_positions[option_positions["ID"].isin(invest_list)]
-        # hodl_list = self.combinePositionList(invest_stock_df, invest_option)
-
-        # return hodl_list
-
-
-    def getTradePositions(self, stock_positions, option_positions, trade_list, split_list):
-        pass
-        # trade_stocks_df = stock_positions[stock_positions["ID"].isin(trade_list)]
-        # for numeric_id in split_list:
-        #     if numeric_id in trade_stocks_df["ID"].values:
-        #         count = trade_stocks_df.loc[trade_stocks_df["ID"] == numeric_id, "COUNT"]
-        #         print("What is this shizzle?")
-        #         print(type(self.split_counts[numeric_id]))
-        #         print(type(count))
-        #         print(count)
-        #         trade_prop = float((count-self.split_counts[numeric_id])/count)
-        #         trade_stocks_df.loc[trade_stocks_df["ID"] == numeric_id, "UNREALIZED_PNL"] *= trade_prop
-        #         trade_stocks_df.loc[trade_stocks_df["ID"] == numeric_id, "UPNL"] *= trade_prop
-        #         trade_stocks_df.loc[trade_stocks_df["ID"] == numeric_id, "DPNL"] *= trade_prop
-        #         trade_stocks_df.loc[trade_stocks_df["ID"] == numeric_id, "COUNT"] -= self.split_counts[numeric_id]
-        
-        # long_trade = trade_stocks_df[trade_stocks_df.COUNT > 0]
-        # short_trade = trade_stocks_df[trade_stocks_df.COUNT < 0]
-        
-        # daily_options = option_positions[option_positions["ID"].isin(trade_list)]
-
-        # return long_trade, short_trade, daily_options
-        
-
-    def getListsByType(self):
-        pass
-        # trade_list = []
-        # invest_list = []
-        # split_list = []
-        # for index_id, value in self.position_types.items():
-        #     if value == "Trade":
-        #         trade_list.append(index_id)
-        #     elif value == "Invest":
-        #         invest_list.append(index_id)
-        #     elif value == "Split":
-        #         invest_list.append(index_id)
-        #         trade_list.append(index_id)
-        #         split_list.append(index_id)
-
-        # return trade_list, split_list, invest_list
-
-
-    def fetchPositions(self):
-        self.position_button.setText("Refresh!")
-        self.data_object.retrievePositions()
-
-
-    def collapseOptions(self, option_positions):
-
-        unique_list = option_positions[Constants.SYMBOL].unique()
-        collapsed_frame = pd.DataFrame(columns=[Constants.SYMBOL, "COUNT", "CONTRACT", "SECURITY_TYPE", "PRICE", "UNREALIZED_PNL", "UPNL", "DPNL"], index=list(range(len(unique_list))))
-
-        for index, instrument in enumerate(unique_list):
-            
-            instrument_frame = option_positions[option_positions.SYMBOL == instrument]
-
-            contract = instrument_frame['CONTRACT'][instrument_frame.index[0]]
-            unrealized = instrument_frame.UNREALIZED_PNL.sum()
-            upnl = instrument_frame.UPNL.sum()
-            dpnl = instrument_frame.DPNL.sum()
-            price = (instrument_frame.COUNT * instrument_frame.PRICE).sum()
-
-            collapsed_frame.iloc[index] = pd.DataFrame({Constants.SYMBOL: [instrument], "COUNT": [1], "CONTRACT": [contract], "SECURITY_TYPE": [Constants.OPTION], "PRICE": [price], "UNREALIZED_PNL": [unrealized], "UPNL": [upnl], "DPNL": [dpnl]})
-
-        return collapsed_frame
-
-
-    def combinePositionList(self, stock_positions, option_positions):
-        sub_stock_df = stock_positions[["ID", Constants.SYMBOL, "PRICE", "COUNT", "UNREALIZED_PNL"]] #, "UPNL", "DPNL"
-        sub_option_df = option_positions[["ID", Constants.SYMBOL, "PRICE", "COUNT", "UNREALIZED_PNL"]] #, "UPNL", "DPNL"
-        combined_df = pd.concat([sub_stock_df, sub_option_df])
-        return combined_df
 
         #TODO this should be in super
     def accepts(self, value):

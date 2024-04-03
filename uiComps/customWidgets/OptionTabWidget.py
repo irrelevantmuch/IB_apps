@@ -24,7 +24,7 @@ class OptionTabWidget(QWidget):
     individual = False
     tab_name = ""
 
-    def __init__(self, data_object, selection_type, parameter=None):
+    def __init__(self, data_object, selection_type, parameter='general'):
         super().__init__()
         
         self.setupUi()
@@ -39,7 +39,7 @@ class OptionTabWidget(QWidget):
         self.options_table.setSortingEnabled(True)
 
 
-    def setModelData(self, data_object, selection_type, parameter=None):
+    def setModelData(self, data_object, selection_type, parameter='general'):
         print("OptionsTabWidget.setModelData")
         self.data_model = PositionDataModel(data_object, selection_type, parameter)
         self.options_table.setModel(self.data_model)
