@@ -16,7 +16,6 @@ class ComparisonPlotWidget(pg.PlotWidget):
 
     data_object = None
     renewal = False
-
     min_points = None
     max_points = None
 
@@ -327,12 +326,13 @@ class ComparisonPlotWidget(pg.PlotWidget):
 
 
     def capturePlotAsImage(self):
+        print("ComparisonPlotWidget.capturePlotAsImage")
         # create an exporter instance, as an argument give it
         # the item you wish to export
         exporter = exporters.ImageExporter(self.plotItem)
         #exporter.parameters()['width'] = 1000
-        exporter.export('fileName.png')
-        return 'fileName.png'
+        exporter.export('./data/graphs/sharing_graph.webp')
+        return './data/graphs/sharing_graph.webp'
 
 
     def updatePlot(self, strike_comp_frame):

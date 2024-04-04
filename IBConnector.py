@@ -107,12 +107,13 @@ class IBConnector:
         else:
             thread.started.connect(run_function)
 
-        if thread_priority is not None:
-            thread.setPriority(thread_priority)
+
         worker.finished.connect(lambda: self.cleanupWorkerThread(identifier), Qt.QueuedConnection)
         self.running_workers[identifier] = (worker, thread)
         thread.start()
-
+        if thread_priority is not None:
+            thread.setPriority(thread_priority)
+        
 
 
     @pyqtSlot(str)

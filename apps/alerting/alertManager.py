@@ -15,9 +15,6 @@ from dataHandling.HistoryManagement.FinazonBufferedManager import FinazonBuffere
 from .AlertWindow import AlertWindow
 
 from PyQt5.QtWidgets import QMainWindow
-from TelegramBot import TelegramBot
-
-import re
 
 from .AlertProcessor import AlertProcessorFinazon, AlertProcessorIB
 from dataHandling.UserDataManagement import getStockListNames
@@ -33,22 +30,20 @@ class AlertManager(AlertWindow):
     alerting_signal = pyqtSignal(bool)
     update_frequency_signal = pyqtSignal(str)
 
-    telegram_signal = pyqtSignal(str, float, dict, float)
-
     updating = False
     message_listening = False
     last_update_id = 0
     
 
-    def __init__(self, buffered_manager, indicator_processor, processor_thread):
+    def __init__(self, buffered_manager, indicator_processor, telegram_signal, processor_thread):
         super().__init__()
 
         buffered_manager.history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
-
-        self.setupTelegramBot()
         self.loadLists()
         file_name, _ = self.stock_lists[0]
+        self.telegram_signal = telegram_signal
         self.prepAlertProcessor(buffered_manager, indicator_processor, processor_thread)
+
         self.setDefaultThresholds()
 
 
@@ -62,12 +57,6 @@ class AlertManager(AlertWindow):
         self.down_check_all.setChecked(True)
         self.reversal_box_all.setChecked(True)
         self.cross_box_all.setChecked(True)
-
-
-    def setupTelegramBot(self):
-                # Setup the bot logic and thread
-        self.telegram_bot = TelegramBot()  # Replace with your actual token
-        self.telegram_signal.connect(self.telegram_bot.sendMessage, Qt.QueuedConnection)
 
 
     def prepAlertProcessor(self, buffered_manager, indicator_processor, processor_thread):
@@ -166,7 +155,6 @@ class AlertManager(AlertWindow):
 
 
     def closeEvent(self, *args, **kwargs):
-        self.telegram_bot.cleanupMessages()
 
         self.alert_processor.deleteLater()
         self.processor_thread.quit()
@@ -198,17 +186,6 @@ class AlertManager(AlertWindow):
     def updateFrequencyUpdate(self, sel_value):
         self.update_frequency_signal.emit(sel_value)
         
-
-    def parseCommands(self, message):
-        token_list = re.split("[., !?:()]+", message)
-        print(token_list)
-        command = token_list[0]
-        param_dict = dict()
-        for token in token_list[1:]:
-            param = re.split("=", token)
-            print(param)
-            param_dict[param[0]] = param[1]
-        return command, param_dict
 
 
     @pyqtSlot(str, dict)

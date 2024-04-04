@@ -155,7 +155,7 @@ class DataBuffers(QObject):
 
         
 
-    def getBarsFromIndex(self, uid, bar_type, index):
+    def getBarsFromLabelIndex(self, uid, bar_type, index):
         self._locks[uid, bar_type].lockForRead()
         try:
             return self._buffers[uid, bar_type].loc[index:].copy()

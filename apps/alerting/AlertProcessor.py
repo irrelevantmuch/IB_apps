@@ -219,14 +219,17 @@ class AlertProcessor(QObject):
         symbol = self.full_stock_list[uid][Constants.SYMBOL]
         print(f"AlertProcessor.sendAlert {symbol}")
 
+        message_props = {'symbol': symbol, 'latest_price': latest_price, 'alert_lines': self.alert_tracker[uid].copy()}
+
             #in the beginning a daily RSI may not have been downloaded yet
         if self.data_buffers.bufferExists(uid, Constants.DAY_BAR):
-            daily_row = self.data_buffers.getLatestRow(uid, Constants.DAY_BAR)
-            if 'rsi' in daily_row:
-                self.telegram_signal.emit(symbol, latest_price, self.alert_tracker[uid].copy(), daily_row['rsi'])
-                return
+            daily_rows = self.data_buffers.getBarsFromIntIndex(uid, Constants.DAY_BAR, -2)
+            previous_close = daily_rows.iloc[0][Constants.CLOSE]
+            if 'rsi' in daily_rows:
+                message_props['daily_rsi'] = daily_rows.iloc[1]['rsi']
+            message_props['daily_move'] = 100*((latest_price-previous_close)/previous_close)
         
-        self.telegram_signal.emit(symbol, latest_price, self.alert_tracker[uid].copy(), -1.0)
+        self.telegram_signal.emit('alert_message', message_props)
 
 
     def stopUpdating(self):

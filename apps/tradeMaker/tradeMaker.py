@@ -171,7 +171,7 @@ class TradeMaker(TradingWindow):
                 if self.data_buffers.bufferExists(self.selected_key, self.selected_bar_type):
                     if self.selected_bar_type in sub_signal['updated_from']:
                         from_index = sub_signal['updated_from'][self.selected_bar_type]
-                        bars = self.data_buffers.getBarsFromIndex(self.selected_key, self.selected_bar_type, from_index)
+                        bars = self.data_buffers.getBarsFromLabelIndex(self.selected_key, self.selected_bar_type, from_index)
                         self.trade_plot.addNewBars(bars, from_index)
 
 

@@ -18,6 +18,7 @@ from apps.tradeMaker.tradeMaker import TradeMaker
 from apps.movers.moversLists import MoversList
 from apps.positionManaging.positionManager import PositionManager
 from IBConnector import IBConnector
+from TelegramBot import TelegramBot
 
 QtWidgets.QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
 QtWidgets.QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
@@ -28,6 +29,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
     running_apps = []
     data_source = Constants.IB_SOURCE
     ib_connected = False
+    telegram_signal = pyqtSignal(str, dict)
 
     def __init__(self):
         super().__init__()
@@ -36,7 +38,14 @@ class AppLauncher(AppLauncherWindow, IBConnector):
         self.real_tws_button.setChecked(True)
         self.connectionSelection()
         self.updateConnectionStatus('closed')
+        self.setupTelegramBot()
 
+
+    def setupTelegramBot(self):
+                # Setup the bot logic and thread
+        self.telegram_bot = TelegramBot()  # Replace with your actual token
+        self.telegram_signal.connect(self.telegram_bot.sendMessage, Qt.QueuedConnection)
+        self.telegram_bot.run()
         print(f"AppLauncher init {int(QThread.currentThreadId())}")
         
 
@@ -114,7 +123,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
     def openAlertApp(self):
         buffered_manager, indicator_processor = self.getBufferedManagerWithIndicator()
-        alert_app = AlertManager(buffered_manager, indicator_processor, QThread())
+        alert_app = AlertManager(buffered_manager, indicator_processor, self.telegram_signal, QThread())
         self.running_apps.append(alert_app)
         alert_app.show()
 
@@ -155,6 +164,8 @@ class AppLauncher(AppLauncherWindow, IBConnector):
     def openComparisonApp(self):
         buffered_manager = self.getBufferedManager()
         new_app = ComparisonList(buffered_manager, QThread())
+        new_app.telegram_signal = self.telegram_signal
+        self.telegram_bot.incoming_message_signal.connect(new_app.processTelegram)
         self.running_apps.append(new_app)
         new_app.show()
 
@@ -189,6 +200,10 @@ class AppLauncher(AppLauncherWindow, IBConnector):
         self.trading_socket = trading_socket
         self.address_line.setEnabled(editable)
         self.socket_line.setEnabled(editable)
+
+    def closeEvent(self, *args, **kwargs):
+        print("Does this get called?")
+        self.telegram_bot.cleanupMessages()
 
 
 if __name__ == "__main__":

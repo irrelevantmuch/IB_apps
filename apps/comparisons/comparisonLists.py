@@ -39,6 +39,8 @@ class ComparisonList(ComparisonWindow):
     check_list_signal = pyqtSignal(dict)
     update_property_signal = pyqtSignal(dict)
     
+    telegram_signal = None
+
     bar_types = MAIN_BAR_TYPES
     selected_bar_type = Constants.FIVE_MIN_BAR
     data_processor = None
@@ -132,10 +134,8 @@ class ComparisonList(ComparisonWindow):
         if signal == Constants.SELECTED_KEYS_CHANGED:
             print("ComparisonList.apiUpdate SELECTED_KEYS_CHANGED")
         elif ((signal == Constants.HISTORICAL_GROUP_COMPLETE) and (sub_signal['type'] == 'range_group')) or (signal == Constants.ALL_DATA_LOADED):
-            print("WE ENABLE THROUGH HERE")
             self.setHistoryEnabled(True)
         elif signal == Constants.DATA_LOADED_FROM_FILE:
-            print("OR WE ENABLE THROUGH HERE")
             self.setHistoryEnabled(True, self.data_processor.isUpdatable())
     
 
@@ -379,18 +379,18 @@ class ComparisonList(ComparisonWindow):
             dialog.exec()
 
 
-        #TODO this should be in super
-    def accepts(self, command):
-        return command.lower() == "plotComp".lower()
+    @pyqtSlot(str, dict)
+    def processTelegram(self, command, params):
+        print("ComparisonList.processTelegram")
+        if command.lower() == "plotComp".lower():
+            if "l" in params:
+                for index, (file, name) in enumerate(self.stock_lists):
+                    if name == params["l"]:
+                        self.listSelection(index)
+                        break
 
-
-    def process(self, command, params):
-        if "l" in params:
-            for index, (file, name) in enumerate(self.stock_lists):
-                if name == params["l"]:
-                    self.listSelection(index)
-                    break
-        return {"photo": self.compare_plot.capturePlotAsImage()}
+            message_properties = {'path': self.compare_plot.capturePlotAsImage()}
+            self.telegram_signal.emit('image_message', message_properties)
 
 
     def getAvailabeCommands(self):

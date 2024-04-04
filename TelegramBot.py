@@ -2,7 +2,9 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, Qt
 import telebot 
 from telebot import types 
 
+from threading import Thread
 import json
+import re
 
 new_session_message = "\t_____________________\n\n**🚀 New Session Alert 🚀**"
 
@@ -10,6 +12,8 @@ class TelegramBot(QObject):
 
     alert_tracker = dict()
     message_id_tracker = set()
+    temp_reply_id = None
+    incoming_message_signal = pyqtSignal(str, dict)
 
     def __init__(self): #, api_id, api_hash, bot_token, bot_username, message):
         super().__init__()
@@ -24,19 +28,46 @@ class TelegramBot(QObject):
     def createHandlers(self):
         @self.bot.message_handler(func=lambda message: True)
         def echo_all(message):
-            self.bot.send_message(message.chat.id, message.text)
+            print(message)
+            self.temp_reply_id = message.message_id
+            photo_path = './data/graphs/sharing_graph.webp'
+            command, params = self.parseCommands(message.text)
+            self.incoming_message_signal.emit(command, params)
+            # with open(photo_path, 'rb') as photo:
+            #     self.bot.send_photo(message.chat.id, photo)
+            # self.bot.send_message(message.chat.id, message.text)
 
 
-    @pyqtSlot(str, float, dict, float)
-    def sendMessage(self, symbol, latest_price, alert_lines, latest_daily_rsi):
+    def parseCommands(self, message):
+        token_list = re.split("[., !?:()]+", message)
+        print(token_list)
+        command = token_list[0]
+        param_dict = dict()
+        for token in token_list[1:]:
+            param = re.split("=", token)
+            print(param)
+            param_dict[param[0]] = param[1]
+        return command, param_dict
 
-        new_message = self.createMessage(symbol, latest_price, alert_lines, latest_daily_rsi)
-        if symbol in self.alert_tracker:
-            self.deleteMessage(self.alert_tracker[symbol].message_id)
-            del self.alert_tracker[symbol]
-        message_obj = self.bot.send_message(self.bot_inf['chat_id'], new_message, disable_web_page_preview=True, parse_mode= 'HTML')
-        self.alert_tracker[symbol] = message_obj
-        self.message_id_tracker.add(message_obj.message_id)
+
+    @pyqtSlot(str, dict)
+    def sendMessage(self, message_type, message_properties):
+
+        if message_type == 'alert_message':
+            new_message = self.createAlertMessage(message_properties)
+            symbol = message_properties['symbol']
+            if symbol in self.alert_tracker:
+                self.deleteMessage(self.alert_tracker[symbol].message_id)
+                del self.alert_tracker[symbol]
+            message_obj = self.bot.send_message(self.bot_inf['chat_id'], new_message, disable_web_page_preview=True, parse_mode= 'HTML')
+            self.alert_tracker[symbol] = message_obj
+            self.message_id_tracker.add(message_obj.message_id)
+        elif message_type == 'image_message':
+            with open(message_properties['path'], 'rb') as photo:
+                self.bot.send_photo(self.bot_inf['chat_id'], photo, reply_to_message_id=self.temp_reply_id)
+            self.bot.delete_message(chat_id=self.bot_inf['chat_id'], message_id=self.temp_reply_id)
+
+        
         
 
     def deleteMessage(self, message_id):
@@ -44,20 +75,27 @@ class TelegramBot(QObject):
         self.message_id_tracker.remove(message_id)
         
 
-    def createMessage(self, symbol, latest_price, alert_lines, latest_daily_rsi):
+    def createAlertMessage(self, message_properties):
+        symbol = message_properties['symbol']
+        latest_price = message_properties['latest_price']
+        alert_lines = message_properties['alert_lines']
+
         tv_url = f"https://www.tradingview.com/chart/?symbol={symbol}"
 
-        if latest_daily_rsi > 0:
-            if latest_daily_rsi < 40:
+        if 'daily_move' in message_properties:
+            message = f"<a href='{tv_url}'>{symbol}</a> (<b>{latest_price:.2f} - {message_properties['daily_move']:.1f}%</b>)" 
+        else:
+            message = f"<a href='{tv_url}'>{symbol}</a> (<b>{latest_price:.2f}</b>)" 
+        if 'daily_rsi' in message_properties:
+            if message_properties['daily_rsi'] < 40:
                strength = "🔴"
-            elif latest_daily_rsi > 60:
+            elif message_properties['daily_rsi'] > 60:
                 strength = "🟢"
             else:
                 strength = "🟠"
-            
-            message = f"<a href='{tv_url}'>{symbol}</a> (<b>{latest_price:.2f}</b>) - Daily rsi: <b>{latest_daily_rsi:.1f}</b> {strength}" 
-        else:
-            message = f"<a href='{tv_url}'>{symbol}</a> (<b>{latest_price:.2f}</b>):"
+            message += f"- Daily rsi: <b>{message_properties['daily_rsi']:.1f}</b> {strength}"
+        
+        message += ":"
             
         for (bar_type, alert_type), alert_object in alert_lines.items():
             if (alert_type == 'down steps') or (alert_type == 'up steps broken') or (alert_type == 'rsi crossing down'):
@@ -85,6 +123,7 @@ class TelegramBot(QObject):
 
     @pyqtSlot()
     def run(self):
+        print("TelegramBot.run Do we ever run????")
         def target():
             self.bot.polling(non_stop=True, timeout=90)
          

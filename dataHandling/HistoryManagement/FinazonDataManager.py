@@ -15,9 +15,7 @@ import websocket
 import json
 import requests
 
-
 api_keys = readApiKeys()
-
 
 class WebsocketManager(QObject):
     message_received = pyqtSignal(dict)
@@ -393,23 +391,21 @@ class FinazonDataManager(QObject):
         self.request_buffer.append(new_request)
 
 
-    def iterateHistoryRequests(self): #this delay is only to match the interface of the IBKR historymanager. Needs to be removed
+    def iterateHistoryRequests(self):
 
+            #only bars smaller than 5 mins give us outside regular hours data, so we need some of those for supplementing!
         one_min_bars, start_date = self.getOneMinForOutsideHours()
         while len(self.request_buffer) > 0:
             request = self.request_buffer.pop()
             if request['start_date'] >= start_date:
                 completed_req = self.barsFromSmallerData(request, one_min_bars, start_date)
-            else:
-                one_min_resampled = one_min_bars['data'].resample(RESAMPLING_BARS[request["bar_type"]]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
-                # if request['bar_type'] == Constants.FOUR_HOUR_BAR:
-                #     print(f"For {request['contract'].symbol} we get:")
-                #     print(one_min_resampled)
+            else:                
                 completed_req = self.getBarsForRequest(request)
-                completed_req['data'] = one_min_resampled.combine_first(completed_req['data'])
-                # if request['bar_type'] == Constants.FOUR_HOUR_BAR:
-                #     print(f"Final result:")
-                #     print(completed_req['data'].tail(15))
+
+                    #we supplement the non-daily bars (for daily bars we stick to regular hours)
+                if request['bar_type'] != Constants.DAY_BAR:
+                    one_min_resampled = one_min_bars['data'].resample(RESAMPLING_BARS[request["bar_type"]]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+                    completed_req['data'] = one_min_resampled.combine_first(completed_req['data'])
 
             self.data_buffers.processData(completed_req)
         
@@ -420,7 +416,7 @@ class FinazonDataManager(QObject):
     def getOneMinForOutsideHours(self):
         smallest_index = self.getSmallestBarIndex()
 
-            #only bars smaller than 5 mins give us outside regular hours data, so we need some of those for supplementing!
+            
         if self.request_buffer[smallest_index] == Constants.ONE_MIN_BAR:
             base_request = self.request_buffer.pop(smallest_index)
             min_start_date = base_request['end_date'] - timedelta(days=5)
