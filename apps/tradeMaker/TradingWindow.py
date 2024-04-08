@@ -59,7 +59,7 @@ class TradingWindow(ProcessorWindow, TradingWindow_UI, SymbolFinderImplementatio
         
         self.populateBarSelector()
         
-        self.trade_plot = CandlePlotWidget(self.setLevels)
+        self.trade_plot = CandlePlotWidget(self.setLevelsFromChart)
         self.vertical_stack.insertWidget(4, self.trade_plot)
         self.connectActions()
 
@@ -85,10 +85,11 @@ class TradingWindow(ProcessorWindow, TradingWindow_UI, SymbolFinderImplementatio
         self.forceEmitToggleRadio(self.step_buy_radio, self.step_buy_sell_group)
         self.forceEmitToggleRadio(self.step_profit_factor_radio, self.step_profit_selection_group)
         self.forceEmitStateCheck(self.step_profit_check, False)
-        self.forceEmitStateCheck(self.step_stoploss_check, True)
-        self.forceEmitStateCheck(self.profit_take_check, True)
+        self.forceEmitStateCheck(self.step_stoploss_check, False)
+        self.forceEmitStateCheck(self.profit_take_check, False)
         self.forceEmitStateCheck(self.market_order_box, False)
-        self.forceEmitStateCheck(self.stop_limit_check, True)
+        self.forceEmitStateCheck(self.stop_loss_check, False)
+        self.forceEmitStateCheck(self.stop_limit_check, False)
 
         self.step_profit_factor_spin.setValue(2)
         self.step_profit_offset_spin.setValue(1.0)

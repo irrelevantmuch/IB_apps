@@ -1,18 +1,3 @@
-
-# Copyright (c) 2024 Jelmer de Vries
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation in its latest version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 # -*- coding: utf-8 -*-
 
 # Form implementation generated from reading ui file 'UIComps/QTGeneration/TradingWindow.ui'
@@ -526,7 +511,7 @@ class Ui_MainWindow(object):
         self.gridLayout_2.addLayout(self.vertical_stack, 0, 1, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 24))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -534,7 +519,7 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
-        self.tab_widget.setCurrentIndex(2)
+        self.tab_widget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -559,14 +544,14 @@ class Ui_MainWindow(object):
         self.stop_loss_check.setText(_translate("MainWindow", "Stop level"))
         self.stop_limit_check.setText(_translate("MainWindow", "Limit"))
         self.profit_take_check.setText(_translate("MainWindow", "Profit Level"))
-        self.tab_widget.setTabText(self.tab_widget.indexOf(self.tab_2), _translate("MainWindow", "W/ Closing"))
+        self.tab_widget.setTabText(self.tab_widget.indexOf(self.tab_2), _translate("MainWindow", "General Order"))
         self.combo_buy_radio.setText(_translate("MainWindow", "Buy"))
         self.combo_sell_radio.setText(_translate("MainWindow", "Sell"))
         self.label_10.setText(_translate("MainWindow", "Limit level"))
         self.label_9.setText(_translate("MainWindow", "Stop level"))
         self.combo_sl_check.setText(_translate("MainWindow", "Stop Limit"))
         self.oco_button.setText(_translate("MainWindow", "Place"))
-        self.tab_widget.setTabText(self.tab_widget.indexOf(self.tab_3), _translate("MainWindow", "Combo"))
+        self.tab_widget.setTabText(self.tab_widget.indexOf(self.tab_3), _translate("MainWindow", "OCO"))
         self.step_buy_radio.setText(_translate("MainWindow", "Buy break up"))
         self.step_sell_radio.setText(_translate("MainWindow", "Sell break down"))
         self.label_5.setText(_translate("MainWindow", "of the"))

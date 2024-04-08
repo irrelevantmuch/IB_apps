@@ -203,7 +203,7 @@ class TradeMaker(TradingWindow):
 
 
     def stairCheck(self, row_index):
-        print(f"TradeMMaker.stairCheck {row_index}")
+        print(f"TradeMaker.stairCheck {row_index}")
 
 
     def returnSelection(self):
@@ -218,7 +218,7 @@ class TradeMaker(TradingWindow):
 
 
     def tickerSelection(self, value):
-        print("TradeMMaker.tickerSelection do we get here early?")
+        print("TradeMaker.tickerSelection do we get here early?")
         ordered_keys = list(self.stock_list.keys())
         self.selected_key = ordered_keys[value]
         self.selected_symbol = self.stock_list[self.selected_key][Constants.SYMBOL]
@@ -293,7 +293,7 @@ class TradeMaker(TradingWindow):
 
     @pyqtSlot(bool)
     def makeMarket(self, checked):
-        print(f"TradeMMaker.makeMarket {checked}")
+        print(f"TradeMaker.makeMarket {checked}")
         self.market_ordering = checked
 
 
@@ -332,14 +332,14 @@ class TradeMaker(TradingWindow):
         count = self.count_field.value()
         limit_price = float(self.limit_field.text())
 
-        exit_dict = dict()
+        close_dict = dict()
         if self.profit_take_on:
-            exit_dict['profit_limit'] = float(self.profit_limit_field.text()) 
+            close_dict['profit_limit'] = float(self.profit_limit_field.text()) 
         if self.stop_loss_on:
-            exit_dict['stop_trigger'] = float(self.stop_trigger_field.text()) 
-            exit_dict['stop_limit'] = float(self.stop_limit_field.text()) 
+            close_dict['stop_trigger'] = float(self.stop_trigger_field.text()) 
+            close_dict['stop_limit'] = float(self.stop_limit_field.text()) 
 
-        self.place_complex_signal.emit(contract, action, count, limit_price, exit_dict)
+        self.place_complex_signal.emit(contract, action, count, limit_price, close_dict)
         
 
     def placeOcoOrder(self):
@@ -363,38 +363,48 @@ class TradeMaker(TradingWindow):
     
 ###################### level autosetting
 
-    def setLevels(self, high_low, price_level):
+    def setLevelsFromChart(self, high_low, price_level):
+
         price_margin = 0.1
-        if self.action_type == Constants.BUY and high_low == Constants.HIGH:
-            self.profit_limit_field.setValue(price_level-price_margin)
-        elif self.action_type == Constants.BUY and high_low == Constants.LOW:
-            self.stop_trigger_field.setValue(price_level-price_margin)
-            self.stop_limit_field.setValue(price_level-(price_margin*2))
-        elif self.action_type == Constants.SELL and high_low == Constants.HIGH:
-            self.stop_trigger_field.setValue(price_level+price_margin)
-            self.stop_limit_field.setValue(price_level+(price_margin*2))
-        elif self.action_type == Constants.SELL and high_low == Constants.LOW:
-            self.profit_limit_field.setValue(price_level+price_margin)
+        tab_name = self.tab_widget.tabText(self.tab_widget.currentIndex())
 
-        if self.combo_action_type == Constants.SELL and high_low == Constants.HIGH:
-            self.combo_limit_field.setValue(price_level-price_margin)
-        elif self.combo_action_type == Constants.SELL and high_low == Constants.LOW:
-            self.combo_sl_trigger_field.setValue(price_level-price_margin)
-            self.combo_stop_limit_field.setValue(price_level-(price_margin*2))
-        elif self.combo_action_type == Constants.BUY and high_low == Constants.HIGH:
-            self.combo_sl_trigger_field.setValue(price_level+price_margin)
-            self.combo_stop_limit_field.setValue(price_level+(price_margin*2))
-        elif self.combo_action_type == Constants.BUY and high_low == Constants.LOW:
-            self.combo_limit_field.setValue(price_level+price_margin)
-    
+        print(f"TradeMaker.setLevels for {tab_name}")
 
-        if self.tab_widget.currentWidget() is self.stair_step_tab:
+        if tab_name == "General Order":
+            if self.action_type == Constants.BUY and high_low == Constants.HIGH:
+                self.profit_limit_field.setValue(price_level)
+                self.profit_take_check.setChecked(True)
+            elif self.action_type == Constants.BUY and high_low == Constants.LOW:
+                self.stop_trigger_field.setValue(price_level-price_margin)
+                self.stop_limit_field.setValue(price_level-(price_margin*2))
+                self.stop_loss_check.setChecked(True)
+                self.stop_limit_check.setChecked(True)
+            elif self.action_type == Constants.SELL and high_low == Constants.HIGH:
+                self.stop_trigger_field.setValue(price_level+price_margin)
+                self.stop_limit_field.setValue(price_level+(price_margin*2))
+                self.stop_loss_check.setChecked(True)
+                self.stop_limit_check.setChecked(True)
+            elif self.action_type == Constants.SELL and high_low == Constants.LOW:
+                self.profit_limit_field.setValue(price_level)
+                self.profit_take_check.setChecked(True)
+        elif tab_name == "OCO":
+            if self.combo_action_type == Constants.SELL and high_low == Constants.HIGH:
+                self.combo_limit_field.setValue(price_level-price_margin)
+            elif self.combo_action_type == Constants.SELL and high_low == Constants.LOW:
+                self.combo_sl_trigger_field.setValue(price_level-price_margin)
+                self.combo_stop_limit_field.setValue(price_level-(price_margin*2))
+            elif self.combo_action_type == Constants.BUY and high_low == Constants.HIGH:
+                self.combo_sl_trigger_field.setValue(price_level+price_margin)
+                self.combo_stop_limit_field.setValue(price_level+(price_margin*2))
+            elif self.combo_action_type == Constants.BUY and high_low == Constants.LOW:
+                self.combo_limit_field.setValue(price_level+price_margin)
+        elif tab_name == "Stairstep":
             self.step_profit_price_spin.setValue(price_level)
             self.step_profit_price_radio.setChecked(True)
 
 
     def fillOutPriceFields(self, button=None, include_profit_loss=False):
-            
+        print("TradeMaker.fillOutPriceFields")
         if button == self.ask_price_button:
             limit_price = self.latest_ask
         elif button == self.bid_price_button:
@@ -421,7 +431,7 @@ class TradeMaker(TradingWindow):
 
     @pyqtSlot(QAbstractButton, bool)
     def buySellSelection(self, button, value):
-        print("TradeMMaker.buySellSelection")
+        print("TradeMaker.buySellSelection")
         if button == self.buy_radio and value:
             self.action_type = Constants.BUY
             self.combo_sell_radio.setChecked(True)
@@ -469,13 +479,15 @@ class TradeMaker(TradingWindow):
         
 
     def stopLimitCheck(self, value):
-        self.stop_limit_on = value
-
+        print(f"TradeMaker.stopLimitCheck {value} {Qt.Checked}")
+        self.stop_limit_on = (value == Qt.Checked)
+        
         if self.stop_limit_on:
             self.stop_loss_on = True
             self.stop_loss_check.setChecked(self.stop_loss_on)
 
     def stoplossCheck(self, value):
+        print("TradeMaker.stoplossCheck")
         self.stop_loss_on = value
 
         # if not self.stop_loss_on:

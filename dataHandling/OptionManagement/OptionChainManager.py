@@ -75,8 +75,6 @@ class OptionChainManager(DataManager):
 
     request_buffer = []
 
-    contract_detail_request = pyqtSignal(int, Contract)
-
     queue_cap = Constants.OPEN_REQUEST_MAX
 
     option_type = Constants.CALL
@@ -302,25 +300,26 @@ class OptionChainManager(DataManager):
 
     def fetchContractsIds(self):
         if len(self.strike_set) > 0:
-            req_id, for_strike = self.strike_set.pop()
             print(f"We are requesting expirations for {for_strike} {self.contractDetails.symbol} {req_id}")
+            req_id, for_strike = self.strike_set.pop()
+
+                #make the contract
             contract = Contract()
             contract.symbol = self.contractDetails.symbol
             contract.secType = "OPT"
             contract.currency = "USD"
             contract.underlyingConId = self.contractDetails.numeric_id
-            print(f"We add the following id: {self.contractDetails.numeric_id}")
             contract.multiplier = "100"
             contract.exchange = Constants.DEFAULT_OPT_EXC
                 #contract.lastTradeDateOrContractMonth = for_exp
             contract.strike = for_strike
-            print(f"DID THIS DIE? {req_id} {contract}")
+            
+                #make request
             request = dict()
             request['type'] = 'reqContractDetails'
             request['req_id'] = req_id
             request['contract'] = contract
             self.ib_request_signal.emit(request)
-            #self.contract_detail_request.emit(req_id, contract)
             
 
     def openRequests(self):
@@ -598,8 +597,7 @@ class OptionChainManager(DataManager):
 
     @pyqtSlot(list)
     def requestForAllStrikesAndExpirations(self, option_types, execute=True):
-        print("OptionChainManager.requestForAllStrikesAndExpirations")
-        # Create an empty DataFrame with the desired MultiIndex
+        print(f"OptionChainManager.requestForAllStrikesAndExpirations {execute}")
 
         self.fetching_all = True
         counter = 0
@@ -751,7 +749,7 @@ class OptionChainManager(DataManager):
     def signalSnapshotEnd(self, req_id):
         if self.fetching_all: 
             self._all_option_reqs.discard(req_id)
-            #self._all_option_reqs.remove(req_id)
+            
             if (len(self._all_option_reqs) % 50) == 0:
                 self.api_updater.emit(Constants.PROGRESS_UPDATE, {'request_type': 'price', 'open_requests': len(self._all_option_reqs), 'total_requests': self.total_requests})
 

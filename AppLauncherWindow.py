@@ -54,6 +54,7 @@ class AppLauncherWindow(QMainWindow, AppLauncher_UI):
 
 
     def setupActions(self):
+        self.telegram_checkbox.stateChanged.connect(self.toggleTelegramBot)
         self.connect_button.clicked.connect(self.openConnection)
         self.open_option_pos.clicked.connect(self.openOptionPosApp)
         self.open_option_viz.clicked.connect(self.openOptionVizApp)

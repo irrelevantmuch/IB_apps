@@ -457,7 +457,7 @@ class StairManager(QObject):
 
 
     def createNewStairstep(self, uid, bar_type, entry_action, contract):
-        # print("OrderManager.createNewStairstep")
+        print("OrderManager.createNewStairstep")
         if self.data_buffers.bufferExists(uid, bar_type):
             
             latest_bars = self.data_buffers.getBarsFromIntIndex(uid, bar_type, -self.step_hist_count)
@@ -492,7 +492,8 @@ class StairManager(QObject):
                 order_count += 1
             
             if self._current_property_object['profit_take_on']:
-                profit_limit = self.getProfitPrice(entry_action)
+
+                profit_limit = self.getProfitPrice(key)
                 self.updateStepProperty(key, {'profit_count': count, 'profit_limit': profit_limit}, False)
                 order_count += 1
 
@@ -806,11 +807,11 @@ class StairManager(QObject):
 
     @lockForRead
     def getProfitPrice(self, key):
+        print("OrderManager.getProfitPrice")
         entry_action = self._active_stairsteps[key]['entry_action']
         level = self._active_stairsteps[key]['entry_level']
         stop_level = self._active_stairsteps[key]['stop_level']
         if self._active_stairsteps[key]['profit_type'] == "Factor":
-
             return level + (level - stop_level) * self._active_stairsteps[key]['profit_factor_level']
         elif self._active_stairsteps[key]['profit_type'] == "Price":
             return self._active_stairsteps[key]['profit_price_level']

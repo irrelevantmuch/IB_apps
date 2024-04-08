@@ -160,11 +160,11 @@
       <item>
        <widget class="QTabWidget" name="tab_widget">
         <property name="currentIndex">
-         <number>2</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="tab_2">
          <attribute name="title">
-          <string>W/ Closing</string>
+          <string>General Order</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_4">
           <item row="0" column="0">
@@ -517,7 +517,7 @@
         </widget>
         <widget class="QWidget" name="tab_3">
          <attribute name="title">
-          <string>Combo</string>
+          <string>OCO</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_3">
           <item row="0" column="0">
@@ -1148,7 +1148,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>24</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
@@ -1165,9 +1165,9 @@
  <connections/>
  <buttongroups>
   <buttongroup name="input_selection_group"/>
-  <buttongroup name="buy_sell_group"/>
   <buttongroup name="step_buy_sell_group"/>
-  <buttongroup name="step_profit_selection_group"/>
+  <buttongroup name="buy_sell_group"/>
   <buttongroup name="combo_buy_sell_group"/>
+  <buttongroup name="step_profit_selection_group"/>
  </buttongroups>
 </ui>

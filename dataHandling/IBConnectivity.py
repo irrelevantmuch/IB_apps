@@ -260,7 +260,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
         
     def reqMktData(self, req_id, contract: Contract, genericTickList: str, snapshot: bool, regulatorySnapshot: bool, mktDataOptions):
-        print(f"IBConnectivity.reqMktData {self.name} {self.client_id}")
+        print(f"IBConnectivity.reqMktData {self.name} {self.client_id} {req_id}")
         if self.isPriceRequest(req_id):
             self.price_returned = False
         super().reqMktData(req_id, contract, "", snapshot, regulatorySnapshot, [])

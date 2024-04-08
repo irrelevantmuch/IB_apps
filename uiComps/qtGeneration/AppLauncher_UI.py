@@ -1,18 +1,3 @@
-
-# Copyright (c) 2024 Jelmer de Vries
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation in its latest version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 # -*- coding: utf-8 -*-
 
 # Form implementation generated from reading ui file 'UIComps/QTGeneration/AppLauncher.ui'
@@ -122,6 +107,8 @@ class Ui_MainWindow(object):
         self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_2.setObjectName("line_2")
         self.verticalLayout_4.addWidget(self.line_2)
+        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout_4.addItem(spacerItem)
         self.label_5 = QtWidgets.QLabel(self.centralwidget)
         self.label_5.setObjectName("label_5")
         self.verticalLayout_4.addWidget(self.label_5)
@@ -160,8 +147,8 @@ class Ui_MainWindow(object):
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setObjectName("line")
         self.horizontalLayout_7.addWidget(self.line)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.horizontalLayout_7.addItem(spacerItem)
+        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_7.addItem(spacerItem1)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.label_2 = QtWidgets.QLabel(self.centralwidget)
@@ -283,6 +270,14 @@ class Ui_MainWindow(object):
         self.connect_button.setSizePolicy(sizePolicy)
         self.connect_button.setObjectName("connect_button")
         self.gridLayout_4.addWidget(self.connect_button, 3, 1, 1, 1)
+        self.verticalLayout_2.addLayout(self.gridLayout_4)
+        spacerItem2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout_2.addItem(spacerItem2)
+        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        self.telegram_checkbox = QtWidgets.QCheckBox(self.centralwidget)
+        self.telegram_checkbox.setObjectName("telegram_checkbox")
+        self.horizontalLayout_4.addWidget(self.telegram_checkbox)
         self.fetch_rates = QtWidgets.QPushButton(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -290,18 +285,21 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.fetch_rates.sizePolicy().hasHeightForWidth())
         self.fetch_rates.setSizePolicy(sizePolicy)
         self.fetch_rates.setObjectName("fetch_rates")
-        self.gridLayout_4.addWidget(self.fetch_rates, 6, 0, 1, 1)
-        self.verticalLayout_2.addLayout(self.gridLayout_4)
-        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.verticalLayout_2.addItem(spacerItem1)
+        self.horizontalLayout_4.addWidget(self.fetch_rates)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_4)
         self.horizontalLayout_7.addLayout(self.verticalLayout_2)
         self.horizontalLayout_7.setStretch(0, 1)
         self.horizontalLayout_7.setStretch(3, 1)
         self.verticalLayout.addLayout(self.horizontalLayout_7)
+        self.label_6 = QtWidgets.QLabel(self.centralwidget)
+        self.label_6.setEnabled(True)
+        self.label_6.setTextFormat(QtCore.Qt.RichText)
+        self.label_6.setObjectName("label_6")
+        self.verticalLayout.addWidget(self.label_6)
         self.log_window = QtWidgets.QPlainTextEdit(self.centralwidget)
         self.log_window.setObjectName("log_window")
         self.verticalLayout.addWidget(self.log_window)
-        self.verticalLayout.setStretch(1, 2)
+        self.verticalLayout.setStretch(2, 2)
         self.gridLayout_2.addLayout(self.verticalLayout, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
@@ -342,7 +340,9 @@ class Ui_MainWindow(object):
         self.paper_tws_button.setText(_translate("MainWindow", "TWS Paper"))
         self.address_label.setText(_translate("MainWindow", "Local Address"))
         self.connect_button.setText(_translate("MainWindow", "Connect"))
+        self.telegram_checkbox.setText(_translate("MainWindow", "Telegram Bot"))
         self.fetch_rates.setText(_translate("MainWindow", "Fetch Short Rates"))
+        self.label_6.setText(_translate("MainWindow", "TWS Messages:"))
 
 
 if __name__ == "__main__":

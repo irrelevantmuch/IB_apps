@@ -45,6 +45,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
     data_source = Constants.IB_SOURCE
     ib_connected = False
     telegram_signal = pyqtSignal(str, dict)
+    telegram_bot = None
 
     def __init__(self):
         super().__init__()
@@ -53,16 +54,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
         self.real_tws_button.setChecked(True)
         self.connectionSelection()
         self.updateConnectionStatus('closed')
-        self.setupTelegramBot()
 
-
-    def setupTelegramBot(self):
-                # Setup the bot logic and thread
-        self.telegram_bot = TelegramBot()  # Replace with your actual token
-        self.telegram_signal.connect(self.telegram_bot.sendMessage, Qt.QueuedConnection)
-        self.telegram_bot.run()
-        print(f"AppLauncher init {int(QThread.currentThreadId())}")
-        
 
     def updateConnectionStatus(self, status):
         if status == Constants.CONNECTION_OPEN:
@@ -138,7 +130,9 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
     def openAlertApp(self):
         buffered_manager, indicator_processor = self.getBufferedManagerWithIndicator()
-        alert_app = AlertManager(buffered_manager, indicator_processor, self.telegram_signal, QThread())
+        alert_app = AlertManager(buffered_manager, indicator_processor, QThread())
+        if self.telegram_bot is not None:
+            alert_app.telegram_signal = self.telegram_signal
         self.running_apps.append(alert_app)
         alert_app.show()
 
@@ -179,8 +173,9 @@ class AppLauncher(AppLauncherWindow, IBConnector):
     def openComparisonApp(self):
         buffered_manager = self.getBufferedManager()
         new_app = ComparisonList(buffered_manager, QThread())
-        new_app.telegram_signal = self.telegram_signal
-        self.telegram_bot.incoming_message_signal.connect(new_app.processTelegram)
+        if self.telegram_bot is not None:
+            new_app.telegram_signal = self.telegram_signal
+            self.telegram_bot.incoming_message_signal.connect(new_app.processTelegram)
         self.running_apps.append(new_app)
         new_app.show()
 
@@ -216,8 +211,26 @@ class AppLauncher(AppLauncherWindow, IBConnector):
         self.address_line.setEnabled(editable)
         self.socket_line.setEnabled(editable)
 
+
+    def toggleTelegramBot(self, checked):
+        print(f"AppLauncher.toggleTelegramBot {checked}")
+        if checked:
+            self.setupTelegramBot()
+        else:
+            print("KILLING TELEGRAM BOT NOT IMPLEMENTED")
+    
+
+    def setupTelegramBot(self):
+                # Setup the bot logic and thread
+        self.telegram_bot = TelegramBot()  # Replace with your actual token
+        self.telegram_signal.connect(self.telegram_bot.sendMessage, Qt.QueuedConnection)
+        self.telegram_bot.run()
+        print(f"AppLauncher init {int(QThread.currentThreadId())}")
+        
+
     def closeEvent(self, *args, **kwargs):
-        self.telegram_bot.cleanupMessages()
+        if self.telegram_bot is not None:
+            self.telegram_bot.cleanupMessages()
 
 
 if __name__ == "__main__":
