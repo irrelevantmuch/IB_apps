@@ -58,7 +58,7 @@ def getListName(file_name):
 
 
 def readStockList(file_name, alphabetized=False):
-    print(file_name)
+    print(f"UserDataManager.readStockList {file_name}")
     try:
         with open('data/stock_lists/' + file_name) as json_file:
             json_dict = json.load(json_file)

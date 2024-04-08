@@ -9,7 +9,7 @@
 
 
 from PyQt5.QtCore import QObject, QEvent
-from PyQt5.QtWidgets import QMainWindow
+from uiComps.generalUIFunctionality import ProcessorWindow
 from uiComps.qtGeneration.TradingWindow_UI import Ui_MainWindow as TradingWindow_UI
 from dataHandling.Constants import Constants
 from generalFunctionality.SymbolFinderImpl import SymbolFinderImplementation
@@ -26,7 +26,7 @@ class MousePressEventFilter(QObject):
 
 
 
-class TradingWindow(QMainWindow, TradingWindow_UI, SymbolFinderImplementation): #, SymbolFinderImplementation
+class TradingWindow(ProcessorWindow, TradingWindow_UI, SymbolFinderImplementation): #, SymbolFinderImplementation
 
     current_selection = None
     bar_types = [Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR]
@@ -35,7 +35,7 @@ class TradingWindow(QMainWindow, TradingWindow_UI, SymbolFinderImplementation): 
 
     def __init__(self):
         print("TradingWindow.__init__ What's going on???")
-        QMainWindow.__init__(self)
+        ProcessorWindow.__init__(self)
         TradingWindow_UI.__init__(self)
         SymbolFinderImplementation.__init__(self)
 

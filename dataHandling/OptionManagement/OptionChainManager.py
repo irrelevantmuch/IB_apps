@@ -630,12 +630,10 @@ class OptionChainManager(DataManager):
 
 
     def executeHistoryRequest(self):
-        print(f"OptionChainManager.executeHistoryRequest {self.hasQueuedRequests()}")
         if self.hasQueuedRequests():
             if self.ib_interface.getActiveReqCount() < self.queue_cap:
                 opt_req = self.request_buffer.pop(0)
                 #print(f"We submit {opt_req.req_id},  {opt_req.contract.symbol}, {opt_req.contract.strike}, {opt_req.contract.lastTradeDateOrContractMonth}")
-                print("THIS SHOULD NOT DIRECTLY CALL reqMMktData")
                 request = dict()
                 request['type'] = 'reqMktData'
                 request['snapshot'] = True #self.snapshot
@@ -644,7 +642,6 @@ class OptionChainManager(DataManager):
                 request['contract'] = opt_req.contract
                 request['keep_up_to_date'] = opt_req.keep_updating
                 self.ib_request_signal.emit(request)
-                # self.ib_interface.reqMktData(, , "",  , False, []) #()
         if len(self.request_buffer) == 0:
             print("All requests have been submitted")
             self.timer.stop()

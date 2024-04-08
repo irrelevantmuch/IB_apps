@@ -69,7 +69,7 @@ class ComparisonDataWrapper(QObject):
 
 
     def updatePrimaryGraphData(self, data_dict, bar_type, forced_reset=False):
-        print("ComparisonDataWrapper.updatePrimaryGraphData")
+        print(f"ComparisonDataWrapper.updatePrimaryGraphData {data_dict}")
 
         self.bar_type = bar_type
         updated_keys = set(data_dict.keys())

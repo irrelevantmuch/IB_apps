@@ -37,7 +37,7 @@ class DataProcessor(QObject):
 
     def stop(self):
         print("THIS SHOULD BE MADE DEPENDENT ON WHETHER THE OWNER IS SINGULAR")
-        self.buffered_manager.reset_signal.emit()
+        # self.buffered_manager.reset_signal.emit()
 
 
 ############## DATA PROCESSING

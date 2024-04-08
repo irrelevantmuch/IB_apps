@@ -37,6 +37,9 @@ class LiveTickerProcessor(QObject):
         print("LiveTickerProcessor.run")
         
 
+    def stop(self):
+        pass
+        #perform cleanup here
         
     @pyqtSlot(tuple, set)
     def setTicker(self, ticker_inf, do_not_remove=set()):

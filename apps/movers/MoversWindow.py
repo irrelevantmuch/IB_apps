@@ -9,12 +9,14 @@
 
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QMainWindow
+
 from uiComps.qtGeneration.Movers_UI import Ui_MainWindow as Movers_UI
 from dataHandling.UserDataManagement import getStockListNames
 from dataHandling.Constants import TableType
+from uiComps.generalUIFunctionality import ProcessorWindow
 
-class MoversWindow(QMainWindow, Movers_UI):
+
+class MoversWindow(ProcessorWindow, Movers_UI):
 
     column_for_name = {'Price': 1, 'Day': 2, 'Week': 3, '2 Weeks': 4, 'Month': 5, "2 Months": 6, "6 Months": 7 , "1 Year": 8}
     period_options = ["Day", "Week", "2 Weeks", "Month", "2 Months", "3 Months", "6 Months", "1 Year"]
@@ -22,7 +24,7 @@ class MoversWindow(QMainWindow, Movers_UI):
     
 
     def __init__(self, bar_types):
-        QMainWindow.__init__(self)
+        ProcessorWindow.__init__(self)
         Movers_UI.__init__(self)
 
         self.bar_types = bar_types

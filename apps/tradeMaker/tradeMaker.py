@@ -118,17 +118,17 @@ class TradeMaker(TradingWindow):
     def prepTickerProcessor(self, history_manager):
         self.selected_key = next(iter(self.stock_list))
         self.selected_symbol = self.stock_list[self.selected_key][Constants.SYMBOL]
-        self.ticker_processor = LiveTickerProcessor(history_manager)
+        self.data_processor = LiveTickerProcessor(history_manager)
         self.processor_thread = QThread()
-        self.ticker_processor.moveToThread(self.processor_thread)
-        self.processor_thread.started.connect(self.ticker_processor.run)
+        self.data_processor.moveToThread(self.processor_thread)
+        self.processor_thread.started.connect(self.data_processor.run)
         
 
     def connectSignalSlots(self):
-        self.ticker_processor.data_updater.connect(self.dataUpdate, Qt.QueuedConnection)
+        self.data_processor.data_updater.connect(self.dataUpdate, Qt.QueuedConnection)
 
-        self.set_ticker_signal.connect(self.ticker_processor.setTicker, Qt.QueuedConnection)
-        self.set_bar_signal.connect(self.ticker_processor.setBarType, Qt.QueuedConnection)
+        self.set_ticker_signal.connect(self.data_processor.setTicker, Qt.QueuedConnection)
+        self.set_bar_signal.connect(self.data_processor.setBarType, Qt.QueuedConnection)
         self.cancel_all_signal.connect(self.order_manager.cancelAllOrders, Qt.QueuedConnection)
         self.cancel_order_by_row.connect(self.order_manager.cancelOrderByRow, Qt.QueuedConnection)
         self.cancel_stair_by_row.connect(self.order_manager.cancelStairByRow, Qt.QueuedConnection)
@@ -503,13 +503,11 @@ class TradeMaker(TradingWindow):
     
 
     def closeEvent(self, *args, **kwargs):
-        self.ticker_processor.deleteLater()
-        self.processor_thread.quit()
-        self.processor_thread.wait()
+        super().closeEvent(*args, **kwargs)
         self.history_manager.finished.emit()
         self.symbol_manager.finished.emit()
-        self.order_manager.finished.emit()
+        # self.order_manager.finished.emit()
 
-        super(QMainWindow, self).closeEvent(*args, **kwargs)
+        
 
 

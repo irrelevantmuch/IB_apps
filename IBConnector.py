@@ -98,7 +98,6 @@ class IBConnector:
         return BufferedDataManager(history_manager)
 
 
-
     def startWorkerThread(self, identifier, worker, run_function=None, thread_priority=None):
         thread = QThread()
         worker.moveToThread(thread)
@@ -106,7 +105,6 @@ class IBConnector:
             thread.started.connect(worker.run)
         else:
             thread.started.connect(run_function)
-
 
         worker.finished.connect(lambda: self.cleanupWorkerThread(identifier), Qt.QueuedConnection)
         self.running_workers[identifier] = (worker, thread)

@@ -235,6 +235,8 @@ class AlertProcessor(QObject):
     def stopUpdating(self):
         self.buffered_manager.cancelUpdates()
     
+    def stop(self):
+        print("Perform cleanup here")
 
         
 class AlertProcessorFinazon(AlertProcessor):

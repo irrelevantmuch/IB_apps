@@ -61,22 +61,22 @@ class AlertManager(AlertWindow):
 
     def prepAlertProcessor(self, buffered_manager, indicator_processor, processor_thread):
         if isinstance(buffered_manager, FinazonBufferedDataManager):
-            self.alert_processor = AlertProcessorFinazon(buffered_manager, indicator_processor, self.telegram_signal)
+            self.data_processor = AlertProcessorFinazon(buffered_manager, indicator_processor, self.telegram_signal)
         elif isinstance(buffered_manager, BufferedDataManager):
-            self.alert_processor = AlertProcessorIB(buffered_manager, indicator_processor, self.telegram_signal)
+            self.data_processor = AlertProcessorIB(buffered_manager, indicator_processor, self.telegram_signal)
         self.processor_thread = processor_thread
-        self.alert_processor.moveToThread(self.processor_thread)
+        self.data_processor.moveToThread(self.processor_thread)
         
-        self.update_signal.connect(self.alert_processor.runUpdates, Qt.QueuedConnection)
-        self.list_addition_signal.connect(self.alert_processor.addStockList, Qt.QueuedConnection)
-        self.list_removal_signal.connect(self.alert_processor.removeStockList, Qt.QueuedConnection)
-        self.alerting_signal.connect(self.alert_processor.toggleAlerts, Qt.QueuedConnection)
-        self.alert_processor.stock_count_signal.connect(self.stockCountUpdated, Qt.QueuedConnection)
-        self.selection_signal_change.connect(self.alert_processor.selectionSignalChange, Qt.QueuedConnection)
-        self.threshold_signal_change.connect(self.alert_processor.thresholdChangeSignal, Qt.QueuedConnection)
-        self.update_frequency_signal.connect(self.alert_processor.updateFrequencyChange, Qt.QueuedConnection)
+        self.update_signal.connect(self.data_processor.runUpdates, Qt.QueuedConnection)
+        self.list_addition_signal.connect(self.data_processor.addStockList, Qt.QueuedConnection)
+        self.list_removal_signal.connect(self.data_processor.removeStockList, Qt.QueuedConnection)
+        self.alerting_signal.connect(self.data_processor.toggleAlerts, Qt.QueuedConnection)
+        self.data_processor.stock_count_signal.connect(self.stockCountUpdated, Qt.QueuedConnection)
+        self.selection_signal_change.connect(self.data_processor.selectionSignalChange, Qt.QueuedConnection)
+        self.threshold_signal_change.connect(self.data_processor.thresholdChangeSignal, Qt.QueuedConnection)
+        self.update_frequency_signal.connect(self.data_processor.updateFrequencyChange, Qt.QueuedConnection)
 
-        self.processor_thread.started.connect(self.alert_processor.run)
+        self.processor_thread.started.connect(self.data_processor.run)
         self.processor_thread.start()
         self.processor_thread.setPriority(QThread.HighestPriority)
 
@@ -153,13 +153,6 @@ class AlertManager(AlertWindow):
                 threshold_list[self.bar_type_conv[tf]] = self.widgetFor(f"{button_name}_{tf}").value()
         self.threshold_signal_change.emit(signal_type, threshold_list)
 
-
-    def closeEvent(self, *args, **kwargs):
-
-        self.alert_processor.deleteLater()
-        self.processor_thread.quit()
-        self.processor_thread.wait()
-        super(QMainWindow, self).closeEvent(*args, **kwargs)
 
 
     def listSelection(self, value):

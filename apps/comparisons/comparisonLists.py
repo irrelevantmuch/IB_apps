@@ -13,9 +13,8 @@ from PyQt5.QtWidgets import QMainWindow
 from dataHandling.Constants import Constants, MAIN_BAR_TYPES
 from .ComparisonWindow import ComparisonWindow
 
-from .ComparisonProcessor import ComparisonProcessor as DataProcessor
+from .ComparisonProcessor import ComparisonProcessor
 import sys
-
 
 from ibapi.contract import Contract
 from uiComps.TableModels import ListCorrModel
@@ -67,7 +66,7 @@ class ComparisonList(ComparisonWindow):
 
 
     def setupProcessor(self, history_manager, processor_thread):
-        self.data_processor = DataProcessor(history_manager, MAIN_BAR_TYPES, self.stock_list)
+        self.data_processor = ComparisonProcessor(history_manager, MAIN_BAR_TYPES, self.stock_list)
         self.data_container = self.data_processor.getDataObject()
         self.compare_plot.setData(self.data_container)
         # self.focus_plot.setData(self.data_container)
@@ -76,6 +75,13 @@ class ComparisonList(ComparisonWindow):
 
         self.data_processor.moveToThread(self.processor_thread)
         
+        self.connectSlotsToSignals()
+
+        self.processor_thread.started.connect(self.data_processor.run)
+        self.processor_thread.start()
+
+
+    def connectSlotsToSignals(self):
         self.fetch_range_signal.connect(self.data_processor.fetchStockRangeData, Qt.QueuedConnection)
         self.fetch_latest_signal.connect(self.data_processor.buffered_manager.fetchLatestStockData, Qt.QueuedConnection)
         self.update_stock_list_signal.connect(self.data_processor.buffered_manager.requestUpdates, Qt.QueuedConnection)
@@ -86,8 +92,6 @@ class ComparisonList(ComparisonWindow):
         self.update_property_signal.connect(self.data_processor.updateProperties, Qt.QueuedConnection)
         self.data_processor.data_buffers.buffer_updater.connect(self.bufferUpdate, Qt.QueuedConnection)
         
-        self.processor_thread.started.connect(self.data_processor.run)
-        self.processor_thread.start()
 
 
     def fillTickerLists(self):
@@ -191,14 +195,13 @@ class ComparisonList(ComparisonWindow):
 
 
     def listSelection(self, value):
+        print("ComparisonList.listSelection")
         file_name, _ = self.stock_lists[value]
         self.stock_list = readStockList(file_name)
         self.set_stock_list_signal.emit(self.stock_list)
         self.check_list = self.generateCheckList(self.stock_list)
-        self.check_list_signal.emit(self.check_list) #, self.comp_list, self.focus_list)
-        
-        # self.comparisonListSelection(self.comparison_selector_1.currentIndex())
-        
+        self.check_list_signal.emit(self.check_list)
+ 
         filtered_list = {uid: value for (uid, value) in self.stock_list.items() if self.check_list[uid]}
         self.focus_list = self.generateCheckList(filtered_list)
         
@@ -398,12 +401,4 @@ class ComparisonList(ComparisonWindow):
         return {"text": "plotComp - Shows a comparison plot (default is all sectors, normalized) \n\t list=$name for specific list \n\t conv=norm or ind for normalized or indexed"}
 
 
-    def closeEvent(self, *args, **kwargs):
-        self.data_processor.stop()
-        self.processor_thread.quit()
-        self.processor_thread.wait()
-        super(QMainWindow, self).closeEvent(*args, **kwargs)
-        # self.close_signal.emit()
-        
-    
 

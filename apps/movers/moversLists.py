@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QMainWindow
 from dataHandling.Constants import Constants, DT_BAR_TYPES, TableType
 from .MoversWindow import MoversWindow
 
-from .MoversProcessor import MoversProcessor as DataProcessor
+from .MoversProcessor import MoversProcessor
 import sys
 
 from ibapi.contract import Contract
@@ -36,7 +36,6 @@ class MoversList(MoversWindow):
     period_update_signal = pyqtSignal(str)
     cancel_update_signal = pyqtSignal()
     index_selection_signal = pyqtSignal(str)
-    close_signal = pyqtSignal()
 
     bar_types = DT_BAR_TYPES
     counter = 0
@@ -52,7 +51,6 @@ class MoversList(MoversWindow):
         self.stock_list = readStockList(file_name)
         self.attemptIndexLoading(self.findIndexList())
 
-        
         history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         self.setupProcessor(history_manager, processor_thread)
 
@@ -65,7 +63,7 @@ class MoversList(MoversWindow):
 
 
     def setupProcessor(self, history_manager, processor_thread):
-        self.data_processor = DataProcessor(history_manager, DT_BAR_TYPES, self.stock_list) #, self.index_list)
+        self.data_processor = MoversProcessor(history_manager, DT_BAR_TYPES, self.stock_list) #, self.index_list)
         self.table_data = self.data_processor.getDataObject()
         main_thread = QThread.currentThread()
         self.processor_thread = processor_thread
@@ -399,16 +397,6 @@ class MoversList(MoversWindow):
         #TODO this should be in super
     def accepts(self, value):
         return False
-
-
-    def closeEvent(self, *args, **kwargs):
-        self.data_processor.stop()
-        self.data_processor.deleteLater()
-        self.processor_thread.quit()
-        self.processor_thread.wait()
-        super(QMainWindow, self).closeEvent(*args, **kwargs)
-        self.close_signal.emit()
-        
 
 
     # def fetchShortRates(self):

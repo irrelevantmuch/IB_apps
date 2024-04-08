@@ -1,4 +1,5 @@
-from PyQt5 import QtCore
+from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtCore import pyqtSignal, Qt
 from dataHandling.Constants import Constants
 
 
@@ -18,8 +19,21 @@ def addCheckableTickersTo(ticker_box, stock_list, check_list):
         item = ticker_box.model().item(index, 0)
         
         if check_list[key]:
-            item.setCheckState(QtCore.Qt.Checked)
+            item.setCheckState(Qt.Checked)
         else:
-            item.setCheckState(QtCore.Qt.Unchecked)
+            item.setCheckState(Qt.Unchecked)
 
     ticker_box.blockSignals(False)
+
+
+class ProcessorWindow(QMainWindow):
+
+    close_signal = pyqtSignal()
+
+    def closeEvent(self, *args, **kwargs):
+        print("ProcessorWindow.closeEvent")
+        self.data_processor.stop()
+        self.processor_thread.quit()
+        self.processor_thread.wait()
+        super(QMainWindow, self).closeEvent(*args, **kwargs)
+        self.close_signal.emit()

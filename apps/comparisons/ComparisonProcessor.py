@@ -24,10 +24,8 @@ class ComparisonProcessor(DataProcessor):
 
     check_list = None
     regular_hours = False
-    primary_graph_data = None
-    focus_graph_data = None
+    primary_graph_data = dict()
     focus_list = None
-    comparison_list = None
     conversion_type = Constants.INDEXED
     yesterday_close = False
 
@@ -172,6 +170,7 @@ class ComparisonProcessor(DataProcessor):
             if filtered_data_frame is not None:
                 base_price = self.getBasePrice(filtered_data_frame, key, self.selected_date)
                 graph_line = self.calculateSingleLine(filtered_data_frame, base_price, time_indices, symbol)
+                print(graph_line)
                 if graph_line is not None:
                     self.primary_graph_data[key] = graph_line
     

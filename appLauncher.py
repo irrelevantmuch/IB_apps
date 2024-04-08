@@ -150,11 +150,11 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
             new_app = MoversList(buffered_manager, QThread())
             self.running_apps.append(new_app)
-            new_app.close_signal.connect(self.closedMoversApp)
             new_app.show()
 
 
-    def closedMoversApp(self):
+    def cleanupClosedApp(self):
+        print("AppLauncher.cleanupClosedApp")
         for app in self.running_apps:
             if isinstance(app, MoversList):
                 self.running_apps.remove(app)
@@ -202,7 +202,6 @@ class AppLauncher(AppLauncherWindow, IBConnector):
         self.socket_line.setEnabled(editable)
 
     def closeEvent(self, *args, **kwargs):
-        print("Does this get called?")
         self.telegram_bot.cleanupMessages()
 
 
