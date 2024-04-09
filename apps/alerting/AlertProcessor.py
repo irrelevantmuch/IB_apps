@@ -134,6 +134,7 @@ class AlertProcessor(QObject):
             self.setStepBarTypes()
 
 
+    @pyqtSlot(str, dict)
     def thresholdChangeSignal(self, sel_type, threshold_list):
         if sel_type == "cross_down_threshold":
             self.cross_down_thresholds = threshold_list
