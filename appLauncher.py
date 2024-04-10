@@ -129,7 +129,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
     
 
     def openAlertApp(self):
-        buffered_manager, indicator_processor = self.getBufferedManagerWithIndicator()
+        buffered_manager, indicator_processor = self.getBufferedManagerWithIndicator(indicators={'rsi', 'steps'})
         alert_app = AlertManager(buffered_manager, indicator_processor, QThread())
         if self.telegram_bot is not None:
             alert_app.setTelegramListener(self.telegram_signal)

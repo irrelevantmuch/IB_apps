@@ -66,20 +66,19 @@ class IBConnector:
         return symbol_manager
 
 
-    def getBufferedManagerWithIndicator(self):
+    def getBufferedManagerWithIndicator(self, indicators):
         if self.data_source == Constants.IB_SOURCE:
             buffered_manager = self.getBufferedManagerIB('general_history')
         elif self.data_source == Constants.FINAZON_SOURCE:
             buffered_manager = self.getFinazonManager('general_history')
 
-        indicator_processor = self.getInidicatorManager(buffered_manager.getDataBuffer())
+        indicator_processor = self.getIndicatorManager(indicators, buffered_manager.getDataBuffer())
         return buffered_manager, indicator_processor
 
 
-    def getInidicatorManager(self, data_object):
+    def getIndicatorManager(self, indicators, data_object):
         if self.indicator_processor is None:
-
-            self.indicator_processor = IndicatorProcessor(data_object)
+            self.indicator_processor = IndicatorProcessor(indicators, data_object)
             self.startWorkerThread('general_indicator', self.indicator_processor, thread_priority=QThread.HighestPriority)
             
         return self.indicator_processor

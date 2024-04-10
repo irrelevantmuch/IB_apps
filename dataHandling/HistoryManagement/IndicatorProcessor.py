@@ -24,7 +24,7 @@ from generalFunctionality.GenFunctions import addRSIsEMAs, getLowsHighsCount, ad
 class IndicatorProcessor(QObject):
 
     last_uid_update = dict()
-    indicators = {'rsi', 'steps', 'emas'}
+    indicators = {}
 
     finished = pyqtSignal()
     indicator_updater = pyqtSignal(str, dict)
@@ -37,10 +37,9 @@ class IndicatorProcessor(QObject):
     step_bar_types = DT_BAR_TYPES
 
 
-    
-
-    def __init__(self, data_buffers):
+    def __init__(self, indicators={'rsi', 'steps', 'emas'}, data_buffers):
         super().__init__()
+        self.indicators = indicators
         self.data_buffers = data_buffers
         print(type(self.data_buffers))
         
