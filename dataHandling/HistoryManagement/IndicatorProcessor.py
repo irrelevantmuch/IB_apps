@@ -19,20 +19,25 @@ from dataHandling.Constants import Constants, DT_BAR_TYPES
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, Qt, QThread
 import itertools
-from generalFunctionality.GenFunctions import addRSIsEMAs, getLowsHighsCount
+from generalFunctionality.GenFunctions import addRSIsEMAs, getLowsHighsCount, addEMAColumns
 
 class IndicatorProcessor(QObject):
 
     last_uid_update = dict()
-    indicators = {'rsi', 'steps'}
+    indicators = {'rsi', 'steps', 'emas'}
 
     finished = pyqtSignal()
+    indicator_updater = pyqtSignal(str, dict)
 
     _previous_values = dict()
-    indicator_updater = pyqtSignal(str, dict)
-    rsi_bar_types = DT_BAR_TYPES
     _tracking_stocks = dict()
+    
+    rsi_bar_types = DT_BAR_TYPES
+    ema_bar_types = DT_BAR_TYPES
     step_bar_types = DT_BAR_TYPES
+
+
+    
 
     def __init__(self, data_buffers):
         super().__init__()
@@ -113,6 +118,9 @@ class IndicatorProcessor(QObject):
 
         if 'steps' in self.indicators:
             self.computeSteps(updated_uids=updated_uids, updated_bar_types=bar_types, supress_signal=supress_signal)
+
+        if 'emas' in self.indicators:
+            self.computeEMAs(updated_uids=updated_uids, updated_bar_types=bar_types, supress_signal=supress_signal)
         # print(f"IndicatorProcessor.updateIndicators takes {time.time() - start_time}")
             
     
@@ -138,6 +146,29 @@ class IndicatorProcessor(QObject):
                     self.indicator_updater.emit(Constants.HAS_NEW_VALUES, {'uid': uid, 'bar_type': bar_type, 'update_type': 'steps'})
 
         
+
+    def computeEMAs(self, updated_uids=None, updated_bar_types=None, periods=[12, 26], from_indices=None, supress_signal=False):
+        print("IndicatorProcessor.computeEMAs")
+        if updated_uids is None:
+            updated_uids = self.getTrackingUIDs()
+        if updated_bar_types is None:
+            bar_types = self.ema_bar_types
+        else:
+            bar_types = [bar for bar in updated_bar_types if bar in self.ema_bar_types]
+                
+        for uid, bar_type in itertools.product(updated_uids, bar_types):
+            starting_index = None
+            if (from_indices is not None) and (bar_type in from_indices):
+                starting_index = from_indices[bar_type]
+            if self.data_buffers.bufferExists(uid, bar_type):
+                stock_frame = self.data_buffers.getBufferFor(uid, bar_type)
+                if len(stock_frame) > 14:
+                    ema_padded_frame = addEMAColumns(stock_frame, periods, starting_index)
+                    self.data_buffers.setBufferFor(uid, bar_type, ema_padded_frame)
+                    print(ema_padded_frame.tail())
+                    if not supress_signal:
+                        self.indicator_updater.emit(Constants.HAS_NEW_VALUES, {'uid': uid, 'bar_type': bar_type, 'update_type': 'ema'})
+
 
     def computeRSIs(self, updated_uids=None, updated_bar_types=None, from_indices=None, supress_signal=False):
         if updated_uids is None:

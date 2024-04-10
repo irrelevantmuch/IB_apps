@@ -32,7 +32,7 @@ class AlertProcessor(QObject):
     step_bar_types = [Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR]
     
     
-    def __init__(self, buffered_manager, indicator_processor, telegram_signal):
+    def __init__(self, buffered_manager, indicator_processor):
         super().__init__()
         
         print("DataProcessor.init")
@@ -43,8 +43,6 @@ class AlertProcessor(QObject):
         self.indicator_processor = indicator_processor
         self.indicator_processor.indicator_updater.connect(self.indicatorUpdate, Qt.QueuedConnection)
         self.update_stock_selection.connect(self.indicator_processor.setTrackingList, Qt.QueuedConnection)
-
-        self.telegram_signal = telegram_signal
         self.stock_lists = []
         self.full_stock_list = dict()
         self.initializeSelectionLists()
@@ -286,8 +284,8 @@ class AlertProcessorIB(AlertProcessor):
     rotating = False
     next_index = 0
 
-    def __init__(self, buffered_manager, indicator_processor, telegram_signal):
-        super().__init__(buffered_manager, indicator_processor, telegram_signal)
+    def __init__(self, buffered_manager, indicator_processor):
+        super().__init__(buffered_manager, indicator_processor)
         self.separate_stock_lists = list()
         buffered_manager.history_manager.addNewListener(self, self.apiUpdate)
     

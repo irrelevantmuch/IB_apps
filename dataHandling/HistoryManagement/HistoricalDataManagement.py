@@ -295,7 +295,7 @@ class HistoricalDataManager(DataManager):
 
 
     def createUpdateRequests(self, contract_details, bar_type, time_in_sec, keep_up_to_date=True, propagate_updates=False):
-        print(f"HistoricalDataManager.createUpdateRequests {keep_up_to_date} {propagate_updates}")
+        # print(f"HistoricalDataManager.createUpdateRequests {keep_up_to_date} {propagate_updates}")
         req_id = self.getNextBufferReqID()
         uid = contract_details.numeric_id
         contract = self.getContractFor(contract_details)

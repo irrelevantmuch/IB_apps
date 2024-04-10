@@ -50,13 +50,12 @@ class AlertManager(AlertWindow):
     last_update_id = 0
     
 
-    def __init__(self, buffered_manager, indicator_processor, telegram_signal, processor_thread):
+    def __init__(self, buffered_manager, indicator_processor, processor_thread):
         super().__init__()
 
         buffered_manager.history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         self.loadLists()
         file_name, _ = self.stock_lists[0]
-        self.telegram_signal = telegram_signal
         self.prepAlertProcessor(buffered_manager, indicator_processor, processor_thread)
 
         self.setDefaultThresholds()
@@ -74,11 +73,16 @@ class AlertManager(AlertWindow):
         self.cross_box_all.setChecked(True)
 
 
+    def setTelegramListener(self, telegram_signal):
+        self.telegram_signal = telegram_signal
+        self.data_processor.telegram_signal = telegram_signal
+
+
     def prepAlertProcessor(self, buffered_manager, indicator_processor, processor_thread):
         if isinstance(buffered_manager, FinazonBufferedDataManager):
-            self.data_processor = AlertProcessorFinazon(buffered_manager, indicator_processor, self.telegram_signal)
+            self.data_processor = AlertProcessorFinazon(buffered_manager, indicator_processor)
         elif isinstance(buffered_manager, BufferedDataManager):
-            self.data_processor = AlertProcessorIB(buffered_manager, indicator_processor, self.telegram_signal)
+            self.data_processor = AlertProcessorIB(buffered_manager, indicator_processor)
         self.processor_thread = processor_thread
         self.data_processor.moveToThread(self.processor_thread)
         

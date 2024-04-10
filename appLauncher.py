@@ -132,7 +132,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
         buffered_manager, indicator_processor = self.getBufferedManagerWithIndicator()
         alert_app = AlertManager(buffered_manager, indicator_processor, QThread())
         if self.telegram_bot is not None:
-            alert_app.telegram_signal = self.telegram_signal
+            alert_app.setTelegramListener(self.telegram_signal)
         self.running_apps.append(alert_app)
         alert_app.show()
 
