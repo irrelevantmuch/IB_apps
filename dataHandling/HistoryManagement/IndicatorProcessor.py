@@ -37,10 +37,14 @@ class IndicatorProcessor(QObject):
     step_bar_types = DT_BAR_TYPES
 
 
-    def __init__(self, data_buffers, indicators={'rsi', 'steps', 'emas'}):
+    def __init__(self, data_buffers, indicators={'rsi', 'steps', 'emas'}, rsi_bars=DT_BAR_TYPES, ema_bars=DT_BAR_TYPES, step_bars=DT_BAR_TYPES):
         super().__init__()
         self.indicators = indicators
         self.data_buffers = data_buffers
+        self.rsi_bar_types = rsi_bars
+        self.ema_bar_types = ema_bars
+        self.step_bar_types = step_bars
+
         print(type(self.data_buffers))
         
 
