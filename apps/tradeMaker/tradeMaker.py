@@ -171,12 +171,25 @@ class TradeMaker(TradingWindow):
                 self.latest_bid = sub_signal['price']
     
 
+    def checkIfStairTradable(self, last_two_bars):
+        if self.step_action_type == Constants.BUY and (last_two_bars.iloc[0][Constants.HIGH] < last_two_bars.iloc[1][Constants.HIGH]):
+            self.step_button.setEnabled(False)
+        elif self.step_action_type == Constants.SELL and (last_two_bars.iloc[1][Constants.LOW] < last_two_bars.iloc[0][Constants.LOW]):
+            self.step_button.setEnabled(False)
+        else:
+            self.step_button.setEnabled(True)
+
+
     @pyqtSlot(str, dict)
     def dataUpdate(self, signal, sub_signal):
         if (self.selected_key == sub_signal['uid']) and (self.selected_bar_type in sub_signal['bars']):
             if signal == Constants.HISTORICAL_DATA_READY:
                 if self.data_buffers.bufferExists(self.selected_key, self.selected_bar_type):
                     bars = self.data_buffers.getBufferFor(self.selected_key, self.selected_bar_type)
+
+                    if self.tab_widget.tabText(self.tab_widget.currentIndex()) == "Stairstep":
+                        self.checkIfStairTradable(bars.iloc[-2])
+
                     self.trade_plot.setHistoricalData(bars.iloc[:-1])
                     self.trade_plot.addNewBars(bars.iloc[[-1]], bars.index[-1])
                     if self.fields_need_updating:

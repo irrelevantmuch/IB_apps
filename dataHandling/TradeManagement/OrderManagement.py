@@ -464,10 +464,8 @@ class StairManager(QObject):
         
                 #we don't want to place a stairstep when it's not actually stepping in the right direction
             if entry_action == Constants.BUY and (latest_bars.iloc[-2][Constants.HIGH] < latest_bars.iloc[-1][Constants.HIGH]):
-                print("THATS VERY WEIRD")
                 return None
             if entry_action == Constants.SELL and (latest_bars.iloc[-1][Constants.LOW] < latest_bars.iloc[-2][Constants.LOW]):
-                print("THATS VERY WEIRD")
                 return None        
 
             self.stair_buffer_signal.emit(Constants.DATA_WILL_CHANGE)

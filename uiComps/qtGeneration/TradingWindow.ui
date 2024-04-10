@@ -1165,9 +1165,9 @@
  <connections/>
  <buttongroups>
   <buttongroup name="input_selection_group"/>
-  <buttongroup name="step_buy_sell_group"/>
-  <buttongroup name="buy_sell_group"/>
-  <buttongroup name="combo_buy_sell_group"/>
   <buttongroup name="step_profit_selection_group"/>
+  <buttongroup name="buy_sell_group"/>
+  <buttongroup name="step_buy_sell_group"/>
+  <buttongroup name="combo_buy_sell_group"/>
  </buttongroups>
 </ui>
