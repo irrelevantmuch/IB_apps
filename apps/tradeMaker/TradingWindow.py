@@ -66,8 +66,6 @@ class TradingWindow(ProcessorWindow, TradingWindow_UI, SymbolFinderImplementatio
         focus_filter = MousePressEventFilter()
         self.search_field.installEventFilter(focus_filter)
 
-        self.stock_list = dict()
-
 
     def populateBarSelector(self):
         self.bar_selector.addItems(self.bar_types)

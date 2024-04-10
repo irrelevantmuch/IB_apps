@@ -160,7 +160,7 @@
              </widget>
             </item>
             <item row="0" column="0">
-             <widget class="QPushButton" name="open_stocks">
+             <widget class="QPushButton" name="open_position_manager">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
                 <horstretch>0</horstretch>
@@ -168,7 +168,7 @@
                </sizepolicy>
               </property>
               <property name="text">
-               <string>Stock Positions</string>
+               <string>Position Manager</string>
               </property>
               <attribute name="buttonGroup">
                <string notr="true">ib_group</string>
@@ -632,8 +632,8 @@
  <connections/>
  <buttongroups>
   <buttongroup name="general_history_group"/>
-  <buttongroup name="ib_group"/>
   <buttongroup name="trading_type_group"/>
+  <buttongroup name="ib_group"/>
   <buttongroup name="data_group"/>
  </buttongroups>
 </ui>

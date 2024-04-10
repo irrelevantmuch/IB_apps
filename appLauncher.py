@@ -31,7 +31,7 @@ from apps.comparisons.comparisonLists import ComparisonList
 from apps.alerting.alertManager import AlertManager
 from apps.tradeMaker.tradeMaker import TradeMaker
 from apps.movers.moversLists import MoversList
-from apps.positionManaging.positionManager import PositionManager
+from apps.positionManaging.positionManager import PositionApp
 from IBConnector import IBConnector
 from TelegramBot import TelegramBot
 
@@ -123,7 +123,15 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
     def openStocksApp(self):
         position_manager = self.getNewPositionManager()
-        new_app = PositionManager(position_manager)
+        new_app = PortfolioManager(position_manager)
+        self.running_apps.append(new_app)
+        new_app.show()
+    
+    
+    def openPositionsApp(self):
+        position_manager = self.getNewPositionManager()
+        order_manager = self.getOrderManager()
+        new_app = PositionApp(position_manager, order_manager)
         self.running_apps.append(new_app)
         new_app.show()
     

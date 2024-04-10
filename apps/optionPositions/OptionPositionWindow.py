@@ -24,14 +24,14 @@
 
 
 from PyQt5.QtWidgets import QMainWindow
-from uiComps.qtGeneration.Position_UI import Ui_MainWindow as Position_UI
+from uiComps.qtGeneration.OptionPosition_UI import Ui_MainWindow as OptionPosition_UI
 
 
-class OptionPositionWindow(QMainWindow, Position_UI):
+class OptionPositionWindow(QMainWindow, OptionPosition_UI):
 
     def __init__(self):
         QMainWindow.__init__(self)
-        Position_UI.__init__(self)
+        OptionPosition_UI.__init__(self)
 
         self.setupUi(self)
 

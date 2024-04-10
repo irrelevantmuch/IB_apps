@@ -86,10 +86,11 @@ class OrderDataModel(QAbstractTableModel):
         self._order_data = order_data
         self._order_data.order_buffer_signal.connect(self.tableDataUpdate, Qt.QueuedConnection)
         self._header_labels = colummn_headers
-        
+
 
     @pyqtSlot(str, int)
     def tableDataUpdate(self, signal, order_id):
+        print(f"OrderDataModel.tableDataUpdate {signal} {order_id}")
         if signal == Constants.DATA_WILL_CHANGE:
             self.layoutAboutToBeChanged.emit()
         elif signal == Constants.DATA_DID_CHANGE:
@@ -115,18 +116,16 @@ class OrderDataModel(QAbstractTableModel):
 
 
     def rowCount(self, parent=QtCore.QModelIndex()):
-        # print(f"OrderDataModel.rowCount {int(QThread.currentThreadId())}")
+        print(f"OrderDataModel.rowCount {self._order_data.getOrderCount}")
         return self._order_data.getOrderCount()
 
 
     def columnCount(self, parent=QtCore.QModelIndex()):
-        # print(f"OrderDataModel.columnCount {int(QThread.currentThreadId())}")
+        print(f"OrderDataModel.columnCount {len(self._header_labels)}")
         return len(self._header_labels) + 1
 
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        # print(f"OrderDataModel.headerData {int(QThread.currentThreadId())}")
-        
+    def headerData(self, section, orientation, role=Qt.DisplayRole):        
         if (role == Qt.DisplayRole) and (orientation == Qt.Horizontal):
             if section < len(self._header_labels):
                 return self._header_labels[section]
@@ -148,19 +147,13 @@ class OrderDataModel(QAbstractTableModel):
         if index.column() < len(self._header_labels):
             column_name = self._header_labels[index.column()]
             if role == Qt.DisplayRole:
-                
-                # if column_name == 'Limit':
-                    # return self._order_data.loc[index.row(), column_name]
                 return str(self._order_data.getDataForColumn(index.row(), column_name))
             elif role == Qt.EditRole:
                 return self._order_data.getDataForColumn(index.row(), column_name)
             elif role == Qt.TextAlignmentRole:
                 return Qt.AlignRight | Qt.AlignVCenter
 
-
         return None
-            # else:
-            #     return super().data(index, role)
 
 
     def setData(self, index, value, role=Qt.EditRole):
