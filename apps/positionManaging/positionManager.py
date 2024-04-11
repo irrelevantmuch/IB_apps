@@ -122,17 +122,6 @@ class PositionApp(PositionWindow):
 
 
 
-    # @pyqtSlot(str, dict)
-    # def trackingUpdate(self, signal, sub_signal):
-    #     if signal == "Stair Opened":
-    #         self.step_button.setText("Cancel Track")
-    #         self.is_tracking_steps = True
-    #     elif signal == "Stair Killed":
-    #         self.step_button.setText("Open Stair")
-    #         self.is_tracking_steps = False
-
-
-
     def cancelAllTrades(self):
         self.cancel_all_signal.emit()
 
