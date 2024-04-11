@@ -42,7 +42,7 @@ class SpinBoxDelegate(QStyledItemDelegate):
     
     def setEditorData(self, editor, index):
         value = index.model().data(index, Qt.EditRole)
-        print(f"OrderDataModel.setEditorData {value} {type(value)}")
+        # print(f"OrderDataModel.setEditorData {value} {type(value)}")
         editor.setValue(value)
 
 
@@ -90,7 +90,6 @@ class OrderDataModel(QAbstractTableModel):
 
     @pyqtSlot(str, int)
     def tableDataUpdate(self, signal, order_id):
-        print(f"OrderDataModel.tableDataUpdate {signal} {order_id}")
         if signal == Constants.DATA_WILL_CHANGE:
             self.layoutAboutToBeChanged.emit()
         elif signal == Constants.DATA_DID_CHANGE:
@@ -116,12 +115,10 @@ class OrderDataModel(QAbstractTableModel):
 
 
     def rowCount(self, parent=QtCore.QModelIndex()):
-        print(f"OrderDataModel.rowCount {self._order_data.getOrderCount}")
         return self._order_data.getOrderCount()
 
 
     def columnCount(self, parent=QtCore.QModelIndex()):
-        print(f"OrderDataModel.columnCount {len(self._header_labels)}")
         return len(self._header_labels) + 1
 
 

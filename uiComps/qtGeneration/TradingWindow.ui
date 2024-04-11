@@ -160,7 +160,7 @@
       <item>
        <widget class="QTabWidget" name="tab_widget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>2</number>
         </property>
         <widget class="QWidget" name="tab_2">
          <attribute name="title">
@@ -721,6 +721,9 @@
              <layout class="QGridLayout" name="gridLayout_5">
               <item row="1" column="3">
                <widget class="QDoubleSpinBox" name="step_stop_trigger_offset_box">
+                <property name="keyboardTracking">
+                 <bool>false</bool>
+                </property>
                 <property name="minimum">
                  <double>-99.989999999999995</double>
                 </property>
@@ -734,6 +737,9 @@
               </item>
               <item row="0" column="5">
                <widget class="QDoubleSpinBox" name="step_entry_limit_offset_box">
+                <property name="keyboardTracking">
+                 <bool>false</bool>
+                </property>
                 <property name="minimum">
                  <double>-99.989999999999995</double>
                 </property>
@@ -747,6 +753,9 @@
               </item>
               <item row="0" column="3">
                <widget class="QDoubleSpinBox" name="step_entry_trigger_offset_box">
+                <property name="keyboardTracking">
+                 <bool>false</bool>
+                </property>
                 <property name="minimum">
                  <double>-99.989999999999995</double>
                 </property>
@@ -783,6 +792,9 @@
               </item>
               <item row="1" column="5">
                <widget class="QDoubleSpinBox" name="step_stop_limit_offset_box">
+                <property name="keyboardTracking">
+                 <bool>false</bool>
+                </property>
                 <property name="minimum">
                  <double>-99.989999999999995</double>
                 </property>
@@ -882,6 +894,9 @@
               <property name="enabled">
                <bool>true</bool>
               </property>
+              <property name="keyboardTracking">
+               <bool>false</bool>
+              </property>
               <property name="value">
                <number>0</number>
               </property>
@@ -904,6 +919,9 @@
              <widget class="QDoubleSpinBox" name="step_profit_offset_spin">
               <property name="enabled">
                <bool>true</bool>
+              </property>
+              <property name="keyboardTracking">
+               <bool>false</bool>
               </property>
               <property name="singleStep">
                <double>1.000000000000000</double>
@@ -930,6 +948,9 @@
              <widget class="QDoubleSpinBox" name="step_profit_price_spin">
               <property name="enabled">
                <bool>true</bool>
+              </property>
+              <property name="keyboardTracking">
+               <bool>false</bool>
               </property>
               <property name="maximum">
                <double>10000.000000000000000</double>
@@ -978,6 +999,9 @@
             </item>
             <item>
              <widget class="QSpinBox" name="step_count_field">
+              <property name="keyboardTracking">
+               <bool>false</bool>
+              </property>
               <property name="maximum">
                <number>1000</number>
               </property>
@@ -1148,7 +1172,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>24</height>
     </rect>
    </property>
   </widget>
@@ -1164,10 +1188,10 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="input_selection_group"/>
-  <buttongroup name="step_profit_selection_group"/>
   <buttongroup name="buy_sell_group"/>
   <buttongroup name="step_buy_sell_group"/>
+  <buttongroup name="step_profit_selection_group"/>
   <buttongroup name="combo_buy_sell_group"/>
+  <buttongroup name="input_selection_group"/>
  </buttongroups>
 </ui>

@@ -171,13 +171,17 @@ class TradeMaker(TradingWindow):
                 self.latest_bid = sub_signal['price']
     
 
-    def checkIfStairTradable(self, last_two_bars):
-        if self.step_action_type == Constants.BUY and (last_two_bars.iloc[0][Constants.HIGH] < last_two_bars.iloc[1][Constants.HIGH]):
-            self.step_button.setEnabled(False)
-        elif self.step_action_type == Constants.SELL and (last_two_bars.iloc[1][Constants.LOW] < last_two_bars.iloc[0][Constants.LOW]):
-            self.step_button.setEnabled(False)
-        else:
+    def checkIfStairTradable(self):
+        if self.is_tracking_steps:
             self.step_button.setEnabled(True)
+        elif self.data_buffers.bufferExists(self.selected_key, self.selected_bar_type):
+            last_two_bars = self.data_buffers.getBarsFromIntIndex(self.selected_key, self.selected_bar_type, -2)
+            if self.step_action_type == Constants.BUY and (last_two_bars.iloc[0][Constants.HIGH] < last_two_bars.iloc[1][Constants.HIGH]):
+                self.step_button.setEnabled(False)
+            elif self.step_action_type == Constants.SELL and (last_two_bars.iloc[1][Constants.LOW] < last_two_bars.iloc[0][Constants.LOW]):
+                self.step_button.setEnabled(False)
+            else:
+                self.step_button.setEnabled(True)
 
 
     @pyqtSlot(str, dict)
@@ -186,10 +190,6 @@ class TradeMaker(TradingWindow):
             if signal == Constants.HISTORICAL_DATA_READY:
                 if self.data_buffers.bufferExists(self.selected_key, self.selected_bar_type):
                     bars = self.data_buffers.getBufferFor(self.selected_key, self.selected_bar_type)
-
-                    if self.tab_widget.tabText(self.tab_widget.currentIndex()) == "Stairstep":
-                        self.checkIfStairTradable(bars.iloc[-2])
-
                     self.trade_plot.setHistoricalData(bars.iloc[:-1])
                     self.trade_plot.addNewBars(bars.iloc[[-1]], bars.index[-1])
                     if self.fields_need_updating:
@@ -200,6 +200,9 @@ class TradeMaker(TradingWindow):
                     if self.selected_bar_type in sub_signal['updated_from']:
                         from_index = sub_signal['updated_from'][self.selected_bar_type]
                         bars = self.data_buffers.getBarsFromLabelIndex(self.selected_key, self.selected_bar_type, from_index)
+                        if self.tab_widget.tabText(self.tab_widget.currentIndex()) == "Stairstep":
+                            self.checkIfStairTradable()
+
                         self.trade_plot.addNewBars(bars, from_index)
 
 
@@ -228,6 +231,7 @@ class TradeMaker(TradingWindow):
             self.set_ticker_signal.emit((self.selected_key, stock_inf), self.getActiveUids())
             self.checkTracking()
             self.fields_need_updating = True
+            self.stair_tracker.propagate_to_current = False
 
 
     def tickerSelection(self, value):
@@ -239,6 +243,7 @@ class TradeMaker(TradingWindow):
         self.set_ticker_signal.emit((self.selected_key, self.stock_list[self.selected_key]), self.getActiveUids())
         self.checkTracking()
         self.fields_need_updating = True
+        self.stair_tracker.propagate_to_current = False
 
 
     def checkTracking(self):
@@ -265,6 +270,7 @@ class TradeMaker(TradingWindow):
         self.selected_bar_type = new_bar_type
         self.set_bar_signal.emit(new_bar_type)
         self.checkTracking()
+        self.stair_tracker.propagate_to_current = False
 
 
     def cancelAllTrades(self):
@@ -370,6 +376,7 @@ class TradeMaker(TradingWindow):
             contract = self.getCurrentContract()
             action = self.step_action_type
             self.place_stair_order.emit(contract, action, self.selected_bar_type)
+            self.stair_tracker.propagate_to_current = True
         else:
             self.order_manager.killStairTrade()
 
@@ -477,6 +484,8 @@ class TradeMaker(TradingWindow):
             self.step_entry_limit_offset_box.setValue(-0.1)
             self.step_stop_trigger_offset_box.setValue(0.1)
             self.step_stop_limit_offset_box.setValue(0.1)
+
+        self.checkIfStairTradable()
 
 
     def stepProfitSelection(self, button, value):

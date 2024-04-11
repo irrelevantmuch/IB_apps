@@ -66,42 +66,42 @@ class OpenOrderBuffer(QObject):
         self.order_buffer_signal.emit(Constants.DATA_DID_CHANGE, order_id)
 
 
-    def getPropTypeForColumn(self, colummn_name):
-            if colummn_name == 'Count':
+    def getPropTypeForColumn(self, column_name):
+            if column_name == 'Count':
                 return 'Count'
-            elif colummn_name == 'Limit':
+            elif column_name == 'Limit':
                 return 'Limit'
-            elif colummn_name == 'Stop level':
+            elif column_name == 'Stop level':
                 return 'Trigger'
             return ''
 
 
-    def getDataForColumn(self, index, colummn_name):
+    def getDataForColumn(self, index, column_name):
         order_id = list(self._orders.keys())[index]
 
-        if colummn_name == 'Order ID':
+        if column_name == 'Order ID':
             return order_id
 
         self._locks[order_id].lockForRead()
         try:
             order, contract = self._orders[order_id]
 
-            if colummn_name == 'Symbol': 
+            if column_name == 'Symbol': 
                 return contract.symbol
-            elif colummn_name == 'Action':
+            elif column_name == 'Action':
                 return order.action
-            elif colummn_name == 'Action':
+            elif column_name == 'Action':
                 return order.orderType
-            elif colummn_name == 'Count':
+            elif column_name == 'Count':
                 return order.totalQuantity
-            elif colummn_name == 'Limit':
+            elif column_name == 'Limit':
                 return order.lmtPrice
-            elif colummn_name == 'Stop level':
+            elif column_name == 'Stop level':
                 if order.orderType == "STP LMT":
                     return order.auxPrice
                 else:
                     return None
-            elif colummn_name == 'Status':
+            elif column_name == 'Status':
                 return 'Open'
         finally:
             self._locks[order_id].unlock()
@@ -384,17 +384,17 @@ class OrderManager(DataManager):
 
             open_order_id = order_ids.pop(0)
             stop_open = self.createStopOrder(open_order_id, stair_step['entry_action'], stair_step['count'], stair_step['entry_trigger'], stop_limit=stair_step['entry_limit'])
-            self.stair_tracker.updateStairprops((uid, bar_type), {'main_id': open_order_id})
+            self.stair_tracker.updateStepProperty((uid, bar_type), {'main_id': open_order_id}, trigger_adjustment=False)
             order_list = [stop_open]
             if 'stop_trigger' in stair_step:
                 stop_loss_id = order_ids.pop(0)
-                self.stair_tracker.updateStairprops((uid, bar_type), {'stop_id': stop_loss_id})
+                self.stair_tracker.updateStepProperty((uid, bar_type), {'stop_id': stop_loss_id}, trigger_adjustment=False)
                 stop_loss = self.createStopOrder(stop_loss_id, stair_step['exit_action'], stair_step['stop_count'], stair_step['stop_trigger'], stop_limit=stair_step['stop_limit'], parent_id=open_order_id)
                 order_list.append(stop_loss)
             
             if 'profit_limit' in stair_step:
                 profit_order_id = order_ids.pop(0)
-                self.stair_tracker.updateStairprops((uid, bar_type), {'profit_id': profit_order_id})
+                self.stair_tracker.updateStepProperty((uid, bar_type), {'profit_id': profit_order_id}, trigger_adjustment=False)
                 profit_limit_order = self.createLimitOrder(profit_order_id, stair_step['exit_action'], stair_step['profit_count'], limit_price=stair_step['profit_limit'], parent_id=open_order_id)
                 order_list.append(profit_limit_order)
             
@@ -451,13 +451,15 @@ class StairManager(QObject):
     _current_key = None
     stair_buffer_signal = pyqtSignal(str)
     update_order_signal = pyqtSignal(int, dict)
-    step_hist_count = 3
+
+    propagate_to_current = True
+    step_hist_count = 2
 
     tracking_updater = pyqtSignal(str, dict)
 
 
     def createNewStairstep(self, uid, bar_type, entry_action, contract):
-        print("OrderManager.createNewStairstep")
+        print("StairManager.createNewStairstep")
         if self.data_buffers.bufferExists(uid, bar_type):
             
             latest_bars = self.data_buffers.getBarsFromIntIndex(uid, bar_type, -self.step_hist_count)
@@ -476,8 +478,8 @@ class StairManager(QObject):
             
             self.initializeStairObject(key, {'status': 'Tracking', 'contract': contract, 'bar_type': bar_type, 'count': count, 'entry_action': entry_action})    
             self.updateStairLevels(key)
-            entry_trigger, entry_limit = self.getStepEntryPrices(key)
-            self.updateStepProperty(key, {'entry_trigger': entry_trigger, 'entry_limit': entry_limit}, False)
+            entry_trigger, entry_limit, _ = self.getEntryProps(key)
+            self.updateStepProperty(key, {'entry_trigger': entry_trigger, 'entry_limit': entry_limit, 'entry_count': count}, False)
 
             order_count = 1
             
@@ -485,13 +487,12 @@ class StairManager(QObject):
             self._active_stairsteps[key]['exit_action'] = exit_action
             if self._current_property_object['stop_loss_on']:                
                 stop_level = latest_bars[Constants.LOW].min() if entry_action == Constants.BUY else latest_bars[Constants.HIGH].max()
-                stop_trigger, stop_limit = self.getStepStopPrices(key)
+                stop_trigger, stop_limit, _ = self.getStopProps(key)
                 self.updateStepProperty(key, {'stop_count': count, 'stop_trigger': stop_trigger, 'stop_limit': stop_limit}, False)
                 order_count += 1
             
             if self._current_property_object['profit_take_on']:
-
-                profit_limit = self.getProfitPrice(key)
+                profit_limit, profit_count = self.getProfitProps(key)
                 self.updateStepProperty(key, {'profit_count': count, 'profit_limit': profit_limit}, False)
                 order_count += 1
 
@@ -545,12 +546,6 @@ class StairManager(QObject):
         return key, order_type
 
 
-    def updateStairprops(self, key, properties):
-        self._locks[key].lockForWrite()
-        self._active_stairsteps[key].update(properties)
-        self._locks[key].unlock()
-
-
     def getRowCount(self):
         return len(self._active_stairsteps)*3
 
@@ -588,6 +583,8 @@ class StairManager(QObject):
 
 
     def getOrderCount(self, row):
+        print('OrderManager.getOrderCount')
+        print("This should be fixed")
         key, order_type = self.getKeyAndTypeForRow(row)
 
         self._locks[key].lockForRead()
@@ -649,24 +646,24 @@ class StairManager(QObject):
             self._locks[key].unlock()
 
 
-    def getPropertyFor(self, colummn_name, row):
+    def getPropertyFor(self, column_name, row):
         order_type = row % 3
 
-        if colummn_name == 'Count':
+        if column_name == 'Count':
             if order_type == 0:
                 return 'count'
             elif order_type == 1:
                 return 'stop_count'
             elif order_type == 2:
                 return 'profit_count'
-        elif colummn_name == 'Trigger':
+        elif column_name == 'Trigger':
             if order_type == 0:
                 return 'entry_trigger_offset'
             elif order_type == 1:
                 return 'stop_trigger_offset'
             elif order_type == 2:
                 return ""
-        elif colummn_name == 'Limit':
+        elif column_name == 'Limit':
             if order_type == 0:
                 return 'entry_limit_offset'
             elif order_type == 1:
@@ -697,15 +694,16 @@ class StairManager(QObject):
 
             if stair_status == 'Tracking':
                 self.updateStairLevels(key)
-                updated_orders.update(self.getUpdatedEntryIfNeeded(key))
+                updated_orders.update(self.getUpdatedEntry(key))
             
             if (stair_status == 'Tracking') or (stair_status == 'Opened'):
                 if 'stop_id' in self._active_stairsteps[key]:
-                    updated_orders.update(self.getUpdateStopLossIfNeeded(key))
+                    updated_orders.update(self.getUpdateStopLoss(key))
                 if 'profit_id' in self._active_stairsteps[key]:
-                    updated_orders.update(self.getUpdatedProfitOrderIfNeeded(key))
+                    updated_orders.update(self.getUpdatedProfitOrder(key))
 
             for order_id, new_props in updated_orders.items():
+                print(f"So we should be updatingg {order_id} with {new_props}")
                 self.update_order_signal.emit(order_id, new_props)
 
             self._locks[key].unlock()
@@ -723,101 +721,104 @@ class StairManager(QObject):
             elif self._active_stairsteps[key]['entry_action'] == Constants.SELL:
                 entry_level = latest_bars.iloc[-2][Constants.LOW]
                 stop_level = latest_bars[Constants.HIGH].max()
-                
+             
             self._active_stairsteps[key]['entry_level'] = entry_level
             self._active_stairsteps[key]['stop_level'] = stop_level
 
         self._locks[key].unlock()
 
 
-    # @lockForRead
-    def getUpdatedEntryIfNeeded(self, key):
-        entry_trigger, entry_limit = self.getStepEntryPrices(key)
-
-        self._locks[key].lockForWrite()
-        try:        
-            new_props = dict()
-            if (entry_trigger != self._active_stairsteps[key]['entry_trigger']):
-                new_props['Trigger'] = entry_trigger
-                self._active_stairsteps[key]['entry_trigger'] = entry_trigger
-
-            if (entry_limit != self._active_stairsteps[key]['entry_limit']):
-                new_props['Limit'] = entry_limit
-                self._active_stairsteps[key]['entry_limit'] = entry_limit
-                
-            if len(new_props) > 0:
-                return {self._active_stairsteps[key]['main_id']: new_props}
-            else:
-                return {}
-        finally:
-            self._locks[key].unlock()
-    
-
     @lockForRead
-    def getStepEntryPrices(self, key):
-        entry_trigger = self._active_stairsteps[key]['entry_level'] + self._active_stairsteps[key]['entry_trigger_offset']
-        entry_limit = entry_trigger + self._active_stairsteps[key]['entry_limit_offset']
-        return entry_trigger, entry_limit
+    def getUpdatedEntry(self, key):
+        entry_trigger, entry_limit, entry_count = self.getEntryProps(key)
+        
+        new_props = dict()
 
+        if (entry_trigger != self._active_stairsteps[key]['entry_trigger']):
+            new_props['Trigger'] = entry_trigger
 
-    # @lockForRead
-    def getUpdateStopLossIfNeeded(self, key):
-        stop_trigger, stop_limit = self.getStepStopPrices(key)
+        if (entry_limit != self._active_stairsteps[key]['entry_limit']):
+            new_props['Limit'] = entry_limit
+
+        if (entry_count != self._active_stairsteps[key]['entry_count']):
+            new_props['Count'] = entry_count
             
-        self._locks[key].lockForWrite()
-        try:
-            new_props = dict()
-            if (stop_trigger != self._active_stairsteps[key]['stop_trigger']):
-                self._active_stairsteps[key]['stop_trigger'] = stop_trigger
-                new_props['Trigger'] = self._active_stairsteps[key]['stop_trigger']
-
-            if (stop_limit != self._active_stairsteps[key]['stop_limit']):
-                self._active_stairsteps[key]['stop_limit'] = stop_limit
-                new_props['Limit'] = self._active_stairsteps[key]['stop_limit']
-            
-            if len(new_props) > 0:
-                return {self._active_stairsteps[key]['stop_id']: new_props}
-            else:
-                return {}
-        finally:
-            self._locks[key].unlock()
-
-    
-    @lockForRead
-    def getStepStopPrices(self, key):
-        stop_trigger = self._active_stairsteps[key]['stop_level'] + self._active_stairsteps[key]['stop_trigger_offset']
-        stop_limit = stop_trigger + self._active_stairsteps[key]['stop_limit_offset']
-        return stop_trigger, stop_limit
-
-
-    def getUpdatedProfitOrderIfNeeded(self, key):
-        profit_limit = self.getProfitPrice(key)
-            
-        self._locks[key].lockForWrite()
-        try:
-            if profit_limit != self._active_stairsteps[key]['profit_limit']:
-                self._active_stairsteps[key]['profit_limit'] = profit_limit
-                return {self._active_stairsteps[key]['profit_id'], {'Limit': self._active_stairsteps[key]['profit_limit']}}
+        if len(new_props) > 0:
+            return {self._active_stairsteps[key]['main_id']: new_props}
+        else:
             return {}
-        finally:
-            self._locks[key].unlock()
 
 
     @lockForRead
-    def getProfitPrice(self, key):
-        print("OrderManager.getProfitPrice")
+    def getEntryProps(self, key):
+        entry_trigger = round(self._active_stairsteps[key]['entry_level'] + self._active_stairsteps[key]['entry_trigger_offset'],2)
+        entry_limit = round(entry_trigger + self._active_stairsteps[key]['entry_limit_offset'],2)
+        entry_count = self._active_stairsteps[key]['count']
+        return entry_trigger, entry_limit, entry_count
+
+
+    @lockForRead
+    def getUpdateStopLoss(self, key):
+        stop_trigger, stop_limit, stop_count = self.getStopProps(key)
+        
+        new_props = dict()
+        if (stop_trigger != self._active_stairsteps[key]['stop_trigger']):
+            new_props['Trigger'] = stop_trigger
+
+        if (stop_limit != self._active_stairsteps[key]['stop_limit']):
+            new_props['Limit'] = stop_limit
+
+        if (stop_count != self._active_stairsteps[key]['stop_count']):
+            new_props['Count'] = stop_count
+
+        if len(new_props) > 0:
+            return {self._active_stairsteps[key]['stop_id']: new_props}
+        else:
+            return {}
+
+    
+    @lockForRead
+    def getStopProps(self, key):
+        stop_trigger = round(self._active_stairsteps[key]['stop_level'] + self._active_stairsteps[key]['stop_trigger_offset'],2)
+        stop_limit = round(stop_trigger + self._active_stairsteps[key]['stop_limit_offset'],2)
+        stop_count = self._active_stairsteps[key]['count']
+        return stop_trigger, stop_limit, stop_count
+
+
+    @lockForRead
+    def getUpdatedProfitOrder(self, key):
+        profit_limit, profit_count = self.getProfitProps(key)
+            
+        new_props = dict()
+        if profit_limit != self._active_stairsteps[key]['profit_limit']:
+            new_props['Limit'] = profit_limit
+
+        if profit_count != self._active_stairsteps[key]['profit_count']:
+            new_props['Count'] = profit_count
+        
+        if len(new_props) > 0:
+            return {self._active_stairsteps[key]['profit_id']: new_props}
+        else:
+            return {}
+
+
+    @lockForRead
+    def getProfitProps(self, key):
+        # print("OrderManager.getProfitProps")
         entry_action = self._active_stairsteps[key]['entry_action']
         level = self._active_stairsteps[key]['entry_level']
         stop_level = self._active_stairsteps[key]['stop_level']
+        profit_count = self._active_stairsteps[key]['count']
         if self._active_stairsteps[key]['profit_type'] == "Factor":
-            return level + (level - stop_level) * self._active_stairsteps[key]['profit_factor_level']
+            profit_limit = level + (level - stop_level) * self._active_stairsteps[key]['profit_factor_level']
         elif self._active_stairsteps[key]['profit_type'] == "Price":
-            return self._active_stairsteps[key]['profit_price_level']
+            profit_limit = self._active_stairsteps[key]['profit_price_level']
         elif self._active_stairsteps[key]['profit_type'] == "Offset":
             if entry_action == Constants.BUY:
-                return level + self._active_stairsteps[key]['profit_offset_level']
+                profit_limit = level + self._active_stairsteps[key]['profit_offset_level']
             elif entry_action == Constants.SELL:
-                return level - self._active_stairsteps[key]['profit_offset_level']
+                profit_limit = level - self._active_stairsteps[key]['profit_offset_level']
+        return profit_limit, profit_count
     
 
     @lockForRead
@@ -837,6 +838,7 @@ class StairManager(QObject):
     def updateStepProperty(self, key, new_properties, trigger_adjustment=True):
         self._locks[key].lockForRead()
         self._active_stairsteps[key].update(new_properties)
+        print(self._active_stairsteps[key])
         self._locks[key].unlock()
         if trigger_adjustment:
             self.adjustStairTradeIfNeeded(key)
@@ -844,9 +846,8 @@ class StairManager(QObject):
 
     @pyqtSlot(dict)
     def updateCurrentStepProperty(self, new_property):
-        # print(f"OrderManager.updateCurrentStepProperty {new_property}")
         self._current_property_object.update(new_property)
-        if (self._current_key is not None) and (self._current_key in self._active_stairsteps):
+        if self.propagate_to_current and (self._current_key is not None) and (self._current_key in self._active_stairsteps):
             self.updateStepProperty(self._current_key, self._current_property_object)
         
 
@@ -858,17 +859,6 @@ class StairManager(QObject):
                     self.adjustStairTradeIfNeeded(key)
 
 
-    def removeStairstepForKey(self, key):
-        self.stair_buffer_signal.emit(Constants.DATA_WILL_CHANGE)
-        self._locks[key].lockForWrite()
-        del self._active_stairsteps[key]
-        self._locks[key].unlock()
-        del self._locks[key]
-        self.stair_buffer_signal.emit(Constants.DATA_STRUCTURE_CHANGED)
-        self.stair_buffer_signal.emit(Constants.DATA_DID_CHANGE)
-        self.tracking_updater.emit("Stair Killed", {'uid': key[0], 'bar_type': key[1]})
-
-
     @pyqtSlot(int, dict)
     def orderUpdate(self, order_id, detail_object):
         # print(f"StairManager.orderUpdate {detail_object['status']} {detail_object.keys()}")
@@ -878,14 +868,46 @@ class StairManager(QObject):
 
         stair_keys = list(self._active_stairsteps.keys())
         for key in stair_keys:
-            self._locks[key].lockForRead()
             main_order_id = self._active_stairsteps[key]['main_id']
-            self._locks[key].unlock()
             
             if (main_order_id == order_id):
                 if (status == "Cancelled") or (status == "Filled"):
-                    self.removeStairstepForKey(key)
-                    
+                    self.stair_buffer_signal.emit(Constants.DATA_WILL_CHANGE)
+                    self._locks[key].lockForWrite()
+                    del self._active_stairsteps[key]
+                    self._locks[key].unlock()
+                    del self._locks[key]
+                    self.stair_buffer_signal.emit(Constants.DATA_STRUCTURE_CHANGED)
+                    self.stair_buffer_signal.emit(Constants.DATA_DID_CHANGE)
+                    self.tracking_updater.emit("Stair Killed", {'uid': key[0], 'bar_type': key[1]})
+
+                elif 'order' in detail_object:
+                    # print("We have the MAIN order:")
+                    # print(detail_object['order'])
+                    self._locks[key].lockForWrite()
+                    self._active_stairsteps[key]['entry_trigger'] = detail_object['order'].auxPrice
+                    self._active_stairsteps[key]['entry_limit'] = detail_object['order'].lmtPrice
+                    self._active_stairsteps[key]['entry_count'] = detail_object['order'].totalQuantity
+                    self._locks[key].unlock()
+            elif ('stop_id' in self._active_stairsteps[key]) and (order_id == self._active_stairsteps[key]['stop_id']):
+                if 'order' in detail_object:
+
+                    # print("We have the STOPLOSS order:")
+                    # print(detail_object['order'])
+                    self._locks[key].lockForWrite()
+                    self._active_stairsteps[key]['stop_trigger'] = detail_object['order'].auxPrice
+                    self._active_stairsteps[key]['stop_limit'] = detail_object['order'].lmtPrice
+                    self._active_stairsteps[key]['stop_count'] = detail_object['order'].totalQuantity
+                    self._locks[key].unlock()
+            elif ('profit_id' in self._active_stairsteps[key]) and (order_id == self._active_stairsteps[key]['profit_id']):
+                if 'order' in detail_object:
+                    # print("We have the PROFIT order:")
+                    # print(detail_object['order'])
+                    self._locks[key].lockForWrite()
+                    self._active_stairsteps[key]['profit_limit'] = detail_object['order'].lmtPrice
+                    self._active_stairsteps[key]['profit_count'] = detail_object['order'].totalQuantity
+                    self._locks[key].unlock()
+
 
 
 
