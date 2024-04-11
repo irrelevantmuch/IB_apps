@@ -29,10 +29,6 @@ from .OrderDataModel import OrderDataModel, StairDataModel, SpinBoxDelegate, But
 from .PositionWindow import PositionWindow
 from dataHandling.TradeManagement.PositionDataManagement import PositionDataModel
 
-from ibapi.contract import Contract
-
-from .TickerProcessor import LiveTickerProcessor
-
 from dataHandling.UserDataManagement import readStockList, getStockListNames
 
 

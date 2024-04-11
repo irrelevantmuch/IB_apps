@@ -31,7 +31,8 @@ class AlertWindow(ProcessorWindow, Alert_UI):
 
     time_frame_names = ['all', '1m', '2m', '3m', '5m', '15m', '1h', '4h', '1d']
     bar_type_conv = {'1m': Constants.ONE_MIN_BAR,'2m': Constants.TWO_MIN_BAR,'3m': Constants.THREE_MIN_BAR,'5m': Constants.FIVE_MIN_BAR,'15m': Constants.FIFTEEN_MIN_BAR,'1h': Constants.HOUR_BAR,'4h': Constants.FOUR_HOUR_BAR,'1d': Constants.DAY_BAR}
-    frequency_choices = ['1s', '10s', '1m']
+    finazon_frequency_choices = ['1s', '10s', '1m']
+    ibkr_frequency_choices = ['1s', '10s', '20s', '30s', '1m']
     
     def __init__(self):
         ProcessorWindow.__init__(self)
@@ -47,9 +48,6 @@ class AlertWindow(ProcessorWindow, Alert_UI):
         print("So we aint getting here first?")
         self.comp_checkable_lists = CheckableComboBox()
         self.processing_props_layout.layout().addWidget(self.comp_checkable_lists, 0, 2, 1, 1)
-        self.update_frequency_box.addItems(self.frequency_choices)
-        self.update_frequency_box.setCurrentIndex(self.frequency_choices.index('1m'))
-    
 
 
     def crossCheckChange(self, value):

@@ -274,10 +274,6 @@ class AlertProcessorFinazon(AlertProcessor):
                 self.buffered_manager.requestUpdates(keep_up_to_date=True, propagate_updates=True)
                 self.initial_fetch = False        
         
-    @pyqtSlot(str)
-    def updateFrequencyChange(self, freq_type):
-        self.buffered_manager.history_manager.setFrequency(freq_type)
-
 
 class AlertProcessorIB(AlertProcessor):
 

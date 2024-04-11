@@ -178,6 +178,7 @@ class FinazonDataManager(QObject):
         return None
 
 
+    @pyqtSlot(str)
     def setFrequency(self, freq_type):
         self.freq_type = freq_type
 

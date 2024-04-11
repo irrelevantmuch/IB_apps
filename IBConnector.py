@@ -78,7 +78,7 @@ class IBConnector:
 
     def getIndicatorManager(self, indicators, data_object, **kwargs):
         if self.indicator_processor is None:
-            self.indicator_processor = IndicatorProcessor(indicators, data_object, **kwargs)
+            self.indicator_processor = IndicatorProcessor(data_object, indicators, **kwargs)
             self.startWorkerThread('general_indicator', self.indicator_processor, thread_priority=QThread.HighestPriority)
             
         return self.indicator_processor

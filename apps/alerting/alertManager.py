@@ -53,12 +53,23 @@ class AlertManager(AlertWindow):
     def __init__(self, buffered_manager, indicator_processor, processor_thread):
         super().__init__()
 
-        buffered_manager.history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         self.loadLists()
         file_name, _ = self.stock_lists[0]
         self.prepAlertProcessor(buffered_manager, indicator_processor, processor_thread)
 
         self.setDefaultThresholds()
+        self.providerSpecificUiSettings(buffered_manager)
+
+
+    def providerSpecificUiSettings(self, buffered_manager):
+
+        if isinstance(buffered_manager, FinazonBufferedDataManager):
+            self.update_frequency_box.addItems(self.finazon_frequency_choices)
+            self.update_frequency_box.setCurrentIndex(self.finazon_frequency_choices.index('1m'))
+        elif isinstance(buffered_manager, BufferedDataManager):
+            self.update_frequency_box.addItems(self.ibkr_frequency_choices)
+            self.update_frequency_box.setCurrentIndex(self.ibkr_frequency_choices.index('30s'))
+    
 
 
     def setDefaultThresholds(self):
@@ -86,6 +97,7 @@ class AlertManager(AlertWindow):
         self.processor_thread = processor_thread
         self.data_processor.moveToThread(self.processor_thread)
         
+        buffered_manager.history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         self.update_signal.connect(self.data_processor.runUpdates, Qt.QueuedConnection)
         self.list_addition_signal.connect(self.data_processor.addStockList, Qt.QueuedConnection)
         self.list_removal_signal.connect(self.data_processor.removeStockList, Qt.QueuedConnection)
@@ -93,7 +105,7 @@ class AlertManager(AlertWindow):
         self.data_processor.stock_count_signal.connect(self.stockCountUpdated, Qt.QueuedConnection)
         self.selection_signal_change.connect(self.data_processor.selectionSignalChange, Qt.QueuedConnection)
         self.threshold_signal_change.connect(self.data_processor.thresholdChangeSignal, Qt.QueuedConnection)
-        self.update_frequency_signal.connect(self.data_processor.updateFrequencyChange, Qt.QueuedConnection)
+        self.update_frequency_signal.connect(buffered_manager.history_manager.setFrequency, Qt.QueuedConnection)
 
         self.processor_thread.started.connect(self.data_processor.run)
         self.processor_thread.start()

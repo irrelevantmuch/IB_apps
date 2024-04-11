@@ -20,6 +20,7 @@ from ibapi.common import BarData
 
 
 import pandas as pd
+import re
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -95,6 +96,15 @@ class HistoricalDataManager(DataManager):
     def unlockCentralUpdating(self):
         self.api_updater.emit(Constants.HISTORY_UNLOCK, dict())
 
+
+    @pyqtSlot(str)
+    def setFrequency(self, frequency):
+        units, metric = re.match(r"(\d+)([sm])$", frequency).groups()
+        if metric == 'm':
+            self.update_delay = 60 * float(units)
+        elif metric == 's':
+            self.update_delay = float(units)
+        
 
     @pyqtSlot(str)
     def stopTracking(self, uid):
