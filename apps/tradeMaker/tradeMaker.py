@@ -44,6 +44,8 @@ class TradeMaker(TradingWindow):
     is_tracking_steps = False
     fields_need_updating = True
 
+    active_keys = set()
+
     cancel_all_signal = pyqtSignal()
     cancel_order_by_row = pyqtSignal(int)
     cancel_stair_by_row = pyqtSignal(int)
@@ -228,8 +230,8 @@ class TradeMaker(TradingWindow):
             self.selected_symbol = self.current_selection.symbol
             stock_inf = {Constants.SYMBOL: self.current_selection.symbol, 'long_name': self.current_selection.long_name, 'exchange': self.current_selection.exchange, 'sec_type': self.symbol_manager.sec_type, 'currency': self.current_selection.currency}
             self.product_label.setText(self.current_selection.long_name)
-            self.set_ticker_signal.emit((self.selected_key, stock_inf), self.getActiveUids())
-            self.checkTracking()
+            self.set_ticker_signal.emit((self.selected_key, stock_inf), self.getActiveUids()) #second argument is do_not_remove list
+            self.updateTrackingGUI()
             self.fields_need_updating = True
             self.stair_tracker.propagate_to_current = False
 
@@ -240,36 +242,41 @@ class TradeMaker(TradingWindow):
         self.selected_key = ordered_keys[value]
         self.selected_symbol = self.stock_list[self.selected_key][Constants.SYMBOL]
         self.product_label.setText(self.stock_list[self.selected_key]['long_name'])
-        self.set_ticker_signal.emit((self.selected_key, self.stock_list[self.selected_key]), self.getActiveUids())
-        self.checkTracking()
+        self.set_ticker_signal.emit((self.selected_key, self.stock_list[self.selected_key]), self.getActiveUids()) #second argument is do_not_remove list
+        self.updateTrackingGUI()
         self.fields_need_updating = True
         self.stair_tracker.propagate_to_current = False
 
 
-    def checkTracking(self):
-        if (self.selected_key, self.selected_bar_type) in self.stair_tracker.getActiveKeys():
-            self.trackingUpdate("Stair Opened", {'uid': self.selected_key, 'bar_type': self.selected_bar_type})
-
     @pyqtSlot(str, dict)
     def trackingUpdate(self, signal, sub_signal):
+        print(f"TradeMaker.trackingUpdate {signal} {sub_signal}")
         if signal == "Stair Opened":
+            self.active_keys.add((sub_signal['uid'], sub_signal['bar_type']))
+        elif signal == "Stair Killed":
+            self.active_keys.remove((sub_signal['uid'], sub_signal['bar_type']))
+
+        self.updateTrackingGUI()
+
+
+    def updateTrackingGUI(self):
+        if (self.selected_key, self.selected_bar_type) in self.active_keys:
             self.step_button.setText("Cancel Track")
             self.is_tracking_steps = True
-        elif signal == "Stair Killed":
+        else:
             self.step_button.setText("Open Stair")
             self.is_tracking_steps = False
-
+            
 
     def getActiveUids(self):
-        active_keys = self.stair_tracker.getActiveKeys()
-        return set([uid for uid, _ in active_keys])
+        return set([uid for uid, _ in self.active_keys])
         
 
     def barSelection(self, new_bar_type):
         self.step_bar_label.setText(new_bar_type)
         self.selected_bar_type = new_bar_type
         self.set_bar_signal.emit(new_bar_type)
-        self.checkTracking()
+        self.updateTrackingGUI()
         self.stair_tracker.propagate_to_current = False
 
 

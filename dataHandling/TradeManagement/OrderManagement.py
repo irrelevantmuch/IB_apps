@@ -533,11 +533,7 @@ class StairManager(QObject):
 
     def getCurrentKey(self):
         return self._current_key
-
-
-    def getActiveKeys(self):
-        return self._active_stairsteps.keys()
-
+        
 
     def getKeyAndTypeForRow(self, row_index):
         stair_index = row_index // 3
