@@ -278,9 +278,10 @@ class DataDownloader(DataDownloaderWindow):
 
 
     def downloadData(self):
-        print("DataDetails.downloadPolygonData")
+        
         current_date = datetime.now()
         start_date = current_date - relativedelta(years=5)
+        print(f"DataDetails.downloadPolygonData {start_date}")
 
         bar_types = [bar_type for bar_type, checked in self.bar_selection.items() if checked]
 
@@ -296,7 +297,7 @@ class DataDownloader(DataDownloaderWindow):
             self.total_count = len(bar_types) * len(symbol_list)
             self.polygon_list_download.emit(symbol_list, bar_types, (start_date, current_date))
         elif self.download_selection == "Multiple Lists":
-            pass
+            print("THIS OPTION IS NOT IMPLEMENTED")
 
         self.download_counter = 0
         self.statusBar.showMessage(f"Downloaded {self.download_counter} of {self.total_count}")

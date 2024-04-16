@@ -156,24 +156,26 @@ def subtract_months(count):
 
 def getLowsHighsCount(stock_frame):
 
-    lows, highs, closes = getFilteredArrays(stock_frame, count=50)
+    lows, highs = getFilteredArrays(stock_frame, count=50)
 
     last_high = highs[-1]
     last_low = lows[-1]
     
-    increasing_low_mask = lows >= np.roll(lows, 1)
-    increasing_low_rev = increasing_low_mask[::-1]
-    increasing_low_index = np.where(np.logical_not(increasing_low_rev))
-    if len(increasing_low_index[0]) == 0: increasing_low_count = 0
-    else: increasing_low_count = increasing_low_index[0][0] + 1
+        #up stair count
+    increasing_low_mask = lows >= np.roll(lows, 1)  #we do a shifted comparison
+    increasing_low_rev = increasing_low_mask[::-1]  #its easier to look at the first than the last, so we reverse
+    increasing_low_indices = np.where(np.logical_not(increasing_low_rev)) #we want the indices of the False values as they indicate transitions
+    if len(increasing_low_indices[0]) == 0: increasing_low_count = 0
+    else: increasing_low_count = increasing_low_indices[0][0] + 1
     low_move = 100*(last_high-lows[-increasing_low_count])/lows[-increasing_low_count]
     from_low_move = {'start': lows[-increasing_low_count], 'level': last_low, 'apex': last_high, 'move': low_move, 'count': increasing_low_count}
 
+        #down stair count (seems a bit repetitive, should just be one function taking either <= or >=)
     decreasing_high_mask = highs <= np.roll(highs, 1)
     decreasing_high_rev = decreasing_high_mask[::-1]
-    decreasing_high_index = np.where(np.logical_not(decreasing_high_rev))
-    if len(decreasing_high_index[0]) == 0: decreasing_high_count = 0
-    else: decreasing_high_count = decreasing_high_index[0][0] + 1
+    decreasing_high_indices = np.where(np.logical_not(decreasing_high_rev))
+    if len(decreasing_high_indices[0]) == 0: decreasing_high_count = 0
+    else: decreasing_high_count = decreasing_high_indices[0][0] + 1
     high_move = 100*(last_low-highs[-decreasing_high_count])/highs[-decreasing_high_count]
     from_high_move = {'start': highs[-decreasing_high_count], 'level': last_high, 'apex': last_low, 'move': high_move, 'count': decreasing_high_count}
 
@@ -188,9 +190,8 @@ def getLowsHighsCount(stock_frame):
 def getFilteredArrays(stock_frame, count):
     lows = stock_frame[Constants.LOW].to_numpy()[-count:]
     highs = stock_frame[Constants.HIGH].to_numpy()[-count:]
-    closes = stock_frame[Constants.CLOSE].to_numpy()[-count:]
 
-    return lows, highs, closes
+    return lows, highs
 
 def greatherThan(value_1, value_2): return value_1 > value_2
 def smallerThan(value_1, value_2): return value_1 < value_2 

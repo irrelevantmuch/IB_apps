@@ -88,7 +88,7 @@ class Constants:
 
     BID: Final = "BID"
     ASK: Final = "ASK"
-    CLOSE: Final = "CLOSE"
+    
     LAST: Final = "LAST"
 
     SYMBOL: Final = "symbol"
@@ -96,6 +96,7 @@ class Constants:
     OPEN: Final = 'OPEN'
     HIGH: Final = 'HIGH'
     LOW: Final = 'LOW'
+    CLOSE: Final = "CLOSE"
     VOLUME: Final = 'VOLUME'
     STOCK: Final = 'STK'
     OPTION: Final = 'OPT'

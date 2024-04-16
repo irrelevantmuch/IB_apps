@@ -147,7 +147,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
 
     def openDataDetailsApp(self):
-        new_app = DataDownloader()
+        new_app = DataDownloader(QThread())
         self.running_apps.append(new_app)
         new_app.show()
 

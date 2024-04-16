@@ -64,8 +64,8 @@ class DataDownloaderWindow(QMainWindow, DataDetails_UI):
 
     def addAdditionalComponents(self):
 
-        self.trade_plot = CandlePlotWidget(self.setLevelsFromChart)
-        self.graph_layout.addWidget(self.trade_plot, 1, 0, 1, 1)
+        # self.trade_plot = CandlePlotWidget(self.setLevelsFromChart)
+        # self.graph_layout.addWidget(self.trade_plot, 1, 0, 1, 1)
 
         self.download_bar_selector = CheckableComboBox()
         self.download_bar_layout.insertWidget(1, self.download_bar_selector)

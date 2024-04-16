@@ -77,6 +77,7 @@ class PolygonDownloader(QObject):
         columns = ['o', 'h', 'l', 'c', 'v', 't']
 
         for bar_type in bar_types:
+            print(f"We go for {bar_type}")
             symbol_df = pd.DataFrame(columns=columns)
             counter = 0
 
@@ -86,9 +87,9 @@ class PolygonDownloader(QObject):
             while url:
                 # Make the HTTP request
                 url += '&apiKey=' + api_keys[Constants.POLYGON_SOURCE] + '&limit=50000'
-                
+                print(url)
                 response = requests.get(url)
-
+                print(f"We get back: {response.status_code}")
                 # Check for successful request
                 if response.status_code == 200:
                     # Parse the JSON response
@@ -112,11 +113,6 @@ class PolygonDownloader(QObject):
 
             symbol_df.rename(columns=column_names, inplace=True)
 
-            # symbol_df[Constants.HIGH] = pd.to_numeric(symbol_df[Constants.HIGH])
-            # symbol_df[Constants.LOW] = pd.to_numeric(symbol_df[Constants.LOW])
-            # symbol_df[Constants.OPEN] = pd.to_numeric(symbol_df[Constants.OPEN])
-            # symbol_df[Constants.CLOSE] = pd.to_numeric(symbol_df[Constants.CLOSE])
-            # symbol_df[Constants.VOLUME] = pd.to_numeric(symbol_df[Constants.VOLUME])
             symbol_df = symbol_df.apply(pd.to_numeric, errors='coerce', axis=0)
 
             file_name = Constants.POLYGON_BUFFER_FOLDER + symbol + '_' + bar_type + '.pkl'
