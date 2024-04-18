@@ -314,7 +314,8 @@ class DataBuffers(QObject):
         self.sortIndex(uid, bar_type)
         
         first_index = {bar_type: new_data.index.min()}
-        self.buffer_updater.emit(Constants.HAS_NEW_DATA, {'uid': uid, 'bars': [bar_type], 'updated_from': first_index, 'state': 'update'})
+        last_index = {bar_type: new_data.index.max()}
+        self.buffer_updater.emit(Constants.HAS_NEW_DATA, {'uid': uid, 'bars': [bar_type], 'updated_from': first_index, 'update_through': last_index, 'state': 'update'})
 
         if self.isSavableBartype(bar_type) and self.save_on:
             self.saveBuffer(uid, bar_type)
@@ -338,6 +339,7 @@ class DataBuffers(QObject):
 
             greater_bars = []
             first_indices = {curr_bar_type: new_data.index.min()}
+            last_indices = {curr_bar_type: new_data.index.max()}
             if propagate_updates:
                     #we want to use the updated bars on lower time frames to complete bars on higher time frames
                 
@@ -346,11 +348,13 @@ class DataBuffers(QObject):
                 for to_bar_type in greater_bars:
                     from_bar_type = self.getUpdateBarType(to_bar_type)
                     if (from_bar_type in first_indices):    #this ensures the from has been updated, but may be superfluous
-                        first_indices[to_bar_type], return_type = self.incoorporateUpdates(uid, from_bar_type, to_bar_type, date_range)
+                        new_indices, return_type = self.incoorporateUpdates(uid, from_bar_type, to_bar_type, date_range)
+                        first_indices[to_bar_type] = new_indices.min()
+                        last_indices[to_bar_type] = new_indices.max()
                         updated_bar_types.append(to_bar_type)
 
                 #other components need to know the data is updated
-            self.buffer_updater.emit(Constants.HAS_NEW_DATA, {'uid': uid, 'updated_from': first_indices, 'bars': [curr_bar_type] + greater_bars, 'state': 'update'})
+            self.buffer_updater.emit(Constants.HAS_NEW_DATA, {'uid': uid, 'updated_from': first_indices, 'update_through': last_indices, 'bars': [curr_bar_type] + greater_bars, 'state': 'update'})
 
                 #if it was proper fetch we want to save
             if (date_range is not None) and self.save_on:
@@ -384,7 +388,7 @@ class DataBuffers(QObject):
                 updated_bars = from_frame.resample(RESAMPLING_BARS[to_bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
                 self.setBufferFor(uid, to_bar_type, updated_bars, [new_range])
         
-        return new_first_index, to_bar_type
+        return updated_bars.index, to_bar_type
 
 
 

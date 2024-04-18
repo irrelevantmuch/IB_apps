@@ -161,8 +161,6 @@ class OpenOrderBuffer(QObject):
 
     @pyqtSlot(int, dict)
     def orderUpdate(self, order_id, detail_object):
-        # print(f"OpenOrderBuffer.orderUpdate {order_id}")
-        # print(detail_object)
         if detail_object['status'] == 'Cancelled':
             self.removeOrder(order_id)
         elif detail_object['status'] == 'Filled' and ('remaining' in detail_object) and (detail_object['remaining'] == 0):
@@ -192,7 +190,7 @@ class OrderManager(DataManager):
     base_order_id = Constants.BASE_ORDER_REQID
 
     data_buffers = None
-    
+    stair_tracker = None
     open_order_request = pyqtSignal()
     
 
@@ -200,8 +198,9 @@ class OrderManager(DataManager):
         super().__init__(callback, name="OrderManager")
 
         self.open_orders = OpenOrderBuffer()
-        self.stair_tracker = StairManager()
-        self.stair_tracker.update_order_signal.connect(self.orderEdit, Qt.QueuedConnection)
+        if stair_manager_on:
+            self.stair_tracker = StairManager()
+            self.stair_tracker.update_order_signal.connect(self.orderEdit, Qt.QueuedConnection)
 
 
     def getOrderBuffer(self):
@@ -214,23 +213,20 @@ class OrderManager(DataManager):
     def connectSignalsToSlots(self):
         super().connectSignalsToSlots()
         self.ib_interface.order_update_signal.connect(self.open_orders.orderUpdate, Qt.QueuedConnection)
-        self.ib_interface.order_update_signal.connect(self.stair_tracker.orderUpdate, Qt.QueuedConnection)
         self.open_order_request.connect(self.ib_interface.trackAndBindOpenOrders, Qt.QueuedConnection)
+
+        if self.stair_tracker is not None:
+            self.ib_interface.order_update_signal.connect(self.stair_tracker.orderUpdate, Qt.QueuedConnection)
+        
 
 
     def setDataObject(self, data_buffers):
         self.data_buffers = data_buffers
-        self.stair_tracker.setDataObject(data_buffers)
+
+        if self.stair_tracker is not None:
+            self.stair_tracker.setDataObject(data_buffers)
 
     
-    # @pyqtSlot()
-    # def run(self):
-    #     super().run()
-        # self.ib_request_signal.emit({'type': 'reqIds', 'num_ids': -1})
-
-##########################################
-
-
     @pyqtSlot(list, Contract)
     def placeBracketOrder(self, bracket_order, contract):
         for order in bracket_order:
@@ -242,8 +238,8 @@ class OrderManager(DataManager):
             self.ib_request_signal.emit(request)
 
 
-    def createLimitOrder(self, order_id, action, quantity, limit_price, parent_id=None):
-        limit_order = self.createBaseOrder(order_id, action, quantity, parent_id)
+    def createLimitOrder(self, order_id, action, quantity, limit_price, gtd=None, parent_id=None):
+        limit_order = self.createBaseOrder(order_id, action, quantity, parent_id, gtd)
         limit_order.orderType = "LMT"
         limit_order.lmtPrice = limit_price
         return limit_order
@@ -286,7 +282,7 @@ class OrderManager(DataManager):
         return f"OCO{int(time.time())}"
 
 
-    def createBaseOrder(self, order_id, action, quantity, parent_id=None):
+    def createBaseOrder(self, order_id, action, quantity, parent_id=None, gtd=None):
         base_order = Order()
         if order_id is not None:
             base_order.orderId = order_id
@@ -294,6 +290,9 @@ class OrderManager(DataManager):
         base_order.action = action
         base_order.totalQuantity = int(quantity)
         base_order.eTradeOnly = ''
+        if gtd is not None:
+            base_order.tif = 'GTD'
+            base_order.goodTillDate = gtd    
         base_order.firmQuoteOnly = ''
         if parent_id is not None:
             base_order.parentId = parent_id
@@ -333,7 +332,10 @@ class OrderManager(DataManager):
 
         primary_id = order_ids.pop(0)
         new_order_ids = [primary_id]
-        order_set = [self.createLimitOrder(primary_id, action, count, limit_price)]
+        if 'gtd' in exit_dict:
+            order_set = [self.createLimitOrder(primary_id, action, count, limit_price, gtd=exit_dict['gtd'])]
+        else:
+            order_set = [self.createLimitOrder(primary_id, action, count, limit_price)]
 
         if 'profit_limit' in exit_dict:
             profit_id = order_ids.pop(0)
@@ -347,11 +349,14 @@ class OrderManager(DataManager):
             if 'stop_limit' in exit_dict:
                 order_set += [self.createStopOrder(stop_id, exit_action, count, exit_dict['stop_trigger'], stop_limit=exit_dict['stop_limit'], parent_id=primary_id)]
             else:
-                order_set += [self.createStopOrder(stop_id, exit_action, count, exit_dict['stop_trigger'], primary_id, stop_limit=None, parent_id=primary_id)]
+                order_set += [self.createStopOrder(stop_id, exit_action, count, exit_dict['stop_trigger'], stop_limit=None, parent_id=primary_id)]
             new_order_ids.append(stop_id)
         
         order_set[-1].transmit = True
-        
+            
+        print("Which ones are in here?")
+        print([order.orderId for order in order_set])
+
         self.placeBracketOrder(order_set, contract)
 
 
@@ -376,46 +381,50 @@ class OrderManager(DataManager):
 
     @pyqtSlot(Contract, str, str)
     def openStairTrade(self, contract, entry_action, bar_type):
-        uid = contract.conId
-        stair_step = self.stair_tracker.createNewStairstep(uid, bar_type, entry_action, contract)
 
-        if (stair_step is not None):
-            order_ids = self.getNextOrderIDs(stair_step['order_count'])
+        if self.stair_tracker is not None:
+            uid = contract.conId
+            stair_step = self.stair_tracker.createNewStairstep(uid, bar_type, entry_action, contract)
 
-            open_order_id = order_ids.pop(0)
-            stop_open = self.createStopOrder(open_order_id, stair_step['entry_action'], stair_step['count'], stair_step['entry_trigger'], stop_limit=stair_step['entry_limit'])
-            self.stair_tracker.updateStepProperty((uid, bar_type), {'main_id': open_order_id}, trigger_adjustment=False)
-            order_list = [stop_open]
-            if 'stop_trigger' in stair_step:
-                stop_loss_id = order_ids.pop(0)
-                self.stair_tracker.updateStepProperty((uid, bar_type), {'stop_id': stop_loss_id}, trigger_adjustment=False)
-                stop_loss = self.createStopOrder(stop_loss_id, stair_step['exit_action'], stair_step['stop_count'], stair_step['stop_trigger'], stop_limit=stair_step['stop_limit'], parent_id=open_order_id)
-                order_list.append(stop_loss)
-            
-            if 'profit_limit' in stair_step:
-                profit_order_id = order_ids.pop(0)
-                self.stair_tracker.updateStepProperty((uid, bar_type), {'profit_id': profit_order_id}, trigger_adjustment=False)
-                profit_limit_order = self.createLimitOrder(profit_order_id, stair_step['exit_action'], stair_step['profit_count'], limit_price=stair_step['profit_limit'], parent_id=open_order_id)
-                order_list.append(profit_limit_order)
-            
-            order_list[-1].transmit = True
-            self.placeBracketOrder(order_list, contract)
-            self.data_buffers.buffer_updater.connect(self.stair_tracker.bufferUpdate, Qt.QueuedConnection)
+            if (stair_step is not None):
+                order_ids = self.getNextOrderIDs(stair_step['order_count'])
 
+                open_order_id = order_ids.pop(0)
+                stop_open = self.createStopOrder(open_order_id, stair_step['entry_action'], stair_step['count'], stair_step['entry_trigger'], stop_limit=stair_step['entry_limit'])
+                self.stair_tracker.updateStepProperty((uid, bar_type), {'main_id': open_order_id}, trigger_adjustment=False)
+                order_list = [stop_open]
+                if 'stop_trigger' in stair_step:
+                    stop_loss_id = order_ids.pop(0)
+                    self.stair_tracker.updateStepProperty((uid, bar_type), {'stop_id': stop_loss_id}, trigger_adjustment=False)
+                    stop_loss = self.createStopOrder(stop_loss_id, stair_step['exit_action'], stair_step['stop_count'], stair_step['stop_trigger'], stop_limit=stair_step['stop_limit'], parent_id=open_order_id)
+                    order_list.append(stop_loss)
+                
+                if 'profit_limit' in stair_step:
+                    profit_order_id = order_ids.pop(0)
+                    self.stair_tracker.updateStepProperty((uid, bar_type), {'profit_id': profit_order_id}, trigger_adjustment=False)
+                    profit_limit_order = self.createLimitOrder(profit_order_id, stair_step['exit_action'], stair_step['profit_count'], limit_price=stair_step['profit_limit'], parent_id=open_order_id)
+                    order_list.append(profit_limit_order)
+                
+                order_list[-1].transmit = True
+                self.placeBracketOrder(order_list, contract)
+                self.data_buffers.buffer_updater.connect(self.stair_tracker.bufferUpdate, Qt.QueuedConnection)
+
+            else:
+                print("THIS IS NOT A VALID STAIRSTEP")
         else:
-            print("THIS IS NOT A VALID STAIRSTEP")
+            print("STAIR_TRACKER NOT INITIALIZED")
 
 
 
     @pyqtSlot()
     def killStairTrade(self):
-
-        current_uid = self.stair_tracker.getCurrentKey()
-        current_ids = self.stair_tracker.getOrderIdsFor(current_uid)
-        # print(f"OrderManager.killStairTrade {current_ids}")
-        if len(current_ids) > 0:
-            for order_id in current_ids:
-                self.ib_request_signal.emit({'type': 'cancelOrder', 'order_id': order_id})
+        if self.stair_tracker is not None:
+            current_uid = self.stair_tracker.getCurrentKey()
+            current_ids = self.stair_tracker.getOrderIdsFor(current_uid)
+            # print(f"OrderManager.killStairTrade {current_ids}")
+            if len(current_ids) > 0:
+                for order_id in current_ids:
+                    self.ib_request_signal.emit({'type': 'cancelOrder', 'order_id': order_id})
 
 
     @pyqtSlot(int, dict)
@@ -857,9 +866,7 @@ class StairManager(QObject):
 
     @pyqtSlot(int, dict)
     def orderUpdate(self, order_id, detail_object):
-        # print(f"StairManager.orderUpdate {detail_object['status']} {detail_object.keys()}")
-        # print(f"For {order_id} we get an update of")
-        # print(detail_object)
+
         status = detail_object['status']
 
         stair_keys = list(self._active_stairsteps.keys())

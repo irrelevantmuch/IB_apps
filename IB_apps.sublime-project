@@ -1,0 +1,12 @@
+{
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	],
+	"settings":
+    {
+        "python_interpreter": "/Users/vriesdejelmer/anaconda3/envs/ibapi/bin/python3"
+    }
+}

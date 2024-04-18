@@ -150,8 +150,7 @@ class IndicatorProcessor(QObject):
 
         
 
-    def computeEMAs(self, updated_uids=None, updated_bar_types=None, periods=[12, 26], from_indices=None, supress_signal=False):
-        print("IndicatorProcessor.computeEMAs")
+    def computeEMAs(self, updated_uids=None, updated_bar_types=None, periods=[12], from_indices=None, supress_signal=False):
         if updated_uids is None:
             updated_uids = self.getTrackingUIDs()
         if updated_bar_types is None:
