@@ -45,17 +45,11 @@ class DataManager(QObject):
             self.api_updater.connect(callback, Qt.QueuedConnection)
 
 
-
     def setParameters(self, local_address, trading_socket, client_id=0):
         self.local_address = local_address
         self.trading_socket = trading_socket
         self.client_id = client_id
         
-
-    def moveToThread(self, thread):
-        super().moveToThread(thread)
-
-
     
     @pyqtSlot()
     def run(self):

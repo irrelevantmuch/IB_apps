@@ -13,6 +13,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
+from PyQt5.QtCore import Qt, pyqtSlot
+from ibapi.contract import Contract
+
+from .DataStructures import DetailObject
+from .Constants import Constants
+from .DataManagement import DataManager
+
+
+from dataHandling.DataStructures import DetailObject
+from dataHandling.Constants import Constants
+
+
 from PyQt5.QtCore import QThread, QObject, Qt, pyqtSignal, pyqtSlot, QTimer
 from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
@@ -22,7 +35,6 @@ from ibapi.common import BarData
 from ibapi.ticktype import TickTypeEnum
 from ibapi.account_summary_tags import AccountSummaryTags
 
-
 from queue import Queue
 
 from dataHandling.DataStructures import DetailObject
@@ -31,40 +43,24 @@ from pubsub import pub
 from threading import Thread
 
 
-
-class IBConnectivity(EClient, EWrapper, QObject):
-
-    price_returned = False
-
-    connection_signal = pyqtSignal(str)
-    order_update_signal = pyqtSignal(int, dict)
-
-    latest_price_signal = pyqtSignal(float, str)
-
-    contract_details_signal = pyqtSignal(DetailObject)
-    contract_details_finished_signal = pyqtSignal()
-
-    historical_bar_signal = pyqtSignal(int, BarData)
-    historical_data_end_signal = pyqtSignal(int, str, str)
-    history_error = pyqtSignal(int)
-    historical_dates_signal = pyqtSignal(int, str)
-
-    account_updater = pyqtSignal(str, dict)
-
-    option_error_signal = pyqtSignal(int)
-    contract_detail_complete_signal = pyqtSignal(int)
-    snapshot_end_signal = pyqtSignal(int)
-    return_option_price_signal = pyqtSignal(int, str, float)
-    report_expirations_signal = pyqtSignal(set, set)
-    relay_contract_id_signal = pyqtSignal(str, float, str, int)
+class IBConnectivity(EClient, EWrapper):
+        
+    api_updater = pyqtSignal(str, dict)
     
-
     run_ib_client_signal = pyqtSignal()
 
     _active_requests = set()
 
+    finished = pyqtSignal()
+
+    _price_req_is_active = False
+    snapshot = False
+
+    queue_timer = None
+
     restart_timer = pyqtSignal()
     next_id_event = None
+    latest_price_signal = pyqtSignal(float, str)
 
     managed_accounts_initialized = False
     next_valid_initialized = False
@@ -81,16 +77,47 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
         
         EClient.__init__(self, self)
-        super(QObject, self).__init__()
-        # QObject.__init__(self)
+
+
+    ################ General Requests
+
+    @pyqtSlot(DetailObject)
+    def requestMarketData(self, contractDetails):
+        print(f"IBConnectivityNew.requestMarketData {contractDetails.symbol}")
+        if self._price_req_is_active:
+            self.makeRequest({'type': 'cancelMktData', 'req_id': Constants.STK_PRICE_REQID})
+
+        contract = Contract()
+        contract.symbol = contractDetails.symbol
+        
+        if contractDetails.numeric_id != 0:
+            contract.conId = contractDetails.numeric_id
+        else:
+            contract.currency = Constants.USD
+        
+        contract.secType = Constants.STOCK
+        
+        if contractDetails.exchange != "":
+            contract.primaryExchange = contractDetails.exchange
+        else:
+            contract.currency = Constants.USD
+        
+        contract.exchange = Constants.SMART
+        request = dict()
+        request['type'] = 'reqMktData'
+        request['req_id'] = Constants.STK_PRICE_REQID
+        request['contract'] = contract
+        request['snapshot'] = self.snapshot
+        request['reg_snapshot'] = False
+        self.makeRequest(request)
+        self._price_req_is_active = True
 
     
     ################ General Connection
-
+        
+    @pyqtSlot()
     def startConnection(self):
-        # This method starts the blocking operation in a separate Python thread
-        # This is the blocking call within ibapi
-
+        print(f"{self.name}.startConnection")
         self.setConnectionOptions("+PACEAPI")
         def target():
             self.connect(self.local_address, self.trading_socket, self.client_id)
@@ -121,8 +148,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
                 pass
                 #What was this for?
                 #self.delegate.mktDataError(req_id)
-            elif self.isHistoryRequest(req_id):
-                self.history_error.emit(req_id)
 
         #if req_id in self._active_requests: self._active_requests.remove(req_id)
             
@@ -130,14 +155,14 @@ class IBConnectivity(EClient, EWrapper, QObject):
     def connectAck(self):
         super().connectAck()
         self._connection_status = Constants.CONNECTION_OPEN
-        self.connection_signal.emit(Constants.CONNECTION_OPEN)
+        self.api_updater.emit(Constants.CONNECTION_STATUS_CHANGED, {'connection_status': Constants.CONNECTION_OPEN})
         print(f"IBConnectivity.connectAck {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
  
 
     def connectionClosed(self):
         super().connectionClosed()
         self._connection_status = Constants.CONNECTION_CLOSED
-        self.connection_signal.emit(Constants.CONNECTION_CLOSED)
+        self.api_updater.emit(Constants.CONNECTION_STATUS_CHANGED, {'connection_status': Constants.CONNECTION_CLOSED})
         pub.sendMessage('log', message=f"Connection for {self.name} ({self.client_id}) closed")
         print(f"####@@@@ ###  WE BE CLOSING, but is the thread still running? {self.thread().isRunning()}")
         
@@ -164,41 +189,24 @@ class IBConnectivity(EClient, EWrapper, QObject):
         return (self._connection_status == Constants.CONNECTION_OPEN) and self.managed_accounts_initialized and self.next_valid_initialized
 
 
-    def contractDetails(self, req_id, contract_details):
-        contract = contract_details.contract
-        
-        if self.isOptionInfRequest(req_id):
-            self.relay_contract_id_signal.emit(contract.right, contract.strike, contract.lastTradeDateOrContractMonth, contract.conId)
-        else:
-            if contract.primaryExchange == "":
-                exchange = contract.exchange
-            else:
-                exchange = contract.primaryExchange
-
-            detailObject = DetailObject(symbol=contract.symbol, exchange=exchange, long_name=contract_details.longName, numeric_id=contract.conId, currency=contract.currency)
-            self.contract_details_signal.emit(detailObject)
-        
-
-    def contractDetailsEnd(self, req_id: int):
-        super().contractDetailsEnd(req_id)
-        if self.isOptionInfRequest(req_id):
-            self.contract_detail_complete_signal.emit(req_id)
-        else:
-            self.contract_details_finished_signal.emit()
-
-
     def getActiveReqCount(self):
         return len(self._active_requests)
 
+
+    ################ Specific Callbacks
+
+    def tickPrice(self, req_id, tickType, price, attrib):
+        tick_type_str = TickTypeEnum.to_str(tickType)
+        self.latest_price_signal.emit(price, tick_type_str)
 
 
     ################ Request processing
 
 
-    @pyqtSlot(dict)
     def makeRequest(self, request):
+        print(f"IBConnectivtyNew.makeRequest {request['type']}")
         self.request_queue.put(request)
-        if (not (self.queue_timer.isActive())) and self.readyForRequests():
+        if (self.queue_timer is not None) and (not (self.queue_timer.isActive())) and self.readyForRequests():
             self.restart_timer.emit()
 
 
@@ -219,6 +227,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
 
     def processRequest(self, request):
+        print(f"IBConnectivtyNew.processRequest {request['type']}")
         req_type = request['type']
 
         if req_type == 'reqHistoricalData':
@@ -240,12 +249,18 @@ class IBConnectivity(EClient, EWrapper, QObject):
             self.reqIds(request['num_ids'])
         elif req_type == 'reqSecDefOptParams':
             self.reqSecDefOptParams(request['req_id'], request['symbol'], "", request['equity_type'], request['numeric_id'])
-            # self.ib_interface.reqSecDefOptParams(1, self.contractDetails.symbol, "", Constants.STOCK, self.contractDetails.numeric_id)
+        elif req_type == 'reqRealTimeBars':
+            print("IBConnectivtyNew.reqRealTimeBars")
+            self.reqRealTimeBars(request['req_id'], request['contract'], 5, "MIDPOINT", False, [])
         elif req_type == 'cancelMktData':
             self.cancelMktData(request['req_id'])
         elif req_type == 'reqGlobalCancel':
             self.reqGlobalCancel()
         elif req_type == 'placeOrder':
+            print("IBConnectivtyNew.placeOrder")
+            print(type(request['order_id']))
+            print(type(request['contract']))
+            print(type(request['order']))
             self.placeOrder(request['order_id'], request['contract'], request['order'])
             self.makeRequest({'type': 'reqIds', 'num_ids': -1})
         elif request['type'] == 'cancelOrder':
@@ -253,156 +268,14 @@ class IBConnectivity(EClient, EWrapper, QObject):
         elif req_type == 'reqMktData':
             self.reqMktData(request['req_id'], request['contract'], "", request['snapshot'], request['reg_snapshot'], [])
         elif req_type == 'reqContractDetails':
+            print(type(request['contract']))
+            print(request['contract'])
             self.reqContractDetails(request['req_id'], request['contract'])
         
         if 'req_id' in request:
             self._active_requests.add(request['req_id'])
 
         
-    def reqMktData(self, req_id, contract: Contract, genericTickList: str, snapshot: bool, regulatorySnapshot: bool, mktDataOptions):
-        print(f"IBConnectivity.reqMktData {self.name} {self.client_id} {req_id}")
-        if self.isPriceRequest(req_id):
-            self.price_returned = False
-        super().reqMktData(req_id, contract, "", snapshot, regulatorySnapshot, [])
-        
-
-    def reqPnL(self, req_id: int, account: str, modelCode: str):
-        super().reqPnL(req_id, account, modelCode)
-        self._active_requests.add(req_id)
-        
-    def reqPnLSingle(self, req_id: int, account: str, modelCode: str, conId: int):
-        super().reqPnLSingle(req_id, account, modelCode, conId)
-        self._active_requests.add(req_id)
-
-
-    def reqHistoricalData(self, req_id, contract, endDateTime, durationStr, barSizeSetting, whatToShow, useRTH, formatDate, keepUpToDate, chartOptions):
-        print(f"IBConnectivity.reqHistoricalData {self.name} {self.client_id} {keepUpToDate}")
-        super().reqHistoricalData(req_id, contract, endDateTime, durationStr, barSizeSetting, whatToShow, useRTH, formatDate, keepUpToDate, chartOptions)
-        
-
-    @pyqtSlot()
-    def trackAndBindOpenOrders(self):
-        print(f"IBConnectivity.trackAndBindOpenOrders {self.client_id}")
-        self.makeRequest({'type': 'reqOpenOrders'})
-        self.makeRequest({'type': 'reqAutoOpenOrders', 'reqAutoOpenOrders': True})
-    
-
-    ################ CALLBACK HANDLING
-
-
-    def orderStatus(self, orderId: int, status: str, filled: float, remaining: float, avgFillPrice: float, permId: int, parentId: int, lastFillPrice: float, clientId: int, whyHeld: str, mktCapPrice: float):
-        super().orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice) 
-        self.order_update_signal.emit(orderId, {'status': status, 'filled': filled, 'remaining': remaining})
-        
-
-    def openOrder(self, orderId: int, contract: Contract, order: Order, orderState):
-        super().openOrder(orderId, contract, order, orderState)
-        self.order_update_signal.emit(orderId, {'order': order, 'contract': contract, 'status': orderState.status})
-
-
-    def securityDefinitionOptionParameter(self, req_id: int, exchange: str, underlyingConId: int, tradingClass: str, multiplier: str, expirations, strikes):
-        super().securityDefinitionOptionParameter(req_id, exchange, underlyingConId, tradingClass, multiplier, expirations, strikes)
-        if exchange == Constants.DEFAULT_OPT_EXC:
-            self.report_expirations_signal.emit(expirations, strikes)
-
-
-
-    def tickSnapshotEnd(self, req_id: int):
-        super().tickSnapshotEnd(req_id)
-        if req_id in self._active_requests: self._active_requests.remove(req_id)
-
-        self.snapshot_end_signal.emit(req_id)
-
-
-    def updateAccountValue(self, key: str, val: str, currency: str, accountName: str):  
-        super().updateAccountValue(key, val, currency, accountName)
-        print("UpdateAccountValue. Key:", key, "Value:", val, "Currency:", currency, "AccountName:", accountName)
-        self.account_updater.emit('some_constants', {'key': key, 'val': val, 'accountName': accountName})
-
-
-    def updatePortfolio(self, contract: Contract, position, marketPrice, marketValue, averageCost, unrealizedPNL, realizedPNL, accountName):
-        super().updatePortfolio(contract, position, marketPrice, marketValue, averageCost, unrealizedPNL, realizedPNL, accountName)
-        print(f"IBConnectivity.updatePortfolio {accountName} {contract.symbol} {position} {averageCost} {marketValue} {unrealizedPNL} {realizedPNL}")
-        print(contract)
-        self.account_updater.emit('whats_this', {'contract': contract, 'position': position, 'account_name': accountName, 'unrealized_pnl': unrealizedPNL, 'market_price': marketPrice})
-        
-
-    def accountDownloadEnd(self, accountName: str):
-        super().accountDownloadEnd(accountName)
-        self.account_updater.emit("anotheranother", {'account_number': accountName})
-        
-
-    def tickPrice(self, req_id, tickType, price, attrib):
-        tick_type_str = TickTypeEnum.to_str(tickType)
-        if self.isOptionRequest(req_id):
-            self.return_option_price_signal.emit(req_id,tick_type_str, price)
-        else:
-            self.latest_price_signal.emit(price, tick_type_str)
-
-
-
-    def historicalData(self, req_id, bar):
-        super().historicalData(req_id, bar)
-        if self.isHistDataRequest(req_id):
-            self.historical_bar_signal.emit(req_id, bar)
-                
-
-    def historicalDataUpdate(self, req_id, bar):
-        super().historicalDataUpdate(req_id, bar)
-        self.historical_bar_signal.emit(req_id, bar)
-
-
-    def historicalDataEnd(self, req_id: int, start: str, end: str):
-        super().historicalDataEnd(req_id, start, end)
-        if req_id in self._active_requests: self._active_requests.remove(req_id)
-
-        self.historical_data_end_signal.emit(req_id, start, end)
-
-
-    
-    def pnl(self, req_id: int, dailyPnL: float, unrealizedPnL: float, realizedPnL: float):
-        super().pnl(req_id, dailyPnL, unrealizedPnL, realizedPnL)
-        # self.delegate.updatePNL(req_id, dailyPnL, unrealizedPnL)
-        for x in range(10): print("MORE NOT IMPLEMENTED")
-        if req_id in self._active_requests: self._active_requests.remove(req_id)
-        print("Daily PnL. ReqId: ", req_id, "DailyPnL: ", str(dailyPnL), "UnrealizedPnL: ", str(unrealizedPnL), "RealizedPnL: ", str(realizedPnL))
-        self.cancelPnL(req_id)
-
-
-    def pnlSingle(self, req_id: int, pos: float, dailyPnL: float, unrealizedPnL: float, realizedPnL: float, value: float):
-        super().pnlSingle(req_id, pos, dailyPnL, unrealizedPnL, realizedPnL, value)
-        #self.delegate.updateSinglePNL(req_id, dailyPnL, unrealizedPnL)
-        for x in range(10): print("AGAIN NOT IMPLEMENTED")
-        if req_id in self._active_requests: self._active_requests.remove(req_id)
-        print("Daily PnL Single. ReqId:", req_id, "Position:", str(pos), "DailyPnL:", str(dailyPnL), "UnrealizedPnL:", str(unrealizedPnL), "RealizedPnL:", str(realizedPnL), "Value:", str(value))
-        self.cancelPnLSingle(req_id)
-
-
-    def accountSummary(self, req_id: int, account: str, tag: str, value: str, currency: str):
-        print("IBConnectivity.AccountSummary")
-        super().accountSummary(req_id, account, tag, value, currency)
-        # print("AccountSummary. ReqId:", req_id, "Account:", account, "Tag: ", tag, "Value:", value, "Currency:", currency)
-        self.account_updater.emit('another_constnats', {'account': account, 'req_id': req_id})
-        
-
-
-    def accountSummaryEnd(self, req_id: int):
-        super().accountSummaryEnd(req_id)
-        if req_id in self._active_requests: self._active_requests.remove(req_id)
-        print("AccountSummaryEnd. ReqId:", req_id)
-
-
-    def headTimestamp(self, req_id: int, headTimestamp: str):
-        super().headTimestamp(req_id, headTimestamp)
-        if req_id in self._active_requests: self._active_requests.remove(req_id)
-        self.cancelHeadTimeStamp(req_id)
-        self.historical_dates_signal.emit(req_id, headTimestamp)
-
-    
-    def cancelOrder(self, order_id, str_arg):
-        super().cancelOrder(order_id, str_arg)
-        print(f"IBConnectivity.CANCELORDER ########### {order_id}")
-
     
     ############# REQUEST TYPING
 
@@ -442,4 +315,3 @@ class IBConnectivity(EClient, EWrapper, QObject):
         return (self.isHistMinMaxRequest(req_id) or self.isHistDataRequest(req_id) or self.isHistBarsRequest(req_id))
 
 
-        

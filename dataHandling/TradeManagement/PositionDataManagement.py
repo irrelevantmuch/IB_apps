@@ -17,9 +17,10 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QObject, QReadWriteLock, QAbs
 from PyQt5 import QtCore
 # from math import isnan
 # from PyQt5.QtGui import QBrush, QColor
-
+from ibapi.contract import Contract
 
 from dataHandling.Constants import Constants
+from dataHandling.IBConnectivityNew import IBConnectivity
 
 import numpy as np
 import pandas as pd
@@ -27,47 +28,64 @@ import pandas as pd
 from dataHandling.DataManagement import DataManager
 
 
-class PositionDataManager(DataManager):
+class PositionDataManager(IBConnectivity, QObject):
 
     daily_pnl = 0.0
     unrealized_pnl = 0.0
     _pnl_requests = dict()
     _pnl_data_reqs = set()
-
+    account_updater = pyqtSignal(str, dict)
     needs_position_fetch = True
 
     account_number = None
     
-    def __init__(self, callback=None, name="DataManagent"):
-        super().__init__(callback, name) 
+    def __init__(self, *args, **kwargs):
+        IBConnectivity.__init__(self, *args, **kwargs)
+        QObject.__init__(self)
 
         self.data_object = PositionObject()
+        self.account_updater.connect(self.data_object.accountUpdate, Qt.QueuedConnection)
+        self.makeRequest({'type': 'reqAccountSummary'})
+
 
 
     def getDataObject(self):
         return self.data_object
 
 
-    def run(self):
-        super().run()
-        self.ib_request_signal.emit({'type': 'reqAccountSummary'})
+    def accountSummary(self, req_id: int, account: str, tag: str, value: str, currency: str):
+        print("IBConnectivity.AccountSummary")
+        super().accountSummary(req_id, account, tag, value, currency)
+        # print("AccountSummary. ReqId:", req_id, "Account:", account, "Tag: ", tag, "Value:", value, "Currency:", currency)
+        self.accountUpdate('another_constnats', {'account': account, 'req_id': req_id})
+        
+
+    def updateAccountValue(self, key: str, val: str, currency: str, accountName: str):  
+        super().updateAccountValue(key, val, currency, accountName)
+        print("UpdateAccountValue. Key:", key, "Value:", val, "Currency:", currency, "AccountName:", accountName)
+        self.accountUpdate('some_constants', {'key': key, 'val': val, 'accountName': accountName})
 
 
-    def connectSignalsToSlots(self):
-        super().connectSignalsToSlots()
-        self.ib_interface.account_updater.connect(self.accountUpdate, Qt.QueuedConnection)
-        self.ib_interface.account_updater.connect(self.data_object.accountUpdate, Qt.QueuedConnection)
+    def updatePortfolio(self, contract: Contract, position, marketPrice, marketValue, averageCost, unrealizedPNL, realizedPNL, accountName):
+        super().updatePortfolio(contract, position, marketPrice, marketValue, averageCost, unrealizedPNL, realizedPNL, accountName)
+        print(f"IBConnectivity.updatePortfolio {accountName} {contract.symbol} {position} {averageCost} {marketValue} {unrealizedPNL} {realizedPNL}")
+        print(contract)
+        self.accountUpdate('whats_this', {'contract': contract, 'position': position, 'account_name': accountName, 'unrealized_pnl': unrealizedPNL, 'market_price': marketPrice})
+        
 
+    def accountDownloadEnd(self, accountName: str):
+        super().accountDownloadEnd(accountName)
+        self.accountUpdate("anotheranother", {'account_number': accountName})
+        
 
-    @pyqtSlot(str, dict)
     def accountUpdate(self, signal, sub_signal):
-        # print(f"PositionDataManager.accountUpdate {signal} {sub_signal}")
-
+        print(f"PositionDataManager.accountUpdate {signal} {sub_signal}")
+        self.account_updater.emit(signal, sub_signal)
         if signal == 'another_constnats':
             self.account_number = sub_signal['account']
             if self.needs_position_fetch:
                 # print("Only once")
-                self.ib_request_signal.emit({'type': 'reqAccountUpdates', 'subscribe': True, 'account_number': self.account_number})
+                self.makeRequest({'type': 'reqAccountUpdates', 'subscribe': True, 'account_number': self.account_number})
                 self.needs_position_fetch = False
 
 

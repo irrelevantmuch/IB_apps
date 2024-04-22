@@ -13,11 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import QTimer, pyqtSlot, QThread, Qt, pyqtSignal
 
 from ibapi.contract import Contract
 from ibapi.common import BarData
-
 
 import pandas as pd
 import re
@@ -28,15 +26,25 @@ from pytz import timezone
 import sys, math, time
 from operator import attrgetter
 
-from dataHandling.Constants import Constants
-from dataHandling.DataStructures import DetailObject
+
 from generalFunctionality.GenFunctions import dateFromString, dateToString, pdDateFromIBString, dateFromIBString
 
-from dataHandling.DataManagement import DataManager
+
+from PyQt5.QtCore import QThread, QObject, Qt, pyqtSignal, pyqtSlot, QTimer
+from ibapi.contract import Contract
+from ibapi.order import Order
+from ibapi.common import BarData
+from ibapi.ticktype import TickTypeEnum
+
+from queue import Queue
+
 from dataHandling.HistoryManagement.DataBuffer import DataBuffers
+from dataHandling.DataStructures import DetailObject
+from dataHandling.Constants import Constants
+from dataHandling.IBConnectivityNew import IBConnectivity
 
 
-class HistoricalDataManager(DataManager):
+class HistoricalDataManager(IBConnectivity, QObject):
     
     _uid_by_req = dict()
     _bar_type_by_req = dict()
@@ -60,8 +68,6 @@ class HistoricalDataManager(DataManager):
     
     queue_cap = Constants.OPEN_REQUEST_MAX
 
-    
-
     regular_hours = 0
     controller = None
     process_owner = None
@@ -69,8 +75,9 @@ class HistoricalDataManager(DataManager):
     cleanup_done_signal = pyqtSignal()
 
     
-    def __init__(self, callback=None):
-        super().__init__(callback=callback, name="HistoricalDataManager") 
+    def __init__(self, *args, **kwargs):
+        IBConnectivity.__init__(self, *args, **kwargs)        
+        QObject.__init__(self)
         self.data_buffers = DataBuffers(Constants.BUFFER_FOLDER)
 
 
@@ -108,19 +115,17 @@ class HistoricalDataManager(DataManager):
 
     @pyqtSlot(str)
     def stopTracking(self, uid):
-        delay = 1_000
-        # print(f"HistoricalDataManager.cancelActiveRequests {int(QThread.currentThreadId())}")
         relevant_requests = [req_id for req_id, track_uid in self._uid_by_req.items() if track_uid == uid]
 
         for req_id in relevant_requests:
             if req_id in self._is_updating:
-                self.ib_request_signal.emit({'type': 'cancelHistoricalData', 'req_id': req_id})
+                self.makeRequest({'type': 'cancelHistoricalData', 'req_id': req_id})
                 self._is_updating.remove(req_id)
             if req_id in self._update_requests:
-                self.ib_request_signal.emit({'type': 'cancelHistoricalData', 'req_id': req_id})
+                self.makeRequest({'type': 'cancelHistoricalData', 'req_id': req_id})
                 self._update_requests.remove(req_id)
             if req_id in self._hist_buffer_reqs:
-                self.ib_request_signal.emit({'type': 'cancelHistoricalData', 'req_id': req_id})
+                self.makeRequest({'type': 'cancelHistoricalData', 'req_id': req_id})
                 self._hist_buffer_reqs.remove(req_id)
 
         self.performUidCleanupFor(uid)
@@ -135,7 +140,6 @@ class HistoricalDataManager(DataManager):
         if uid in self._priority_uids: self._priority_uids.remove(uid)
 
 
-
     def performReqIdCleanupFor(self, req_id):
         self.processGroupSignal(req_id, supress_signal=True)
         if req_id in self._uid_by_req: del self._uid_by_req[req_id]
@@ -143,7 +147,6 @@ class HistoricalDataManager(DataManager):
 
         self._recently_cancelled_req_id.add(req_id)
         
-
 
     @pyqtSlot()
     def cancelActiveRequests(self):
@@ -186,17 +189,17 @@ class HistoricalDataManager(DataManager):
         cancelled_ids = []
         for req_id in self._is_updating:
             cancelled_ids.append(req_id)
-            self.ib_request_signal.emit({'type': 'cancelHistoricalData', 'req_id': req_id})
+            self.makeRequest({'type': 'cancelHistoricalData', 'req_id': req_id})
         self._is_updating = set()
 
         for req_id in self._update_requests:
             cancelled_ids.append(req_id)
-            self.ib_request_signal.emit({'type': 'cancelHistoricalData', 'req_id': req_id})
+            self.makeRequest({'type': 'cancelHistoricalData', 'req_id': req_id})
         self._update_requests = set()
 
         for req_id in self._hist_buffer_reqs:
             cancelled_ids.append(req_id)
-            self.ib_request_signal.emit({'type': 'cancelHistoricalData', 'req_id': req_id})
+            self.makeRequest({'type': 'cancelHistoricalData', 'req_id': req_id})
         self._hist_buffer_reqs = set()
 
 
@@ -304,6 +307,22 @@ class HistoricalDataManager(DataManager):
         self.iterateHistoryRequests(100)        
 
 
+    @pyqtSlot(Contract)
+    def turnOnRealtimeBarsFor(self, contract):        
+        print("HistoricalDataManager.turnOnRealtimeBarsFor")
+        req_id = self.getNextBufferReqID()
+        self._uid_by_req[req_id] = contract.conId
+        self.makeRequest({'type': 'reqRealTimeBars', 'req_id': req_id, 'contract': contract})
+
+
+    @pyqtSlot(str)
+    def turnOffRealtimeBarsFor(self, cancel_uid):
+        print("HistoricalDataManager.turnOffRealtimeBarsFor")
+        for req_id, uid in self._uid_by_req.items():
+            if uid == cancel_uid:
+                self.cancelRealTimeBars(req_id)
+
+
     def createUpdateRequests(self, contract_details, bar_type, time_in_sec, keep_up_to_date=True, propagate_updates=False):
         # print(f"HistoricalDataManager.createUpdateRequests {keep_up_to_date} {propagate_updates}")
         req_id = self.getNextBufferReqID()
@@ -398,7 +417,7 @@ class HistoricalDataManager(DataManager):
         print(f"HistoricalDataManager.executeHistoryRequest on thread: {int(QThread.currentThreadId())}")
         if self.hasQueuedRequests():
             # print("WHAT NOW?")
-            if self.ib_interface.getActiveReqCount() < self.queue_cap:
+            if self.getActiveReqCount() < self.queue_cap:
                 hr = self.getNextHistoryRequest()
                 self._historicalDFs[hr.req_id] = pd.DataFrame(columns=[Constants.OPEN, Constants.HIGH, Constants.LOW, Constants.CLOSE, Constants.VOLUME])
                 request = dict()
@@ -411,7 +430,7 @@ class HistoricalDataManager(DataManager):
                 request['bar_type'] = hr.bar_type
                 request['regular_hours'] = self.regular_hours
                 request['keep_up_to_date'] = hr.keep_updating
-                self.ib_request_signal.emit(request)
+                self.makeRequest(request)
                 self.api_updater.emit(Constants.HISTORICAL_REQUEST_SUBMITTED, {'req_id': hr.req_id})
         
         if len(self._request_buffer) == 0:
@@ -486,16 +505,17 @@ class HistoricalDataManager(DataManager):
             request['type'] = 'reqHeadTimeStamp'
             request['req_id'] = req_id
             request['contract'] = contract
-            self.ib_request_signal.emit(request)
+            self.makeRequest(request)
             
         if len(self.earliest_request_buffer) == 0:
             self.earliest_req_timer.stop()
 
 ############### IB Interface callbacks
 
-    
-    @pyqtSlot(int, str)
-    def relayEarliestDate(self, req_id, head_time_stamp):
+    def headTimestamp(self, req_id: int, head_time_stamp: str):
+        super().headTimestamp(req_id, head_time_stamp)
+        if req_id in self._active_requests: self._active_requests.remove(req_id)
+        self.cancelHeadTimeStamp(req_id)
         uid = self.earliest_uid_by_req[req_id]
 
         date_time_obj = dateFromString(head_time_stamp, sep='-')
@@ -507,19 +527,20 @@ class HistoricalDataManager(DataManager):
             del self.earliest_uid_by_req[req_id]
             if len(self.earliest_uid_by_req) == 0:
                 self.api_updater.emit(Constants.DATES_RETRIEVED, dict())
-             
-    
-    def connectSignalsToSlots(self):
-        super().connectSignalsToSlots()
-        
-        self.ib_interface.historical_bar_signal.connect(self.relayBarData, Qt.QueuedConnection)
-        self.ib_interface.historical_data_end_signal.connect(self.signalHistoryDataComplete, Qt.QueuedConnection)
-        self.ib_interface.historical_dates_signal.connect(self.relayEarliestDate, Qt.QueuedConnection)
-        self.ib_interface.history_error.connect(self.historyError, Qt.QueuedConnection)
 
 
-    @pyqtSlot(int, BarData)
-    def relayBarData(self, req_id, bar):
+    def historicalData(self, req_id, bar):
+        super().historicalData(req_id, bar)
+        if self.isHistDataRequest(req_id):
+            self.processHistoricalBar(req_id, bar)
+            
+
+    def historicalDataUpdate(self, req_id, bar):
+        super().historicalDataUpdate(req_id, bar)
+        self.processHistoricalBar(req_id, bar)
+
+
+    def processHistoricalBar(self, req_id, bar):
         if (req_id in self._historicalDFs) and (req_id in self._uid_by_req) and bar.volume != 0:
             uid = self._uid_by_req[req_id]
             bar_type = self._bar_type_by_req[req_id]
@@ -535,7 +556,19 @@ class HistoricalDataManager(DataManager):
                     self._last_update_time[req_id] = time.time()
 
 
-    @pyqtSlot(int)
+    def realtimeBar(self, reqId: int, time:int, open_: float, high: float, low: float, close: float, volume: float, wap: float, count: int):
+        super().realtimeBar(reqId, time, open_, high, low, close, volume, wap, count)
+        date_time = datetime.fromtimestamp(time)
+        print("RealTimeBar. TickerId:", reqId, date_time, -1, open_, high, low, close, volume, wap, count)
+
+    
+    def error(self, req_id, errorCode, errorString, advancedOrderRejectJson=None):
+        super().error(req_id, errorCode, errorString, advancedOrderRejectJson=None)
+        if errorCode == 200 or errorCode == 162:
+            if self.isHistoryRequest(req_id):
+                self.historyError(req_id)
+
+
     def historyError(self, req_id):
         # print(f"HistoricalDataManager.historyError {req_id}")
         if req_id in self._uid_by_req:
@@ -560,7 +593,12 @@ class HistoricalDataManager(DataManager):
                     return
 
 
-    @pyqtSlot(int, str, str)
+    def historicalDataEnd(self, req_id: int, start: str, end: str):
+        super().historicalDataEnd(req_id, start, end)
+        if req_id in self._active_requests: self._active_requests.remove(req_id)
+        self.signalHistoryDataComplete(req_id, start, end)
+
+
     def signalHistoryDataComplete(self, req_id, start, end):
         # print(f"HistoricalDataManager.signalHistoryDataComplete")
         if req_id in self._hist_buffer_reqs:
@@ -626,18 +664,3 @@ class HistoryRequest():
             datetime_string = dateToString(self.end_date)
             return datetime_string + " US/Eastern" 
 
-
-
-    # def createBarUpdateRequests(self, contract_details, bar_type, time_in_sec, keep_up_to_date=True):
-    #     req_id = self.getNextBufferReqID()
-
-    #     uid = contract_details.numeric_id
-    #     contract = self.getContractFor(contract_details)
-
-    #     self._historicalDFs[req_id] = pd.DataFrame(columns=[Constants.OPEN, Constants.HIGH, Constants.LOW, Constants.CLOSE, Constants.VOLUME])
-        
-    #     self.addUIDbyReq(uid, req_id)
-    #     self._bar_type_by_req[req_id] = bar_type
-    #     self._request_buffer.append(HistoryRequest(req_id, contract, "", f"{max(time_in_sec, 60)} S", bar_type, keep_up_to_date))
-    #     self._hist_buffer_reqs.add(req_id)
-    #     self._update_requests.add(req_id)

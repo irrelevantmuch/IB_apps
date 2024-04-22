@@ -158,7 +158,6 @@ class ComparisonProcessor(DataProcessor):
             self.primary_graph_data = dict()
             uids = list(self._stock_list.keys())
 
-        print(f"ComparisonProcessor.recalculateGraphData {uids}")
         if self.check_list is not None:
             self.recalculateGraphLines(uids, self.check_list)
             self.recalcFocusData()
@@ -177,7 +176,6 @@ class ComparisonProcessor(DataProcessor):
 
 
     def recalculateGraphLines(self, uids, check_list):
-        print(f"ComparisonProcessor.recalculateGraphLines {uids} {type(uids)} {check_list}")
         time_indices = self.getTimeIndices()
         for key in (k for k in uids if check_list[k]):
             symbol = self._stock_list[key][Constants.SYMBOL]
@@ -185,7 +183,6 @@ class ComparisonProcessor(DataProcessor):
             if filtered_data_frame is not None:
                 base_price = self.getBasePrice(filtered_data_frame, key, self.selected_date)
                 graph_line = self.calculateSingleLine(filtered_data_frame, base_price, time_indices, symbol)
-                print(graph_line)
                 if graph_line is not None:
                     self.primary_graph_data[key] = graph_line
     

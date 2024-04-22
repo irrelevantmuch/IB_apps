@@ -66,7 +66,7 @@ class TradeMaker(TradingWindow):
         self.symbol_manager = symbol_manager
 
         self.data_buffers = history_manager.getDataBuffer()
-        self.history_manager.api_updater.connect(self.apiUpdate)
+        self.history_manager.latest_price_signal.connect(self.priceUpdate)
         self.history_manager.mostRecentFirst = True
         self.symbol_manager.api_updater.connect(self.contractUpdate, Qt.QueuedConnection)
 
@@ -149,7 +149,7 @@ class TradeMaker(TradingWindow):
         self.cancel_all_signal.connect(self.order_manager.cancelAllOrders, Qt.QueuedConnection)
         self.cancel_order_by_row.connect(self.order_manager.cancelOrderByRow, Qt.QueuedConnection)
         self.cancel_stair_by_row.connect(self.order_manager.cancelStairByRow, Qt.QueuedConnection)
-        self.place_complex_signal.connect(self.order_manager.placeOrder, Qt.QueuedConnection)
+        self.place_complex_signal.connect(self.order_manager.placeComboOrder, Qt.QueuedConnection)
         self.place_combo_signal.connect(self.order_manager.placeOcoOrder, Qt.QueuedConnection)
         self.place_stair_order.connect(self.order_manager.openStairTrade, Qt.QueuedConnection)
         self.kill_stair_order.connect(self.order_manager.killStairTrade, Qt.QueuedConnection)
@@ -158,19 +158,18 @@ class TradeMaker(TradingWindow):
         
 
 
-    @pyqtSlot(str, dict)
-    def apiUpdate(self, signal, sub_signal):
-        if signal == Constants.UNDERLYING_PRICE_UPDATE:
-            if sub_signal['type'] == Constants.ASK:
-                self.ask_price_button.setText(str(sub_signal['price']))
-                self.latest_ask = sub_signal['price']
-            elif sub_signal['type'] == Constants.LAST:
-                self.last_price_button.setText(str(sub_signal['price']))
-                self.latest_trade = sub_signal['price']
-                self.price_label.setText(str(sub_signal['price']))
-            elif sub_signal['type'] == Constants.BID:
-                self.bid_price_button.setText(str(sub_signal['price']))
-                self.latest_bid = sub_signal['price']
+    @pyqtSlot(float, str)
+    def priceUpdate(self, price, tick_type):
+        if tick_type == Constants.ASK:
+            self.ask_price_button.setText(str(price))
+            self.latest_ask = price
+        elif tick_type == Constants.LAST:
+            self.last_price_button.setText(str(price))
+            self.latest_trade = price
+            self.price_label.setText(str(price))
+        elif tick_type == Constants.BID:
+            self.bid_price_button.setText(str(price))
+            self.latest_bid = price
     
 
     def checkIfStairTradable(self):
@@ -352,7 +351,7 @@ class TradeMaker(TradingWindow):
 
 #############################
 
-    def placeOrder(self):
+    def placeComboOrder(self):
         contract = self.getCurrentContract()
         action = self.action_type
         count = self.count_field.value()

@@ -54,8 +54,9 @@ class AppLauncherWindow(QMainWindow, AppLauncher_UI):
 
 
     def setupActions(self):
-        self.telegram_checkbox.stateChanged.connect(self.toggleTelegramBot)
-        self.connect_button.clicked.connect(self.openConnection)
+
+            #opening apps
+        self.open_movers.clicked.connect(self.openMoversApp)
         self.open_option_pos.clicked.connect(self.openOptionPosApp)
         self.open_option_viz.clicked.connect(self.openOptionVizApp)
         self.open_position_manager.clicked.connect(self.openPositionsApp)
@@ -69,5 +70,8 @@ class AppLauncherWindow(QMainWindow, AppLauncher_UI):
         self.open_list_manager.clicked.connect(self.openListManager)
         self.open_comparisons.clicked.connect(self.openComparisonApp)
         self.open_alert_system.clicked.connect(self.openAlertApp)
-        self.trading_type_group.buttonClicked.connect(self.connectionSelection)
+        
+        self.telegram_checkbox.stateChanged.connect(self.toggleTelegramBot)
+        self.connect_button.clicked.connect(self.openConnection)
         self.data_group.buttonClicked.connect(self.dataSelection)
+        self.trading_type_group.buttonClicked.connect(self.connectionSelection)

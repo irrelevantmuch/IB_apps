@@ -127,7 +127,7 @@ class TradingWindow(ProcessorWindow, TradingWindow_UI, SymbolFinderImplementatio
 
         self.market_order_box.toggled.connect(self.makeMarket)
 
-        self.submit_button.clicked.connect(self.placeOrder)
+        self.submit_button.clicked.connect(self.placeComboOrder)
         self.oco_button.clicked.connect(self.placeOcoOrder)
         self.step_button.clicked.connect(self.placeStepOrder)
 

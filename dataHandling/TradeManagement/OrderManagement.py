@@ -18,6 +18,7 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QObject, QReadWriteLock
 from ibapi.contract import Contract
 
 from dataHandling.Constants import Constants
+from dataHandling.IBConnectivityNew import IBConnectivity
 import time
 from ibapi.order import Order
 
@@ -51,7 +52,7 @@ class OpenOrderBuffer(QObject):
 
     def setOrder(self, order_id, order, contract):
 
-        new_order = order_id in self._orders
+        new_order = not(order_id in self._orders)
         self.order_buffer_signal.emit(Constants.DATA_WILL_CHANGE, order_id)
 
         if not (order_id in self._locks):
@@ -161,12 +162,13 @@ class OpenOrderBuffer(QObject):
 
     @pyqtSlot(int, dict)
     def orderUpdate(self, order_id, detail_object):
+        print(f"OpenOrderBuffer.orderUpdate {order_id} {detail_object}")
         if detail_object['status'] == 'Cancelled':
             self.removeOrder(order_id)
         elif detail_object['status'] == 'Filled' and ('remaining' in detail_object) and (detail_object['remaining'] == 0):
             self.removeOrder(order_id)
         elif 'order' in detail_object and 'contract' in detail_object:
-            # print(f"What is the parentId {detail_object['order'].parentId}")
+            print(f"We do set it no?")
             self.setOrder(order_id, detail_object['order'], detail_object['contract'])
 
 
@@ -185,22 +187,27 @@ class OpenOrderBuffer(QObject):
 
 
 
-class OrderManager(DataManager):
+class OrderManager(IBConnectivity, QObject):
 
     base_order_id = Constants.BASE_ORDER_REQID
 
     data_buffers = None
     stair_tracker = None
-    open_order_request = pyqtSignal()
     
+    order_update_signal = pyqtSignal(int, dict)
 
-    def __init__(self, callback=None):
-        super().__init__(callback, name="OrderManager")
+    def __init__(self, *args, name="OrderManager", stair_manager_on=True):
+        print("OrderManager.__init__")
+        IBConnectivity.__init__(self, *args, name=name)        
+        QObject.__init__(self)
 
         self.open_orders = OpenOrderBuffer()
         if stair_manager_on:
             self.stair_tracker = StairManager()
             self.stair_tracker.update_order_signal.connect(self.orderEdit, Qt.QueuedConnection)
+
+        self.connectSignalsToSlots()
+        self.trackAndBindOpenOrders()
 
 
     def getOrderBuffer(self):
@@ -211,14 +218,17 @@ class OrderManager(DataManager):
 
 
     def connectSignalsToSlots(self):
-        super().connectSignalsToSlots()
-        self.ib_interface.order_update_signal.connect(self.open_orders.orderUpdate, Qt.QueuedConnection)
-        self.open_order_request.connect(self.ib_interface.trackAndBindOpenOrders, Qt.QueuedConnection)
+        self.order_update_signal.connect(self.open_orders.orderUpdate, Qt.QueuedConnection)
 
         if self.stair_tracker is not None:
-            self.ib_interface.order_update_signal.connect(self.stair_tracker.orderUpdate, Qt.QueuedConnection)
+            self.order_update_signal.connect(self.stair_tracker.orderUpdate, Qt.QueuedConnection)
         
 
+    def trackAndBindOpenOrders(self):
+        print(f"IBConnectivity.trackAndBindOpenOrders {self.client_id}")
+        self.makeRequest({'type': 'reqOpenOrders'})
+        self.makeRequest({'type': 'reqAutoOpenOrders', 'reqAutoOpenOrders': True})
+    
 
     def setDataObject(self, data_buffers):
         self.data_buffers = data_buffers
@@ -235,7 +245,7 @@ class OrderManager(DataManager):
             request['order_id'] = order.orderId
             request['contract'] = contract
             request['order'] = order
-            self.ib_request_signal.emit(request)
+            self.makeRequest(request)
 
 
     def createLimitOrder(self, order_id, action, quantity, limit_price, gtd=None, parent_id=None):
@@ -259,7 +269,7 @@ class OrderManager(DataManager):
 
 
     def getNextOrderIDs(self, count=1):
-        next_order_id = self.ib_interface.next_order_ID
+        next_order_id = self.next_order_ID
         # print("OrderManager.getNextOrderIDs")
         
         # print("OrderManager.getNextOrderIDs 1")
@@ -305,7 +315,7 @@ class OrderManager(DataManager):
     @pyqtSlot(int)
     def cancelOrderByRow(self, row_index):
         order_id = self.open_orders.getOrderId(row_index)
-        self.ib_interface.cancelOrder(order_id, "")
+        self.cancelOrder(order_id, "")
 
 
     def cancelStairByRow(self, row_index):
@@ -314,14 +324,15 @@ class OrderManager(DataManager):
 
     def cancelAllOrders(self):
         # print("OrderManager.cancelAllOrders")
-        self.ib_request_signal({'type': 'reqGlobalCancel'})
+        self.makeRequest({'type': 'reqGlobalCancel'})
 
 
-##########################################
+    ##########################################
 
 
     @pyqtSlot(Contract, str, int, float, dict)
-    def placeOrder(self, contract, action, count, limit_price, exit_dict):
+    def placeComboOrder(self, contract, action, count, limit_price, exit_dict):
+        print("OrderManager.placeComboOrder")
         
         id_count = 1
         if 'profit_limit' in exit_dict: id_count += 1
@@ -424,7 +435,7 @@ class OrderManager(DataManager):
             # print(f"OrderManager.killStairTrade {current_ids}")
             if len(current_ids) > 0:
                 for order_id in current_ids:
-                    self.ib_request_signal.emit({'type': 'cancelOrder', 'order_id': order_id})
+                    self.makeRequest({'type': 'cancelOrder', 'order_id': order_id})
 
 
     @pyqtSlot(int, dict)
@@ -449,7 +460,23 @@ class OrderManager(DataManager):
             request['order_id'] = order_id
             request['contract'] = contract
             request['order'] = order
-            self.ib_request_signal.emit(request)
+            self.makeRequest(request)
+
+
+    ######TWS Callbacks
+
+
+    def orderStatus(self, orderId: int, status: str, filled: float, remaining: float, avgFillPrice: float, permId: int, parentId: int, lastFillPrice: float, clientId: int, whyHeld: str, mktCapPrice: float):
+        print("OrderManager.orderStatus")
+        super().orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice) 
+        self.order_update_signal.emit(orderId, {'status': status, 'filled': filled, 'remaining': remaining})
+        
+
+    def openOrder(self, orderId: int, contract: Contract, order: Order, orderState):
+        print("OrderManager.openOrder")
+        super().openOrder(orderId, contract, order, orderState)
+        self.order_update_signal.emit(orderId, {'order': order, 'contract': contract, 'status': orderState.status})
+
 
 
 class StairManager(QObject):

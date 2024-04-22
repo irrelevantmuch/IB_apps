@@ -14,50 +14,59 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt5.QtCore import Qt, pyqtSlot, QObject
 from ibapi.contract import Contract
 
 from .DataStructures import DetailObject
 from .Constants import Constants
-from .DataManagement import DataManager
+from .IBConnectivityNew import IBConnectivity
 
 
-class SymbolManager(DataManager):
+
+class SymbolManager(IBConnectivity, QObject):
 
     _item_list = set()
     sec_type = Constants.STOCK
 
 
-    def __init__(self, callback=None, name=None):
-        if name is None:
-            super().__init__(callback, name="SymbolManager")
+    def __init__(self, *args, **kwargs):
+        IBConnectivity.__init__(self, *args, **kwargs)
+        QObject.__init__(self)
+
+    ############# CALLBACKS
+
+    def contractDetails(self, req_id, contract_details):
+        print(f"SymbolManager.contractDetails {req_id}")
+        print(contract_details)
+        contract = contract_details.contract
+        
+        if contract.primaryExchange == "":
+            exchange = contract.exchange
         else:
-            super().__init__(callback, name=name)
+            exchange = contract.primaryExchange
 
-
-    def connectSignalsToSlots(self):
-        super().connectSignalsToSlots()
-        self.ib_interface.contract_details_signal.connect(self.relayContractDetails, Qt.QueuedConnection)
-        self.ib_interface.contract_details_finished_signal.connect(self.contractDetailFetchComplete, Qt.QueuedConnection)
-
-
-    @pyqtSlot(DetailObject)
-    def relayContractDetails(self, details):
-        self._item_list.add(details)
+        detailObject = DetailObject(symbol=contract.symbol, exchange=exchange, long_name=contract_details.longName, numeric_id=contract.conId, currency=contract.currency)
+        self._item_list.add(detailObject)
         self.api_updater.emit(Constants.CONTRACT_DETAILS_RETRIEVED, dict())
+        
 
-
-    def contractDetailFetchComplete(self):
+    def contractDetailsEnd(self, req_id: int):
+        print(f"SymbolManager.contractDetailsEnd {req_id}")
+        super().contractDetailsEnd(req_id)
         self.api_updater.emit(Constants.CONTRACT_DETAILS_FINISHED, dict())
 
+
+    ############# REQUESTS
 
     def requestContractDetails(self, symbol_name):
         contract = Contract()
         contract.symbol = symbol_name
         contract.secType = self.sec_type
         contract.exchange = Constants.SMART
-        self.ib_request_signal.emit({'type': 'reqContractDetails', 'req_id': Constants.SYMBOL_SEARCH_REQID, 'contract': contract})
+        self.makeRequest({'type': 'reqContractDetails', 'req_id': Constants.SYMBOL_SEARCH_REQID, 'contract': contract})
 
+
+    ############# HELPERS
 
     def setSelectedSectype(self, to_type):
         self.sec_type = to_type
@@ -65,6 +74,7 @@ class SymbolManager(DataManager):
 
     def hasNewItem(self):
         return len(self._item_list) != 0
+
 
     def getLatestItem(self):
         if self.hasNewItem():

@@ -49,18 +49,15 @@ class IBConnector:
             
 
     def getNewPositionManager(self):
-        position_manager = PositionDataManager()
-        position_manager.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
+        position_manager = PositionDataManager(self.local_address, int(self.trading_socket), self.next_id)
         position_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         self.startWorkerThread('position_manager', position_manager)
         return position_manager
         
 
     def getNewSymbolManager(self, identifier):
-        symbol_manager = SymbolManager(name=identifier)
-        symbol_manager.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
+        symbol_manager = SymbolManager(self.local_address, int(self.trading_socket), self.next_id, name=identifier)
         symbol_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
-        symbol_manager = symbol_manager
         self.startWorkerThread(identifier, symbol_manager)
         
         return symbol_manager
@@ -79,7 +76,7 @@ class IBConnector:
     def getIndicatorManager(self, indicators, data_object, **kwargs):
         if self.indicator_processor is None:
             self.indicator_processor = IndicatorProcessor(data_object, indicators, **kwargs)
-            self.startWorkerThread('general_indicator', self.indicator_processor, thread_priority=QThread.HighestPriority)
+            self.startWorkerThread('general_indicator', self.indicator_processor, run_function=self.indicator_processor.run, thread_priority=QThread.HighestPriority)
             
         return self.indicator_processor
 
@@ -95,8 +92,7 @@ class IBConnector:
         if identifier == 'general_history' and (self.history_manager is not None):
             history_manager = self.history_manager
         else:
-            history_manager = HistoricalDataManager()
-            history_manager.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
+            history_manager = HistoricalDataManager(self.local_address, int(self.trading_socket), self.next_id, name="HistoricalDataManager")
             history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
 
             self.startWorkerThread(identifier, history_manager)
@@ -116,7 +112,7 @@ class IBConnector:
         thread = QThread()
         worker.moveToThread(thread)
         if run_function is None:
-            thread.started.connect(worker.run)
+            thread.started.connect(worker.startConnection)
         else:
             thread.started.connect(run_function)
 
@@ -156,11 +152,11 @@ class IBConnector:
         if (self.order_manager is not None) and identifier == 'general_order_manager':
             return self.order_manager
         else:
-            order_manager = OrderManager()
+            
             if identifier == 'general_order_manager':
-                order_manager.setParameters(self.local_address, int(self.trading_socket), client_id=0)
+                order_manager = OrderManager(self.local_address, int(self.trading_socket), 0)
             else:
-                order_manager.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
+                order_manager = OrderManager(self.local_address, int(self.trading_socket), self.next_id)
             order_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
             self.startWorkerThread(identifier, order_manager)
                 
@@ -171,8 +167,7 @@ class IBConnector:
 
 
     def getOptionManager(self):
-        option_chain_manager = OptionChainManager()
-        option_chain_manager.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
+        option_chain_manager = OptionChainManager(self.local_address, int(self.trading_socket), self.next_id)
         option_chain_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
 
         self.startWorkerThread('option_manager', option_chain_manager)

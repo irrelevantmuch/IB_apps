@@ -84,12 +84,9 @@ class ComparisonDataWrapper(QObject):
 
 
     def updatePrimaryGraphData(self, data_dict, bar_type, forced_reset=False):
-        print(f"ComparisonDataWrapper.updatePrimaryGraphData {data_dict}")
-
         self.bar_type = bar_type
         updated_keys = set(data_dict.keys())
 
-        print(updated_keys)
         self._graph_data_lock.lockForWrite()
         if (not forced_reset) and self.isUpdate(updated_keys):
             self.primary_graph_dict.update(data_dict)
