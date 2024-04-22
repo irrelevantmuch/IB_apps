@@ -57,6 +57,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
 
     def updateConnectionStatus(self, status):
+        print(f"AppLauncher.updateConnectionStatus {status}")
         if status == Constants.CONNECTION_OPEN:
             self.statusbar.showMessage("Connection Open")
             self.toggleAppButtons(True, interface=self.data_source)

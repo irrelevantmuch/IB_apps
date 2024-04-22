@@ -18,12 +18,12 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QObject, QReadWriteLock
 from ibapi.contract import Contract
 
 from dataHandling.Constants import Constants
-from dataHandling.IBConnectivityNew import IBConnectivity
+from dataHandling.IBConnectivity import IBConnectivity
 import time
 from ibapi.order import Order
 
 import itertools
-from dataHandling.DataManagement import DataManager
+# from dataHandling.DataManagement import DataManager
 
 from functools import wraps
 
@@ -187,7 +187,7 @@ class OpenOrderBuffer(QObject):
 
 
 
-class OrderManager(IBConnectivity, QObject):
+class OrderManager(IBConnectivity):
 
     base_order_id = Constants.BASE_ORDER_REQID
 
@@ -198,8 +198,7 @@ class OrderManager(IBConnectivity, QObject):
 
     def __init__(self, *args, name="OrderManager", stair_manager_on=True):
         print("OrderManager.__init__")
-        IBConnectivity.__init__(self, *args, name=name)        
-        QObject.__init__(self)
+        super().__init__(*args, name=name)        
 
         self.open_orders = OpenOrderBuffer()
         if stair_manager_on:

@@ -13,22 +13,22 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QObject, QReadWriteLock, QAbstractTableModel, QSize
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QReadWriteLock, QAbstractTableModel, QSize, QObject
 from PyQt5 import QtCore
 # from math import isnan
 # from PyQt5.QtGui import QBrush, QColor
 from ibapi.contract import Contract
 
 from dataHandling.Constants import Constants
-from dataHandling.IBConnectivityNew import IBConnectivity
+from dataHandling.IBConnectivity import IBConnectivity
 
 import numpy as np
 import pandas as pd
 
-from dataHandling.DataManagement import DataManager
+# from dataHandling.DataManagement import DataManager
 
 
-class PositionDataManager(IBConnectivity, QObject):
+class PositionDataManager(IBConnectivity):
 
     daily_pnl = 0.0
     unrealized_pnl = 0.0
@@ -40,8 +40,7 @@ class PositionDataManager(IBConnectivity, QObject):
     account_number = None
     
     def __init__(self, *args, **kwargs):
-        IBConnectivity.__init__(self, *args, **kwargs)
-        QObject.__init__(self)
+        super().__init__(*args, **kwargs)
 
         self.data_object = PositionObject()
         self.account_updater.connect(self.data_object.accountUpdate, Qt.QueuedConnection)

@@ -19,19 +19,19 @@ from ibapi.contract import Contract
 
 from .DataStructures import DetailObject
 from .Constants import Constants
-from .IBConnectivityNew import IBConnectivity
+from .IBConnectivity import IBConnectivity
 
 
 
-class SymbolManager(IBConnectivity, QObject):
+class SymbolManager(IBConnectivity):
 
     _item_list = set()
     sec_type = Constants.STOCK
 
 
     def __init__(self, *args, **kwargs):
-        IBConnectivity.__init__(self, *args, **kwargs)
-        QObject.__init__(self)
+        super().__init__(*args, **kwargs)
+
 
     ############# CALLBACKS
 

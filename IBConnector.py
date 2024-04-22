@@ -23,10 +23,12 @@ from dataHandling.TradeManagement.PositionDataManagement import PositionDataMana
 from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
 from dataHandling.HistoryManagement.FinazonBufferedManager import FinazonBufferedDataManager 
 from dataHandling.OptionManagement.OptionChainManager import OptionChainManager
-from dataHandling.DataManagement import DataManager
+# from dataHandling.DataManagement import DataManager
+from dataHandling.IBConnectivity import IBConnectivity
 from dataHandling.SymbolManager import SymbolManager
 from dataHandling.Constants import Constants
 from pubsub import pub
+import time
 
 
 class IBConnector:
@@ -176,18 +178,28 @@ class IBConnector:
 
 
     def openConnection(self):
+        self.local_address = self.address_line.text()
+        self.trading_socket = self.socket_line.text()
+        
+        #     self.data_management = IBConnectivity(self.local_address, int(self.trading_socket), self.next_id)
+        
+        app = IBConnectivity(self.local_address, int(self.trading_socket), self.next_id, name="Connectivity.TEST")
+        app.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
+        app.startConnection()
+        
+        # Give some time to establish the connection
+        time.sleep(1)
+        
+        app.disconnect()
+        
+        # if self.data_management is None:
+            
+        #     self.data_thread = QThread()
+        #     self.data_management.moveToThread(self.data_thread)
+        #     self.data_thread.started.connect(self.data_management.startConnection)
+        #     self.data_thread.finished.connect(lambda: self.cleanupWorkerThread(identifier))
+        #     self.data_thread.start()
+        # else:
+        #     pub.sendMessage('log', message=f"Connection already established")
 
-        if self.data_management is None:
-            self.data_management = DataManager(callback=self.apiUpdate)
-            self.local_address = self.address_line.text()
-            self.trading_socket = self.socket_line.text()
-            self.data_management.setParameters(self.local_address, int(self.trading_socket), client_id=self.next_id)
-
-            self.data_thread = QThread()
-            self.data_management.moveToThread(self.data_thread)
-            self.data_thread.started.connect(self.data_management.run)
-            self.data_thread.finished.connect(lambda: self.cleanupWorkerThread(identifier))
-            self.data_thread.start()
-        else:
-            pub.sendMessage('log', message=f"Connection already established")
 

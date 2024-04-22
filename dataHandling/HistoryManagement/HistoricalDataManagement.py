@@ -41,10 +41,10 @@ from queue import Queue
 from dataHandling.HistoryManagement.DataBuffer import DataBuffers
 from dataHandling.DataStructures import DetailObject
 from dataHandling.Constants import Constants
-from dataHandling.IBConnectivityNew import IBConnectivity
+from dataHandling.IBConnectivity import IBConnectivity
 
 
-class HistoricalDataManager(IBConnectivity, QObject):
+class HistoricalDataManager(IBConnectivity):
     
     _uid_by_req = dict()
     _bar_type_by_req = dict()
@@ -76,8 +76,7 @@ class HistoricalDataManager(IBConnectivity, QObject):
 
     
     def __init__(self, *args, **kwargs):
-        IBConnectivity.__init__(self, *args, **kwargs)        
-        QObject.__init__(self)
+        super().__init__(*args, **kwargs)        
         self.data_buffers = DataBuffers(Constants.BUFFER_FOLDER)
 
 

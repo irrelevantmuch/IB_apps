@@ -31,7 +31,7 @@ from pytz import timezone
 
 from operator import attrgetter
 
-from dataHandling.IBConnectivityNew import IBConnectivity
+from dataHandling.IBConnectivity import IBConnectivity
 
 
 
@@ -41,7 +41,7 @@ from .ComputableOptionFrame import ComputableStrikeFrame, ComputableExpirationFr
 from .ComputableOptionFrame2D import Computable2DDataFrame, ReadOnlyFrameWrapper
 
 
-class OptionChainManager(IBConnectivity, QObject):
+class OptionChainManager(IBConnectivity):
 
     constr_type = OptionConstrType.single
     _expirations = []
@@ -84,8 +84,7 @@ class OptionChainManager(IBConnectivity, QObject):
 
 
     def __init__(self, *args):
-        IBConnectivity.__init__(self, *args, name="OptionChainManager")
-        QObject.__init__(self)
+        super().__init__(*args, name="OptionChainManager")
 
         self.strike_comp_frame = ComputableStrikeFrame(None, self.option_type)
         self.exp_comp_frame = ComputableExpirationFrame(None, self.option_type)

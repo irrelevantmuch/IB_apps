@@ -19,7 +19,7 @@ from ibapi.contract import Contract
 
 from .DataStructures import DetailObject
 from .Constants import Constants
-from .DataManagement import DataManager
+# from .DataManagement import DataManager
 
 
 from dataHandling.DataStructures import DetailObject
@@ -43,7 +43,7 @@ from pubsub import pub
 from threading import Thread
 
 
-class IBConnectivity(EClient, EWrapper):
+class IBConnectivity(EClient, EWrapper, QObject):
         
     api_updater = pyqtSignal(str, dict)
     
@@ -77,6 +77,7 @@ class IBConnectivity(EClient, EWrapper):
 
         
         EClient.__init__(self, self)
+        QObject.__init__(self)
 
 
     ################ General Requests
