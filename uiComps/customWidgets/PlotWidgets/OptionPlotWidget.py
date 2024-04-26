@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from PyQt5 import QtCore
+from PyQt5.QtCore import Qt
 import pyqtgraph as pg
 import numpy as np
 from generalFunctionality.GenFunctions import findNearest
@@ -23,13 +24,15 @@ from .StrikeLineObject import StrikeLineObject
 pg.setConfigOption("background", "w")
 
 class OptionPlotWidget(pg.PlotWidget):
-    
+
     range_multiplier = 1.4
     data_frame = None
 
-    def __init__(self, delegate, labels=['Price'], inverted=False):
+
+    def __init__(self, delegate, labels=['Price'], x_label="Strike", inverted=False):
         super().__init__()
 
+        self.x_label = x_label
         self.labels = labels
         self.delegate = delegate
         self.setupGraphs(inverted)
@@ -46,7 +49,6 @@ class OptionPlotWidget(pg.PlotWidget):
 
 
     def setupCurves(self):
-
         self.curve_bid = pg.PlotCurveItem()
         self.curve_ask = pg.PlotCurveItem()
         self.bid_ask_band = pg.FillBetweenItem(self.curve_ask, self.curve_bid, brush=(50,50,200,50))
@@ -72,26 +74,17 @@ class OptionPlotWidget(pg.PlotWidget):
 
 
     def mouseMoved(self, evt): 
-
         pos = evt[0]
         if self.sceneBoundingRect().contains(pos):
             mousePoint = self.plotItem.vb.mapSceneToView(pos)
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
 
-
-        if self.data_frame is not None:
+        if self.data_frame is not None and self.data_frame.has_data:
             pos = evt[0] 
             if self.sceneBoundingRect().contains(pos):
                 mousePoint = self.plotItem.vb.mapSceneToView(pos)
-                # print(self.data_frame.data_x)
-                # print(type(self.data_frame.data_x))
-                # print(self.data_frame.data_y)
-                # print(type(self.data_frame.data_y))
-                # print(self.data_frame.data_x.dtype)
-                # print(self.data_frame.data_y.dtype)
                 index, value = findNearest(self.data_frame.data_x, mousePoint.x())
-                # print(f"We find the the index {index} and value {value}")
                 if len(self.data_frame.data_y) == 1:
                     self.curvePoints.setPos(0)
                 else:
@@ -99,29 +92,17 @@ class OptionPlotWidget(pg.PlotWidget):
                 self.text_mid.setText(self.data_frame.data_x_names[index])
 
 
-    def updatePlot(self, strike_comp_frame):
+    def setDataObject(self, strike_comp_frame):
         self.data_frame = strike_comp_frame
-        
+        self.data_frame.frame_updater.connect(self.updatePlot, Qt.QueuedConnection)
+        self.updatePlot()
+
+
+    def updatePlot(self):
         if self.data_frame.has_data:
             pen = pg.mkPen(color=(80,80,80),width=5)
-            # print("I guess these suck?")
-            # print(self.data_frame._df)
-            # print(self.data_frame.data_x)
-            # print(self.data_frame.data_y)
-            # print(len(self.data_frame.data_x))
-            # print(len(self.data_frame.data_y))
-            # print(type(self.data_frame.data_x))
-            # print(type(self.data_frame.data_y))
-            # print(self.data_frame.data_x.dtype)
-            # print(self.data_frame.data_y.dtype)
-
-            # print(self.data_frame.data_y_lower)
-            # print(self.data_frame.data_y_upper)
-            # print(type(self.data_frame.data_y_lower))
-            # print(type(self.data_frame.data_y_upper))
-            # print(self.data_frame.data_y_lower.dtype)
-            # print(self.data_frame.data_y_upper.dtype)
-
+            print(f"{self.data_frame.data_x} {len(self.data_frame.data_x)}")
+            print(f"{self.data_frame.data_y} {len(self.data_frame.data_y)}")
             self.curve_mid.setData(self.data_frame.data_x, self.data_frame.data_y, pen=pen, clickable=True)
 
             if len(self.data_frame.data_y_lower) > 0 and len(self.data_frame.data_y_upper) > 0:
@@ -130,7 +111,6 @@ class OptionPlotWidget(pg.PlotWidget):
 
             self.setYRange(0, self.data_frame.data_y.max()*self.range_multiplier)
             
-
 
 class PremiumPlotWidget(OptionPlotWidget):
 
@@ -145,9 +125,8 @@ class PremiumPlotWidget(OptionPlotWidget):
         
         super().setupGraphs(inverted)
 
-        self.setLabels(left=self.labels[0], bottom='Days')
+        self.setLabels(left=self.labels[0], bottom=self.x_label)
         
-        # self.addPriceLine()
         pg.setConfigOption("background", "w")
         self.plotItem.vb.sigResized.connect(self.updateViews)
         self.updateViews()
@@ -166,6 +145,7 @@ class PremiumPlotWidget(OptionPlotWidget):
     def addPriceLine(self):
         self.price_line = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(200,200,200), width=3, style=QtCore.Qt.DashLine),movable=False)
         self.addItem(self.price_line)
+
 
     def addRightAxis(self, right_label):
         ## create a new ViewBox, link the right axis to its coordinate system
@@ -196,7 +176,7 @@ class PremiumPlotWidget(OptionPlotWidget):
 
             self.strike_object = StrikeLineObject(self, self.delegate)
             
-        if self.data_frame is not None and self.data_frame.has_data:
+        if (self.data_frame is not None) and self.data_frame.has_data:
             index = findNearest(self.data_frame.data_x, to_price)
             self.selected_strike = self.data_frame.data_x[index]
             self.strike_object.updatePosition(self.data_frame.data_x[index])

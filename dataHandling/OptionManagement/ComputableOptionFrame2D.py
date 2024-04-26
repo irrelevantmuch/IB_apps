@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import pyqtSignal, QObject, QReadWriteLock, Qt, QThread
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, QReadWriteLock, Qt, QThread
 from dataHandling.Constants import Constants, OptionConstrType
 
 import numpy as np
@@ -38,6 +38,10 @@ class Computable2DDataFrame(QObject):
     selected_exp = None
     selected_cost = None
 
+    minimum_strike = None
+    maximum_strike = None
+    minimum_expiration = None
+    maximum_expiration = None
 
     offsets = []
     ratios = [1]
@@ -66,7 +70,6 @@ class Computable2DDataFrame(QObject):
             self.recalculateData()
         finally:
             self._lock.unlock()
-        #TODO probably should signal an update or something?
 
         
     @property
@@ -128,7 +131,6 @@ class Computable2DDataFrame(QObject):
         if (self.selected_strike is not None) and (self.selected_cost is not None):
             offsets = self.selected_strike - for_strikes
             offsets = np.linspace(offsets.min(), offsets.max(), 200)
-            #offsets = list(reversed(self.selected_strike - for_strikes))
             y_coords = np.empty((len(offsets)))
             y_details = np.empty((len(offsets)))
 
@@ -156,7 +158,8 @@ class Computable2DDataFrame(QObject):
 
     def calculateStrikeGrouped(self, result_frame, for_strikes):
         print("Computable2DDataFrame.calculateStrikeGrouped  {int(QThread.currentThreadId())}")
-        for strike in for_strikes:
+        strike_gen = (strike for strike in for_strikes if self.withinStrikeRange(strike))
+        for strike in strike_gen:
             data_selection = result_frame.xs(strike, level='strike')
             data_selection = data_selection.sort_index()
 
@@ -170,9 +173,16 @@ class Computable2DDataFrame(QObject):
             self.data_points['strike_grouped'][strike] = {'display_name': f"${strike}",'x': x_coords, 'y': y_coords, 'y_detail': y_details}
 
 
+    def withinStrikeRange(self, strike):
+        if (self.minimum_strike is not None) and strike < self.minimum_strike:
+            return False
+        if (self.maximum_strike is not None) and strike > self.maximum_strike:
+            return False
+        return True
+
 
     def calculateExpirationGrouped(self, result_frame, for_strikes, for_expirations):
-        print("Computable2DDataFrame.calculateExpirationGrouped {int(QThread.currentThreadId())}")
+        print(f"Computable2DDataFrame.calculateExpirationGrouped {int(QThread.currentThreadId())}")
         x_coords = for_strikes
         y_coords = np.empty((len(for_strikes)))
         y_details = np.empty((len(for_strikes)))
@@ -182,7 +192,8 @@ class Computable2DDataFrame(QObject):
             y_details[index] = f"{y_coords[index]:.2f}"
         self.data_points['expiration_grouped'][-1] = {'display_name': f"-1 dte", 'x': x_coords, 'y': y_coords, 'y_detail': y_details}
 
-        for expiration in for_expirations:
+        exp_gen = (exp for exp in for_expirations if self.withinExpirationRange(exp))
+        for expiration in exp_gen:
             data_selection = result_frame.xs(expiration, level='days_till_exp')
             data_selection = data_selection.sort_index()
 
@@ -190,13 +201,17 @@ class Computable2DDataFrame(QObject):
             if self._order_type == Constants.SELL:
                 y_coords = 0 - y_coords
             self.data_points['expiration_grouped'][expiration] = {'display_name': f"{expiration} dte", 'x': data_selection.index, 'y': y_coords, 'y_detail': data_selection['price_detail'].values}
-            # print("But do we get lists per expiration?")
-            # print(self.data_points['expiration_grouped'][expiration])
+        
 
-
+    def withinExpirationRange(self, expiration):
+        if (self.minimum_expiration is not None) and expiration < self.minimum_expiration:
+            return False
+        if (self.maximum_expiration is not None) and expiration > self.maximum_expiration:
+            return False
+        return True
     
+
     def getEndPriceForStrike(self, constr_type, strike, offset=None):
-        print(f"Computable2DDataFrame.getEndPriceForStrike {int(QThread.currentThreadId())}")
         underlying_price = self._underlying_price
 
         if offset is not None:
@@ -227,7 +242,6 @@ class Computable2DDataFrame(QObject):
 
 
     def calculatePricesForCurrentConstruction(self):
-        print(f"Computable2DDataFrame.calculatePricesForCurrentConstruction {int(QThread.currentThreadId())}")
         index = pd.MultiIndex.from_tuples([], names=['days_till_exp', 'strike'])
         result_frame = pd.DataFrame({'combo_price': pd.Series(dtype='float'), 'price_detail': pd.Series(dtype='str')}, index=index)
     
@@ -271,8 +285,6 @@ class Computable2DDataFrame(QObject):
 
 
     def getLinesFor(self, for_type):
-
-        print(f"Computable2DDataFrame.getLinesFor {int(QThread.currentThreadId())}")
         self._lock.lockForRead()
         try:
             if for_type in self.data_points:
@@ -283,7 +295,6 @@ class Computable2DDataFrame(QObject):
 
 
     def priceForConstructionType(self, strikes, y_values):
-        print(f"Computable2DDataFrame.priceForConstructionType {int(QThread.currentThreadId())}")
         if self._constr_type == OptionConstrType.vertical_spread:
             strikes, price_diffs, strike_pairs = self.findPairs(strikes, y_values, self.offsets[0], self.ratios)
             return strikes, price_diffs, strike_pairs
@@ -300,9 +311,7 @@ class Computable2DDataFrame(QObject):
             return strikes, y_values, None
 
 
-    def findPairs(self, strikes, prices, price_diff, ratios):
-        print(f"Computable2DDataFrame.findPairs {int(QThread.currentThreadId())}")
-        
+    def findPairs(self, strikes, prices, price_diff, ratios):        
         if self._option_type == Constants.CALL:
             i, j = np.where(strikes - strikes[:, None] == price_diff)
         else:
@@ -317,7 +326,6 @@ class Computable2DDataFrame(QObject):
 
 
     def findTriplets(self, strikes, prices, price_diff, ratios):
-        print(f"Computable2DDataFrame.findTriplets {int(QThread.currentThreadId())}")
         
         #Create difference matrices
         diff_mat1 = strikes[:, None] - strikes #forward diff
@@ -333,7 +341,6 @@ class Computable2DDataFrame(QObject):
 
     def findCondors(self, strikes, prices, price_diff, price_spread, ratios):
 
-        print(f"Computable2DDataFrame.findCondors {int(QThread.currentThreadId())}")
         call_prices = prices[:,0]
         put_prices = prices[:,1]
         #Create difference matrices
@@ -349,7 +356,6 @@ class Computable2DDataFrame(QObject):
 
 
     def findQuartets(self, strikes, prices, price_diff, ratios):
-        print(f"Computable2DDataFrame.findQuartets {int(QThread.currentThreadId())}")
         n = len(strikes)
         quartets = []
 
@@ -391,8 +397,7 @@ class Computable2DDataFrame(QObject):
         return (self._constr_type == OptionConstrType.iron_condor)
 
     def getPricesByExpiration(self, exp_value):
-        print(f"Computable2DDataFrame.getPricesByExpiration {int(QThread.currentThreadId())}")
-
+        
         if self.isCallPutConstr():
             
             call_selection = self._price_frames[Constants.CALL].xs(exp_value, level='days_till_exp')
@@ -417,7 +422,6 @@ class Computable2DDataFrame(QObject):
 
 
     def getPricesByExpiration(self, exp_value):
-        print(f"Computable2DDataFrame.getPricesByExpiration {int(QThread.currentThreadId())}")
 
         if self.isCallPutConstr():
             
@@ -444,7 +448,6 @@ class Computable2DDataFrame(QObject):
 
 
     def setUnderlyingPrice(self, new_price):
-        print(f"WE DONT SET IT TO NONE? {new_price}")
         self._underlying_price = new_price
 
 
@@ -468,34 +471,63 @@ class Computable2DDataFrame(QObject):
         return min_exp, max_exp, min_strike, max_strike
 
 
-class ReadOnlyFrameWrapper:
-
-    def __init__(self, computable_frame):
-        self._computable_frame = computable_frame
-
-    def connectCallback(self, callback_function):
-        self._computable_frame.frame_updater.connect(callback_function, Qt.QueuedConnection)
-
-    @property
-    def has_data(self):
-        return self._computable_frame.has_data
-        
-    def getLinesFor(self, for_type):
-        return self._computable_frame.getLinesFor(for_type)
-
-
-    def getBoundaries(self):
-        return self._computable_frame.getBoundaries()
-
-    def getAvailableStrikes(self):
-        return self._computable_frame.getAvailableStrikes()
-
-    def setSelectedStrike(self, strike, expiration, cost):
-        self._computable_frame.selected_strike = strike
-        self._computable_frame.selected_exp = expiration
-        self._computable_frame.selected_cost = cost
-        self._computable_frame.recalculateData()
-
     def getUnderlyingPrice(self):
-        return self._computable_frame._underlying_price
+        return self._underlying_price
+
+
+    @pyqtSlot(float)
+    def setMinimumStrike(self, minimum_strike):
+        self.minimum_strike = minimum_strike
+        self.recalculateData()
+
+
+    @pyqtSlot(float)
+    def setMaximumStrike(self, maximum_strike):
+        self.maximum_strike = maximum_strike
+        self.recalculateData()
+
+    
+    @pyqtSlot(int)
+    def setMinimumExpiration(self, minimum_expiration):
+        self.minimum_expiration = minimum_expiration
+        self.recalculateData()
+
+    
+    @pyqtSlot(int)
+    def setMaximumExpiration(self, maximum_expiration):
+        self.maximum_expiration = maximum_expiration
+        self.recalculateData()
+
+
+# class ReadOnlyFrameWrapper:
+
+#     def __init__(self, computable_frame):
+#         self._computable_frame = computable_frame
+
+#     def connectCallback(self, callback_function):
+#         self._computable_frame.frame_updater.connect(callback_function, Qt.QueuedConnection)
+
+#     @property
+#     def has_data(self):
+#         return self._computable_frame.has_data
+        
+#     def getLinesFor(self, for_type):
+#         return self._computable_frame.getLinesFor(for_type)
+
+
+#     def getBoundaries(self):
+#         return self._computable_frame.getBoundaries()
+
+#     def getAvailableStrikes(self):
+#         return self._computable_frame.getAvailableStrikes()
+
+#     def setSelectedStrike(self, strike, expiration, cost):
+#         self._computable_frame.selected_strike = strike
+#         self._computable_frame.selected_exp = expiration
+#         self._computable_frame.selected_cost = cost
+#         self._computable_frame.recalculateData()
+
+#     def getUnderlyingPrice(self):
+#         return self._computable_frame._underlying_price
+
 

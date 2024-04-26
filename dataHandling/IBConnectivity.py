@@ -205,7 +205,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
 
     def makeRequest(self, request):
-        print(f"IBConnectivtyNew.makeRequest {request['type']}")
         self.request_queue.put(request)
         if (self.queue_timer is not None) and (not (self.queue_timer.isActive())) and self.readyForRequests():
             self.restart_timer.emit()
@@ -228,7 +227,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
 
     def processRequest(self, request):
-        print(f"IBConnectivtyNew.processRequest {request['type']}")
         req_type = request['type']
 
         if req_type == 'reqHistoricalData':
@@ -258,10 +256,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
         elif req_type == 'reqGlobalCancel':
             self.reqGlobalCancel()
         elif req_type == 'placeOrder':
-            print("IBConnectivtyNew.placeOrder")
-            print(type(request['order_id']))
-            print(type(request['contract']))
-            print(type(request['order']))
             self.placeOrder(request['order_id'], request['contract'], request['order'])
             self.makeRequest({'type': 'reqIds', 'num_ids': -1})
         elif request['type'] == 'cancelOrder':
@@ -269,8 +263,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
         elif req_type == 'reqMktData':
             self.reqMktData(request['req_id'], request['contract'], "", request['snapshot'], request['reg_snapshot'], [])
         elif req_type == 'reqContractDetails':
-            print(type(request['contract']))
-            print(request['contract'])
             self.reqContractDetails(request['req_id'], request['contract'])
         
         if 'req_id' in request:

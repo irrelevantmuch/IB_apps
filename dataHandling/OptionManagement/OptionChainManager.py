@@ -33,12 +33,10 @@ from operator import attrgetter
 
 from dataHandling.IBConnectivity import IBConnectivity
 
-
-
 from generalFunctionality.GenFunctions import isRegularTradingHours
 
 from .ComputableOptionFrame import ComputableStrikeFrame, ComputableExpirationFrame
-from .ComputableOptionFrame2D import Computable2DDataFrame, ReadOnlyFrameWrapper
+from .ComputableOptionFrame2D import Computable2DDataFrame
 
 
 class OptionChainManager(IBConnectivity):
@@ -58,19 +56,10 @@ class OptionChainManager(IBConnectivity):
 
     previous_count = 0
 
-    min_strike = None
-    max_strike = None
-    min_expiration  = None
-    max_expiration = None
-
-
     contract_def_ids = set()
-
-    mostly_threshold = 0.2
 
     _strike_data_frame = None
     _exp_data_frame = None
-
     _all_prices_frame = dict()
 
     fetching_all = False
@@ -86,23 +75,22 @@ class OptionChainManager(IBConnectivity):
     def __init__(self, *args):
         super().__init__(*args, name="OptionChainManager")
 
-        self.strike_comp_frame = ComputableStrikeFrame(None, self.option_type)
-        self.exp_comp_frame = ComputableExpirationFrame(None, self.option_type)
-        self.all_option_frame = Computable2DDataFrame(None, self.option_type)
+        self._strike_comp_frame = ComputableStrikeFrame(None, self.option_type)
+        self._exp_comp_frame = ComputableExpirationFrame(None, self.option_type)
+        self._all_option_frame = Computable2DDataFrame(None, self.option_type)
  
 
     def moveToThread(self, thread):
-        self.strike_comp_frame.moveToThread(thread)
-        self.exp_comp_frame.moveToThread(thread)
-        self.exp_comp_frame.moveToThread(thread)
+        self._strike_comp_frame.moveToThread(thread)
+        self._exp_comp_frame.moveToThread(thread)
+        self._all_option_frame.moveToThread(thread)
         super().moveToThread(thread)
 
 
     @pyqtSlot(DetailObject)
     @pyqtSlot(DetailObject, bool)
     def makeStockSelection(self, contract_details, active_management=True):
-        print("OptionChainManager.makeStockSelection")
-
+        
         self.contract_details = contract_details
         if isRegularTradingHours():
             self.reqMarketDataType(1)
@@ -112,8 +100,8 @@ class OptionChainManager(IBConnectivity):
             self.live_data_on = False
 
         uid = contract_details.numeric_id
+        
         if active_management: 
-            
             self.option_chain = self.readOptionChainInfo(uid)
             self.resetDataAndRequests()
             if len(self.option_chain) > 0:
@@ -126,30 +114,32 @@ class OptionChainManager(IBConnectivity):
                 self.fetchOptionContracts()
         else:
             self.option_chain = self.readOptionChainInfo(uid)
+
+                #if the option definitions are too old, we want to refetch
             if 'timestamp' in self.option_chain:
                 current_time_stamp = datetime.now(timezone(Constants.NYC_TIMEZONE)).timestamp()
                 if self.option_chain['timestamp'] < (current_time_stamp - Constants.SECONDS_IN_DAY):
                     self.fetchOptionContracts()
-                else:
-                    self.api_updater.emit(Constants.OPTION_INFO_LOADED, dict())
+                # else:
+                #     self.api_updater.emit(Constants.OPTION_INFO_LOADED, {'is_verified': False})
             else:
                 self.fetchOptionContracts()
 
 
     def getStrikeFrame(self): 
-        return ReadOnlyFrameWrapper(self.strike_comp_frame)
+        return self._strike_comp_frame
 
 
     def getExpirationFrame(self): 
-        return ReadOnlyFrameWrapper(self.strike_comp_frame)
+        return self._exp_comp_frame
     
 
     def getBufferedFrame(self): 
-        return ReadOnlyFrameWrapper(self.all_option_frame)
+        return self._all_option_frame
     
 
     def resetDataAndRequests(self):
-        self.all_option_frame.setData(None)
+        self._all_option_frame.setData(None)
         self._all_prices_frame = dict()
         index = pd.MultiIndex.from_tuples([], names=['days_till_exp', 'strike'])
         self._all_prices_frame[Constants.PUT] = pd.DataFrame({Constants.BID: pd.Series(dtype='float'), Constants.ASK: pd.Series(dtype='float'), Constants.CLOSE: pd.Series(dtype='float')}, index=index)
@@ -157,7 +147,6 @@ class OptionChainManager(IBConnectivity):
 
 
     def loadPricesFromFrame(self, uid):
-        print(f"OptionChainManager.loadPricesFromFrame {int(QThread.currentThreadId())}")
         if len(self.option_chain) > 0:
             expirations_to_remove = []
             chain_dict = self.option_chain['chains']
@@ -179,8 +168,8 @@ class OptionChainManager(IBConnectivity):
 
             if not(self._all_prices_frame[Constants.PUT].empty and self._all_prices_frame[Constants.CALL].empty):
                 if 'underlying_price' in self.option_chain:
-                    self.all_option_frame.setUnderlyingPrice(self.option_chain['underlying_price'])
-                self.all_option_frame.setData(self._all_prices_frame)
+                    self._all_option_frame.setUnderlyingPrice(self.option_chain['underlying_price'])
+                self._all_option_frame.setData(self._all_prices_frame)
 
                 self.api_updater.emit(Constants.OPTIONS_LOADED, dict())
 
@@ -199,20 +188,19 @@ class OptionChainManager(IBConnectivity):
                     self._contract_ids[opt_type, strike, exp_str] = self.option_chain['chains'][opt_type][exp_str][strike]['con_id']
 
                 self._strikes = list(strikes)
-        self.api_updater.emit(Constants.OPTION_INFO_LOADED, {'expirations': expiration_strings, 'strikes': list(strikes)})
+        self.api_updater.emit(Constants.OPTION_INFO_LOADED, {'expirations': expiration_strings, 'strikes': list(strikes), 'is_verified': True})
 
 
-    def returnOptionPrice(self, req_id, tick_type, option_price):
-        print(f"OptionChainManager.returnOptionPrice {req_id} {tick_type} {option_price}")
+    def optionTick(self, req_id, tick_type, option_price):
         if option_price != -1.0:
             if tick_type == Constants.BID or tick_type == Constants.ASK or tick_type == Constants.CLOSE: # or tick_type == Constants.LAST:
                 if self.isBufferRequest(req_id):
-                    self.addToBufferFrame(req_id, option_price, tick_type)
+                    self.addTo2dBufferFrame(req_id, option_price, tick_type)
                 elif self.isLiveRequest(req_id):
-                    self.addToLiveFrame(req_id, option_price, tick_type)
+                    self.addToSingularFrame(req_id, option_price, tick_type)
 
 
-    def addToBufferFrame(self, req_id, option_price, tick_type):
+    def addTo2dBufferFrame(self, req_id, option_price, tick_type):
 
         (opt_type, strike, expiration, contract_id) = self._type_strike_exp_for_req[req_id]
         self.option_chain['chains'][opt_type][expiration][strike][tick_type] = option_price
@@ -223,22 +211,20 @@ class OptionChainManager(IBConnectivity):
         self._all_prices_frame[opt_type].loc[(days_till_exp, strike), Constants.EXPIRATIONS] = expiration
         self._all_prices_frame[opt_type].loc[(days_till_exp, strike), Constants.NAMES] = self.getExpirationString(expiration)
         
-        # print(f"We got {len(self._all_option_reqs)} lefty")
-
         
-    def addToLiveFrame(self, req_id, option_price, tick_type):
+    def addToSingularFrame(self, req_id, option_price, tick_type):
         (strike, expiration) = self._strike_exp_for_req[req_id]
         if (self._selected_expiration is not None) and (expiration == self._selected_expiration):
             self._strike_data_frame.loc[strike, tick_type] = option_price
             self._strike_data_frame.sort_index(inplace=True)
-            self.strike_comp_frame.setData(self._strike_data_frame)
+            self._strike_comp_frame.setData(self._strike_data_frame)
         if (self._selected_strike is not None) and (strike == self._selected_strike):
             days_till_exp = self.getDaysTillExpiration(expiration)
             self._exp_data_frame.loc[days_till_exp, tick_type] = option_price
             self._exp_data_frame.loc[days_till_exp, Constants.EXPIRATIONS] = expiration
             self._exp_data_frame.loc[days_till_exp, Constants.NAMES] = self.getExpirationString(expiration)
             self._exp_data_frame.sort_index(inplace=True)
-            self.exp_comp_frame.setData(self._exp_data_frame)
+            self._exp_comp_frame.setData(self._exp_data_frame)
  
 
     def isLiveRequest(self, req_id):
@@ -249,10 +235,8 @@ class OptionChainManager(IBConnectivity):
         return req_id >= Constants.BASE_OPTION_BUFFER_REQID and (req_id < Constants.BASE_OPTION_BUFFER_REQID + Constants.REQID_STEP)
 
 
-
-    @pyqtSlot()
     def fetchOptionContracts(self):
-        print(f"OptionChainManager.fetchOptionContracts")
+
         self._contract_ids = dict()
 
         request = dict()
@@ -267,45 +251,47 @@ class OptionChainManager(IBConnectivity):
     def setExpirationsFrom(self, expirations_ib_str):
         days_till_exp = [self.getDaysTillExpiration(exp) for exp in expirations_ib_str]
         date_to_days = dict(zip(expirations_ib_str, days_till_exp))
-        # Sort unique_values using the date_to_days mapping
         self._expirations = sorted(expirations_ib_str, key=lambda x: date_to_days[x])
-        
 
 
-    @pyqtSlot(set, set)
-    def reportBackExpirations(self, expiration_set, strike_set):
-            print(f"OptionChainManager.reportBackExpirations {int(QThread.currentThreadId())}")
+    def securityDefinitionOptionParameter(self, req_id: int, exchange: str, underlyingConId: int, tradingClass: str, multiplier: str, expirations, strikes):
+        super().securityDefinitionOptionParameter(req_id, exchange, underlyingConId, tradingClass, multiplier, expirations, strikes)
+        if exchange == Constants.DEFAULT_OPT_EXC:
             self.contract_def_ids = set()
             
-            # self.expiration_set = []
-            # for index, expiration in enumerate(expiration_set):
-            #     next_id = Constants.OPTION_CONTRACT_DEF_ID + index + self.previous_count
-            #     self.expiration_set.append((next_id, expiration))
-            #     self.contract_def_ids.add(next_id)
+            self.exp_set = expirations
+            self.strike_set = strikes
 
-            # self.total_requests = len(expiration_set)
-            # self.previous_count += self.total_requests
-            # self.api_updater.emit(Constants.PROGRESS_UPDATE, {'total_requests': self.total_requests, 'request_type': 'option chain', 'open_requests': self.total_requests})
-            
-            self.strike_set = []
-            for index, strike in enumerate(strike_set):
+            self.api_updater.emit(Constants.OPTION_INFO_LOADED, {'expirations': self.exp_set, 'strikes': self.strike_set, 'is_verified': False})
+
+            self.req_list_exp = []
+            for index, expiration in enumerate(expirations):
                 next_id = Constants.OPTION_CONTRACT_DEF_ID + index + self.previous_count
-                self.strike_set.append((next_id, strike))
+                self.req_list_exp.append((next_id, expiration))
                 self.contract_def_ids.add(next_id)
 
-            self.total_requests = len(strike_set)
+            self.total_requests = len(expirations)
             self.previous_count += self.total_requests
             self.api_updater.emit(Constants.PROGRESS_UPDATE, {'total_requests': self.total_requests, 'request_type': 'option chain', 'open_requests': self.total_requests})
+            
+            # self.req_list_strikes = []
+            # for index, strike in enumerate(strikes):
+            #     next_id = Constants.OPTION_CONTRACT_DEF_ID + index + self.previous_count
+            #     self.req_list_strikes.append((next_id, strike))
+            #     self.contract_def_ids.add(next_id)
+
+            # self.total_requests = len(self.req_list_strikes)
+            # self.previous_count += self.total_requests
+            # self.api_updater.emit(Constants.PROGRESS_UPDATE, {'total_requests': self.total_requests, 'request_type': 'option chain', 'open_requests': self.total_requests})
 
             self.fetchContractsIds()
             
 
     def fetchContractsIds(self):
-        print("OptionChainManager.fetchContractsIds")
-        if len(self.strike_set) > 0:
+        if len(self.req_list_exp) > 0:
             
-            req_id, for_strike = self.strike_set.pop()
-            print(f"We are requesting expirations for {for_strike} {self.contract_details.symbol} {req_id}")
+            req_id, for_exp = self.req_list_exp.pop()
+            # req_id, for_strike = self.req_list_strikes.pop()
 
                 #make the contract
             contract = Contract()
@@ -315,8 +301,8 @@ class OptionChainManager(IBConnectivity):
             contract.underlyingConId = self.contract_details.numeric_id
             contract.multiplier = "100"
             contract.exchange = Constants.DEFAULT_OPT_EXC
-                #contract.lastTradeDateOrContractMonth = for_exp
-            contract.strike = for_strike
+            contract.lastTradeDateOrContractMonth = for_exp
+            # contract.strike = for_strike
             
                 #make request
             request = dict()
@@ -336,12 +322,6 @@ class OptionChainManager(IBConnectivity):
     def getExpirationString(self, expiration_date):
         datetime_obj = datetime.strptime(expiration_date, '%Y%m%d')
         return datetime_obj.date().strftime("%d %B %Y")
-
-
-    def getExpirationAt(self, index):
-        print(f"OptionChainManager.getExpirationAt {self._expirations[index]} for {index}")
-        print(self._expirations)
-        return self._expirations[index]
 
 
     def expirationsLoaded(self):
@@ -364,22 +344,14 @@ class OptionChainManager(IBConnectivity):
             if self.isOptionRequest(req_id):
                 self.option_error_signal.emit(req_id)
             
-            
-
-    def securityDefinitionOptionParameter(self, req_id: int, exchange: str, underlyingConId: int, tradingClass: str, multiplier: str, expirations, strikes):
-        super().securityDefinitionOptionParameter(req_id, exchange, underlyingConId, tradingClass, multiplier, expirations, strikes)
-        if exchange == Constants.DEFAULT_OPT_EXC:
-            self.reportBackExpirations(expirations, strikes)
 
 
     def contractDetails(self, req_id, contract_details):
-        print("OptionChainManager.contractDetails")
         contract = contract_details.contract
         self.relayOptionContractID(contract.right, contract.strike, contract.lastTradeDateOrContractMonth, contract.conId)
         
 
     def contractDetailsEnd(self, req_id: int):
-        print("OptionChainManager.contractDetailsEnd")
         super().contractDetailsEnd(req_id)
         
         self.contract_def_ids.remove(req_id)
@@ -399,21 +371,18 @@ class OptionChainManager(IBConnectivity):
             self.gatherOptionInfo()
             self.writeOptionChain(self.contract_details.numeric_id)
 
-            self.api_updater.emit(Constants.OPTION_INFO_LOADED, {'expirations': expiration_ib_str, 'strikes': self._strikes})
+            self.api_updater.emit(Constants.OPTION_INFO_LOADED, {'expirations': expiration_ib_str, 'strikes': self._strikes, 'is_verified': True})
         else:
             self.fetchContractsIds()
 
 
 
     def tickPrice(self, req_id, tickType, price, attrib):
-        print("OptionChainManager.tickPrice")
         tick_type_str = TickTypeEnum.to_str(tickType)
         if self.isOptionRequest(req_id):
-            print("isOptionRequest")
-            self.returnOptionPrice(req_id, tick_type_str, price)
-        else:
-            if tick_type_str == Constants.LAST:
-                self.price = price
+            self.optionTick(req_id, tick_type_str, price)
+        elif tick_type_str == Constants.LAST:
+            self.price = price
             self.latest_price_signal.emit(price, tick_type_str)
 
 
@@ -423,22 +392,6 @@ class OptionChainManager(IBConnectivity):
         self.signalSnapshotEnd(req_id)
 
 
-    # @pyqtSlot(str)
-    # def orderTypeChangedTo(self, order_type):
-    #     print(f"We change the order_type to {order_type}")
-    #     self.order_type = order_type
-    #     self.all_option_frame.setOrderType(order_type)
-
-
-    # @pyqtSlot(str)
-    # def optionStyleChangedTo(self, option_type):
-    #     self.option_type = option_type
-    #     self.all_option_frame.setOptionType(option_type)
-    #     # if self.expirationsLoaded():
-    #     #     self.cancelOptionRequests()
-    #     #     self.fetchContractsFor(self.contract_details)
-
-
     @pyqtSlot(str, str, str, list, list)
     def structureSelectionChanged(self, option_type, order_type, constr_value, offsets, ratios):
         self.option_type = option_type
@@ -446,7 +399,7 @@ class OptionChainManager(IBConnectivity):
         self.constr_type = OptionConstrType(constr_value)
         self.offsets = offsets
         self.ratios = ratios
-        self.all_option_frame.changeConstrType(option_type, order_type, self.constr_type, offsets, ratios)
+        self._all_option_frame.changeConstrType(option_type, order_type, self.constr_type, offsets, ratios)
 
 
 
@@ -458,14 +411,13 @@ class OptionChainManager(IBConnectivity):
 
 
     def updateExpirationSelection(self, to_value):
-        if self.expirationsLoaded() and self.newExpSelection(to_value):
+        if self.expirationsLoaded() and ((value != self._exp_selection) and value >= 0): #we want to ensure it's a new selection
             self._exp_selection = to_value
             self.cancelOptionRequests()
-            self.requestOptionDataByStrike(self.option_type)
+            self.requestOptionDataForStrike(self.option_type)
 
 
     def cancelOptionRequests(self, for_type=None):
-        print("TODO: FIX THIS ONCE WE HAVE SORTED WHAT WE WANTEd")
         if for_type is None or for_type == Constants.OPTION_DATA_STRIKE:
             for req_id in self._strike_option_reqs:
                 self.makeRequest({'type': 'cancelMktData', 'req_id': req_id})
@@ -475,20 +427,16 @@ class OptionChainManager(IBConnectivity):
             for req_id in self._exp_option_reqs:
                 self.makeRequest({'type': 'cancelMktData', 'req_id': req_id})
             self._exp_option_reqs = set()
-    
-
-    def newExpSelection(self, value):
-        return (value != self._exp_selection) and value >= 0
 
 
     def getContract(self, strike, expiration, constr_type=None):
-
         if constr_type is None:
-            constr_type == self.constr_type
+            constr_type = self.constr_type
 
         if constr_type == OptionConstrType.single:
             return self.getSingleContract(strike, expiration)
         else:
+            print("DO WE ACTUALLY USE THIS ONE?")
             return self.getSpreadContract(strike, expiration)
 
 
@@ -545,7 +493,6 @@ class OptionChainManager(IBConnectivity):
         self._strike_data_frame = pd.DataFrame({Constants.BID: pd.Series(dtype='float'), Constants.ASK: pd.Series(dtype='float'), Constants.CLOSE: pd.Series(dtype='float')})
         self._selected_expiration = for_exp
         strikes = self.getStrikesFor(for_exp)
-        # print(f"We check these strikes: {strikes}")
         for index, strike in enumerate(strikes):
 
             contract = self.getContract(strike, for_exp)
@@ -553,7 +500,7 @@ class OptionChainManager(IBConnectivity):
                 req_id = index + Constants.BASE_OPTION_LIVE_REQID
                 self._strike_option_reqs.add(req_id)
                 self._strike_exp_for_req[req_id] = (strike, for_exp)
-                self.request_buffer.append(OptionRequest(req_id, contract,(not self.live_data_on)))
+                self.request_buffer.append({'req_id': req_id, 'contract': contract, 'keep_up_to_date': (not self.live_data_on)})
 
         if execute:
             self.iterateOptionRequests()
@@ -562,9 +509,7 @@ class OptionChainManager(IBConnectivity):
     @pyqtSlot(float)
     @pyqtSlot(float, bool)
     def requestOptionDataForStrike(self, for_strike, execute=True):
-
-        # print(f"OptionChainManager.requestOptionDataForStrike {for_strike}")
-
+    
         self.cancelOptionRequests(for_type=Constants.OPTION_DATA_EXP)
         self._selected_strike = for_strike
 
@@ -580,7 +525,7 @@ class OptionChainManager(IBConnectivity):
                 req_id = index + int(Constants.BASE_OPTION_LIVE_REQID+Constants.REQID_STEP/2)
                 self._exp_option_reqs.add(req_id)
                 self._strike_exp_for_req[req_id] = (for_strike, expiration)
-                self.request_buffer.append(OptionRequest(req_id, contract,(not self.live_data_on)))
+                self.request_buffer.append({'req_id': req_id, 'contract': contract, 'keep_up_to_date': (not self.live_data_on)})
 
         if execute:
             self.iterateOptionRequests()
@@ -590,12 +535,11 @@ class OptionChainManager(IBConnectivity):
         uid = self.contract_details.numeric_id
         self.removeSavedOptionInfo(uid)
         self.option_chain = dict()
-        self.all_option_frame.setData(None)
+        self._all_option_frame.setData(None)
         self.fetchOptionContracts()
 
 
     def flushData(self):
-        print("We flush the data")
         self.resetDataAndRequests()
 
         uid = self.contract_details.numeric_id
@@ -610,60 +554,31 @@ class OptionChainManager(IBConnectivity):
                             if tick_type in chain_dict[opt_type][expiration][strike]:
                                 del self.option_chain['chains'][opt_type][expiration][strike][tick_type]
 
-            self.all_option_frame.setData(None)
+            self._all_option_frame.setData(None)
         self.writeOptionChain(self.contract_details.numeric_id)
 
 
 
-    def checkStrikeExpInRange(self, strike, expiration):
+    def strikeExpInDownloadRange(self, strike, expiration, min_strike, max_strike, min_expiration, max_expiration):
         days_till_exp = self.getDaysTillExpiration(expiration)
         
-        if self.min_strike is not None and strike < self.min_strike:
+        if (strike < min_strike) or (strike > max_strike):
             return False
-        if self.max_strike is not None and strike > self.max_strike:
-            return False
-        if self.min_expiration is not None and days_till_exp < self.min_expiration:
-            return False
-        if self.max_expiration is not None and days_till_exp > self.max_expiration:
+        if (days_till_exp < min_expiration) or (days_till_exp > max_expiration):
             return False
 
         return True
 
 
-    @pyqtSlot(float)
-    def setMinimumStrike(self, minimum_strike):
-        print(f"We set strike minimum to: {minimum_strike}")
-        self.min_strike = minimum_strike
-    
-    @pyqtSlot(float)
-    def setMaximumStrike(self, maximum_strike):
-        print(f"We set strike maximum to: {maximum_strike}")
-        self.max_strike = maximum_strike
-
-    
-    @pyqtSlot(int)
-    def setMinimumExpiration(self, minimum_expiration):
-        print(f"We set expiration minium to: {minimum_expiration}")
-        self.min_expiration = minimum_expiration
-
-    
-    @pyqtSlot(int)
-    def setMaximumExpiration(self, maximum_expiration):
-        print(f"We set expiration maximum to: {maximum_expiration}")
-        self.max_expiration = maximum_expiration
-
-
-
     @pyqtSlot(list)
-    def requestForAllStrikesAndExpirations(self, option_types, execute=True):
-        print(f"OptionChainManager.requestForAllStrikesAndExpirations {execute}")
-
+    def requestForAllStrikesAndExpirations(self, option_types, min_strike, max_strike, min_expiration, max_expiration):
+        
         self.fetching_all = True
         counter = 0
         
         for (opt_type, strike, expiration), contract_id in self._contract_ids.items():
 
-            if (opt_type in option_types) and self.checkStrikeExpInRange(strike, expiration):
+            if (opt_type in option_types) and self.strikeExpInDownloadRange(strike, expiration, min_strike, max_strike, min_expiration, max_expiration):
                 contract = self.getContract(strike, expiration, OptionConstrType.single)
                 contract.right = opt_type
                 contract.conId = contract_id
@@ -672,7 +587,7 @@ class OptionChainManager(IBConnectivity):
                 
                 self._type_strike_exp_for_req[req_id] = (opt_type, strike, expiration, contract_id)
                 
-                self.request_buffer.append(OptionRequest(req_id, contract,True))
+                self.request_buffer.append({'req_id': req_id, 'contract': contract, 'keep_up_to_date': True})
                 counter += 1
 
         if execute:
@@ -684,7 +599,6 @@ class OptionChainManager(IBConnectivity):
 
     def getStrikesFor(self, expiration):
         return [key[1] for key in self._contract_ids.keys() if key[2] == expiration]
-
 
 
     def hasQueuedRequests(self):     
@@ -710,12 +624,11 @@ class OptionChainManager(IBConnectivity):
                 request['type'] = 'reqMktData'
                 request['snapshot'] = True #self.snapshot
                 request['reg_snapshot'] = False
-                request['req_id'] = opt_req.req_id
-                request['contract'] = opt_req.contract
-                request['keep_up_to_date'] = opt_req.keep_updating
+                request['req_id'] = opt_req['req_id']
+                request['contract'] = opt_req['contract']
+                request['keep_up_to_date'] = opt_req['keep_up_to_date']
                 self.makeRequest(request)
         if len(self.request_buffer) == 0:
-            print("All requests have been submitted")
             self.timer.stop()
 
 
@@ -761,19 +674,6 @@ class OptionChainManager(IBConnectivity):
                 return option_inf
         except (IOError, OSError) as e:
             return dict()
-    
-
-    def findExpirationIndex(self, expiration):
-        try:
-            return self._expirations.index(expiration)
-        except ValueError:
-            return -1
-
-
-
-    @pyqtSlot()
-    def contractDetailFetchComplete(self):
-        self.api_updater.emit(Constants.CONTRACT_DETAILS_FINISHED, dict())
 
 
     @pyqtSlot(int)
@@ -785,8 +685,8 @@ class OptionChainManager(IBConnectivity):
                 self.api_updater.emit(Constants.PROGRESS_UPDATE, {'request_type': 'price', 'open_requests': len(self._all_option_reqs), 'total_requests': self.total_requests})
 
             if (len(self._all_option_reqs) % 200) == 0:
-                self.all_option_frame.setUnderlyingPrice(self.price)
-                self.all_option_frame.setData(self._all_prices_frame)
+                self._all_option_frame.setUnderlyingPrice(self.price)
+                self._all_option_frame.setData(self._all_prices_frame)
 
             if len(self._all_option_reqs) % 200 == 0:
                 self.option_chain['underlying_price'] = self.price
@@ -797,11 +697,20 @@ class OptionChainManager(IBConnectivity):
 
 
 
-class OptionRequest:
 
-    def __init__(self, req_id, contract, keep_updating=False):
-        self.req_id = req_id
-        self.contract = contract
-        self.keep_updating = keep_updating
 
+    # @pyqtSlot(str)
+    # def orderTypeChangedTo(self, order_type):
+    #     print(f"We change the order_type to {order_type}")
+    #     self.order_type = order_type
+    #     self._all_option_frame.setOrderType(order_type)
+
+
+    # @pyqtSlot(str)
+    # def optionStyleChangedTo(self, option_type):
+    #     self.option_type = option_type
+    #     self._all_option_frame.setOptionType(option_type)
+    #     # if self.expirationsLoaded():
+    #     #     self.cancelOptionRequests()
+    #     #     self.fetchContractsFor(self.contract_details)
 

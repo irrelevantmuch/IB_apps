@@ -66,8 +66,8 @@ class OptionAllPlotWidget(pg.PlotWidget):
         self.setLabels(left='Option Price', bottom=bottom_label)
 
 
-    def setupCurves(self):
-
+    def updatePlot(self):
+        self.clear()
         self.plotItem.legend.setColumnCount(7)
         self.plotItem.legend.setOffset((30,5))
         if self.legend_alignment == 'right':
@@ -75,49 +75,63 @@ class OptionAllPlotWidget(pg.PlotWidget):
         elif self.legend_alignment == 'left':
             self.plotItem.legend.setOffset((1, 1))
 
-        print("I'm guessing we will be kept waiting?")
-        self.curve_data = self.option_frame.getLinesFor(self.plot_type)
-        print("duurt lang")
             
-        if self.curve_data is not None:
-            # print("Any hope?")
-            # print(len(self.curve_data))
-            
-            self.curve_data = self.filterCurves(self.curve_data)
+        self.curve_mid = dict()
+        self.curve_hooks = dict()
 
-            self.curve_hooks = dict()
+        if self.option_frame.has_data:
+            self.curve_data = self.option_frame.getLinesFor(self.plot_type)
 
-            if -1 in self.curve_data:
-                color_list = [(200,200,200)] + self.generateColorList(len(self.curve_data)-1)
-            else:
-                color_list = self.generateColorList(len(self.curve_data))
-            #print(len(self.curve_data))
-
-            for index, (data_name, data_line) in enumerate(self.curve_data.items()):
-
-                #print(f"For curve #{index} ({data_name}) we get {data_line['x']} and {data_line['y']}")
+            if self.curve_data is not None:
                 
-                pen = pg.mkPen(color=color_list[index],width=2)
-                if len(data_line['x']) > 0:    
-                    try:
-                        has_plots = True
-                        start_plot = time.time()
-                        curve_mid = self.plot(data_line['x'], data_line['y'], pen=pen, symbol='o', symbolPen=pen, name=data_line['display_name'])
-                        curve_mid.setSymbolSize(1)
-                        self.curve_hooks[data_name] = pg.CurvePoint(curve_mid)
+                self.curve_data = self.filterCurves(self.curve_data)
+                
+                if -1 in self.curve_data:
+                    color_list = [(200,200,200)] + self.generateColorList(len(self.curve_data)-1)
+                else:
+                    color_list = self.generateColorList(len(self.curve_data))
+            
+                for index, (data_name, data_line) in enumerate(self.curve_data.items()):
+
+                    pen = pg.mkPen(color=color_list[index],width=2)
+                    if len(data_line['x']) > 0:
+                        self.curve_mid[data_name] = self.plot(data_line['x'], data_line['y'], pen=pen, symbol='o', symbolPen=pen, name=data_line['display_name'])
+                        self.curve_mid[data_name].setSymbolSize(1)
+                        self.curve_hooks[data_name] = pg.CurvePoint(self.curve_mid[data_name])
                         self.addItem(self.curve_hooks[data_name])
-                    except TypeError as e:
-                        print(f"If only we got here once...: {e}")    
+                    
+        self.arrow_mid = pg.ArrowItem(angle=240,pen=(255,255,0),brush=(255,0,0))
+        self.text_mid = pg.TextItem('',color=(80,80,80),fill=pg.mkBrush('w'),anchor=(0.5,2.0))
 
-            self.arrow_mid = pg.ArrowItem(angle=240,pen=(255,255,0),brush=(255,0,0))
-            self.text_mid = pg.TextItem('',color=(80,80,80),fill=pg.mkBrush('w'),anchor=(0.5,2.0))
-
-            if self.plot_type == 'price_est':
-                self.updateBackground()
+        if self.plot_type == 'price_est':
+            self.updateBackground()
 
 
+        # print("OptionAllPlotWidget.updatePlot")
+        # if self.option_frame.has_data:
+        #     self.curve_data = self.option_frame.getLinesFor(self.plot_type)
+                
+        #     if self.curve_data is not None:
+                
+        #         self.curve_data = self.filterCurves(self.curve_data)
+        #         if -1 in self.curve_data:
+        #             color_list = [(200,200,200)] + self.generateColorList(len(self.curve_data)-1)
+        #         else:
+        #             color_list = self.generateColorList(len(self.curve_data))
+                
 
-
+        #         for index, (data_name, data_line) in enumerate(self.curve_data.items()):
+        #             if data_name in self.curve_mid:
+        #                 self.curve_mid[data_name].setData(data_line['x'], data_line['y'])
+        #                 self.curve_hooks[data_name] = pg.CurvePoint(self.curve_mid[data_name])
+        #             else:
+        #                 pen = pg.mkPen(color=color_list[index],width=2)
+        #                 if len(data_line['x']) > 0:
+        #                     self.curve_mid[data_name] = self.plot(data_line['x'], data_line['y'], pen=pen, symbol='o', symbolPen=pen, name=data_line['display_name'])
+        #                     self.curve_mid[data_name].setSymbolSize(1)
+        #                     self.curve_hooks[data_name] = pg.CurvePoint(self.curve_mid[data_name])
+        #                     self.addItem(self.curve_hooks[data_name])
+                        
 
     def updateBackground(self, y=0.0):
 
@@ -136,7 +150,6 @@ class OptionAllPlotWidget(pg.PlotWidget):
         bottom_region.setRegion([-100, 0])
 
         
-
     
     def filterCurves(self, curve_data):
         
@@ -153,34 +166,6 @@ class OptionAllPlotWidget(pg.PlotWidget):
         return curve_data
 
 
-    # def drawBackground(self, painter: QPainter, rect: QRectF):
-
-    #     if self.plot_type == 'price_est':
-    #         print(f"What is this rect? {rect}")
-
-    #         # Set the default background color
-    #         painter.fillRect(rect, Qt.white)
-
-    #         # Iterate through items in the scene and color the background based on y-value
-    #         for item in self.scene().items():
-    #             print(item)
-
-    #             if hasattr(item, 'y_value'):
-    #                 print(item.y_value)
-    #                 if item.y_value > 0:
-    #                     background_color = QColor(200, 255, 200)  # Light green for positive values
-    #                 else:
-    #                     background_color = QColor(255, 200, 200)  # Light red for negative values
-
-    #                 # Calculate the item's rectangle in view coordinates
-    #                 item_rect = self.mapFromScene(item.sceneBoundingRect())
-
-    #                 # Fill the background with the appropriate color
-    #                 painter.fillRect(item_rect, QBrush(background_color))
-    #     else:
-    #         super().drawBackground(painter, rect)
-
-
     def setPriceLine(self, price):
         # if self.price_line is None:
         self.price_line = pg.InfiniteLine(pos=price, angle=90, pen=pg.mkPen(color=(160,160,160), width=2, style=Qt.DashLine),movable=True)
@@ -188,8 +173,7 @@ class OptionAllPlotWidget(pg.PlotWidget):
         self.price_line.sigPositionChangeFinished.connect(self.enableMouseMovedSignal)
 
         self.addItem(self.price_line)
-       # else:
-       #     self.price_line.setPos(price)
+       
 
     # Define a function to temporarily disconnect the sigMouseMoved signal
     def disableMouseMovedSignal(self):
@@ -215,16 +199,17 @@ class OptionAllPlotWidget(pg.PlotWidget):
         self.addItem(self.hLine,ignoreBounds=True)
         
 
-    def resetData(self, option_frame):
+    def setDataObject(self, option_frame):
+        print(f"OptionAllPlotWidget.setDataObject {option_frame}")
         self.clear()
         self.curve_data = dict()
         self.curve_hooks = dict()
         self.addCrossHair()
         self.setPriceLine(option_frame.getUnderlyingPrice())
         self.option_frame = option_frame
-        if (option_frame is not None) and option_frame.has_data:
-            self.setupCurves()
-        
+        self.option_frame.frame_updater.connect(self.updatePlot, Qt.QueuedConnection)
+        self.updatePlot()
+
 
     def findNearestDataPoint(self, mouse_x, mouse_y):
         closest_distance = float('inf')  # start with a very high distance
@@ -349,20 +334,6 @@ class OptionAllPlotWidget(pg.PlotWidget):
                 # self.curve_low.setData(index_data, low_data)
                 # self.curve_high.setData(index_data, high_data)
                 # found_match = True
-
-    # def updatePlot(self, strike_comp_frame):
-    #     pass
-        # self.data_frame = strike_comp_frame
-        
-        # if self.data_frame.has_data:
-        #     pen = pg.mkPen(color=(80,80,80),width=5)
-        #     self.curve_mid.setData(self.data_frame.data_x, self.data_frame.data_y, pen=pen, clickable=True)
-
-        #     if len(self.data_frame.data_y_lower) > 0 and len(self.data_frame.data_y_upper) > 0:
-        #         self.curve_ask.setData(self.data_frame.data_x, self.data_frame.data_y_lower)
-        #         self.curve_bid.setData(self.data_frame.data_x, self.data_frame.data_y_upper)
-
-        #     self.setYRange(0, self.data_frame.data_y.max()*self.range_multiplier)
 
 
     def setMinimumKey(self, min_key):

@@ -86,9 +86,6 @@ class OptionPositions(OptionPositionWindow):
         elif signal == Constants.UNDERLYING_PRICE_UPDATE:
             if self.current_tab is not None:
                 self.current_tab.setPrice(self.position_manager.price)
-        elif signal == Constants.CONTRACT_DETAILS_FINISHED:
-            while self.position_manager.hasNewItem():
-                item = self.position_manager.getLatestItem()
                 
 
     def createRectPixmap(self, col=QtGui.QColor(240,50,50)):

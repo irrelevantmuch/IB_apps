@@ -24,7 +24,7 @@
 
 
 from PyQt5.QtWidgets import QMainWindow
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSlot, pyqtSignal
 from dataHandling.Constants import Constants, OptionConstrType
 from uiComps.qtGeneration.Visualization_UI import Ui_MainWindow as Visualization_UI
 from datetime import datetime
@@ -38,17 +38,18 @@ from uiComps.customWidgets.PlotWidgets.OptionAllPlotWidget import OptionAllPlotW
 
 class VisualizationWindow(QMainWindow, Visualization_UI, SymbolFinderImplementation):
 
-    # no_strike_set = True
-    # selected_strike = None
-    # data_exp_mid = None
-    # data_strike_mid = None
-    # price = None
+
     constr_types = [OptionConstrType.single, OptionConstrType.vertical_spread, OptionConstrType.butterfly, OptionConstrType.split_butterfly, OptionConstrType.iron_condor, OptionConstrType.topped_ratio_spread]
 
     min_exp = None
     max_exp = None
     min_strike = None
     max_strike = None
+
+    min_all_strike = pyqtSignal(float)
+    max_all_strike = pyqtSignal(float)
+    min_all_expiration = pyqtSignal(int)
+    max_all_expiration = pyqtSignal(int)
         
 
     def __init__(self):
@@ -64,7 +65,7 @@ class VisualizationWindow(QMainWindow, Visualization_UI, SymbolFinderImplementat
         self.populateBoxes()
         self.setupGraphs()
         self.disableInterface() 
-
+        self.fetch_all_button.setEnabled(False)
 
         
     def populateBoxes(self):
@@ -72,15 +73,9 @@ class VisualizationWindow(QMainWindow, Visualization_UI, SymbolFinderImplementat
             self.structure_type.addItem(item.value)
 
 
-    # def setDefaults(self, option_type):
-    #     if option_type == Constants.CALL:
-    #         self.call_button.setChecked(True)
-    #     elif option_type == Constants.PUT:
-    #         self.put_button.setChecked(True)
-
-
     def connectActions(self):
         self.expiration_box.currentIndexChanged.connect(self.expirationSelectionChange)
+        self.strike_box.currentIndexChanged.connect(self.strikeSelectionChange)
         self.structure_type.currentTextChanged.connect(self.structureSelectionChanged)
         self.call_put_group.buttonClicked.connect(self.callPutAction)
         self.buy_sell_group.buttonClicked.connect(self.buySellAction)
@@ -91,11 +86,7 @@ class VisualizationWindow(QMainWindow, Visualization_UI, SymbolFinderImplementat
         self.base_ratio_box.valueChanged.connect(self.constructionPropsChange)
         self.upper_ratio_box.valueChanged.connect(self.constructionPropsChange)
         self.lower_ratio_box.valueChanged.connect(self.constructionPropsChange)
-        self.min_strike_box.currentIndexChanged.connect(self.minStrikeChange)
-        self.max_strike_box.currentIndexChanged.connect(self.maxStrikeChange)
-        self.min_exp_box.currentIndexChanged.connect(self.minExpChange)
-        self.max_exp_box.currentIndexChanged.connect(self.maxExpChange)
-
+        
         self.min_strike_plt_box.currentIndexChanged.connect(self.minStrikePlotChange)
         self.max_strike_plt_box.currentIndexChanged.connect(self.maxStrikePlotChange)
         self.min_exp_plt_box.currentIndexChanged.connect(self.minExpPlotChange)
@@ -112,30 +103,17 @@ class VisualizationWindow(QMainWindow, Visualization_UI, SymbolFinderImplementat
 
         self.exp_grouped_plot = OptionAllPlotWidget(self, 'expiration_grouped', 'Strike Price ($)', legend_alignment='right')
         self.exp_grouped_plot_layout.addWidget(self.exp_grouped_plot)
-                # Remove x-axis of the top plot
-        # self.exp_grouped_plot.hideAxis('bottom')
-
-        # self.exp_grouped_rel_plot = OptionAllPlotWidget('expiration_grouped', 'Strike Price', legend_alignment='right', difference_plot=True)
-        # self.exp_grouped_plot_layout.addWidget(self.exp_grouped_rel_plot)        
-        # self.exp_grouped_plot.setXLink(self.exp_grouped_rel_plot)
-
-        # self.exp_diff_grouped_rel_plot = OptionAllPlotWidget('expiration_diffs', 'Strike Price', legend_alignment='right', difference_plot=True)
-        # self.exp_diff_grouped_layout.addWidget(self.exp_diff_grouped_rel_plot)
-        # self.exp_diff_grouped_plot.setXLink(self.exp_diff_grouped_rel_plot)
-
+ 
         
         self.strike_grouped_plot = OptionAllPlotWidget(self, 'strike_grouped', 'Days Till Expiriation', legend_alignment='left')
         self.strike_grouped_plot_layout.addWidget(self.strike_grouped_plot)
-        
-        # self.verticalLayout_2.setStretch(0, 1)
-        # self.verticalLayout_2.setStretch(1, 6)
-        # self.verticalLayout_2.setStretch(2, 1)
-        # self.verticalLayout_2.setStretch(3, 6)
+
 
         self.price_est_plot = OptionAllPlotWidget(self, 'price_est', 'Price Movement ($)', legend_alignment='right')
         self.pl_layout.addWidget(self.price_est_plot)
 
         
+
     
     def updatePlotPrice(self, price):
         pass
@@ -153,11 +131,10 @@ class VisualizationWindow(QMainWindow, Visualization_UI, SymbolFinderImplementat
     def toggleInterface(self, enabled):
         self.resetInputBoxes(self.constr_type)
         self.expiration_box.setEnabled(enabled)
+        self.strike_box.setEnabled(enabled)
 
 
     def updateOptionGUI(self, expirations, strikes):
-        print("Visualization_UI.updateOptionGUI")
-        print("How often do we come here?")
         self.applySignalBlock(True)
         self.clearOptionGUI()
         self.populateExpirationBoxes(expirations)
@@ -168,6 +145,7 @@ class VisualizationWindow(QMainWindow, Visualization_UI, SymbolFinderImplementat
 
     def applySignalBlock(self, value):
         self.expiration_box.blockSignals(value)
+        self.strike_box.blockSignals(value)
         
 
         self.min_exp_plt_box.blockSignals(value)
@@ -175,12 +153,6 @@ class VisualizationWindow(QMainWindow, Visualization_UI, SymbolFinderImplementat
         self.min_strike_plt_box.blockSignals(value)
         self.max_strike_plt_box.blockSignals(value)
         
-        
-        # self.min_exp_box.blockSignals(value)
-        # self.max_exp_box.blockSignals(value)
-        # self.min_strike_box.blockSignals(value)
-        # self.max_strike_box.blockSignals(value)
-
 
     def setGUIValues(self, boundaries):
         min_exp, max_exp, min_strike, max_strike = boundaries
@@ -195,6 +167,7 @@ class VisualizationWindow(QMainWindow, Visualization_UI, SymbolFinderImplementat
 
     def clearOptionGUI(self):
         self.expiration_box.clear()
+        self.strike_box.clear()
 
         self.min_exp_box.clear()
         self.max_exp_box.clear()        
@@ -206,44 +179,21 @@ class VisualizationWindow(QMainWindow, Visualization_UI, SymbolFinderImplementat
         self.min_exp_plt_box.clear()
         self.max_exp_plt_box.clear()
 
-        
-        
 
-    @pyqtSlot(int)
-    def minStrikeChange(self, value):
-        self.min_strike_signal.emit(self.strike_pairs[value][0])
-    
-    @pyqtSlot(int)
-    def maxStrikeChange(self, value):
-        self.max_strike_signal.emit(self.strike_pairs[value][0])
-    
-    @pyqtSlot(int)
-    def minExpChange(self, value):
-        self.min_expiration_signal.emit(self.expiration_pairs[value][0])
-    
-    @pyqtSlot(int)
-    def maxExpChange(self, value):
-        self.max_expiration_signal.emit(self.expiration_pairs[value][0])
-
-
-    @pyqtSlot(int)
     def minStrikePlotChange(self, value):
-        self.strike_grouped_plot.setMinimumKey(self.strike_pairs[value][0])
-    
+        self.min_all_strike.emit(self.strike_pairs[value][0])
 
-    @pyqtSlot(int)
+
     def maxStrikePlotChange(self, value):
-        self.strike_grouped_plot.setMaximumKey(self.strike_pairs[value][0])
-    
+        self.max_all_strike.emit(self.strike_pairs[value][0])
 
-    @pyqtSlot(int)
+
     def minExpPlotChange(self, value):
-        self.exp_grouped_plot.setMinimumKey(self.expiration_pairs[value][0])
-    
+        self.min_all_expiration.emit(self.expiration_pairs[value][0])
 
-    @pyqtSlot(int)
+
     def maxExpPlotChange(self, value):
-        self.exp_grouped_plot.setMaximumKey(self.expiration_pairs[value][0])
+        self.max_all_expiration.emit(self.expiration_pairs[value][0])
 
 
     def populateStrikeBoxes(self, strikes):
@@ -251,6 +201,8 @@ class VisualizationWindow(QMainWindow, Visualization_UI, SymbolFinderImplementat
         self.strike_pairs = list(sorted(zip(strikes, strike_strings)))
         sorted_strike_strings = [item[1] for item in self.strike_pairs]
         sorted_strikes = [item[0] for item in self.strike_pairs]
+
+        self.strike_box.addItems(sorted_strike_strings)
 
         self.min_strike_box.addItems(sorted_strike_strings)
         self.max_strike_box.addItems(sorted_strike_strings)
@@ -285,6 +237,7 @@ class VisualizationWindow(QMainWindow, Visualization_UI, SymbolFinderImplementat
 
         
         self.expiration_box.addItems(sorted_expiration_strings)
+
         self.min_exp_box.addItems(sorted_expiration_strings)
         self.max_exp_box.addItems(sorted_expiration_strings)
         self.max_exp_box.setCurrentIndex(len(sorted_expiration_strings)-1)

@@ -318,7 +318,7 @@
        </layout>
       </item>
       <item>
-       <widget class="QTabWidget" name="plot_widget">
+       <widget class="QTabWidget" name="tab_plot_widget">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
           <horstretch>0</horstretch>
@@ -326,226 +326,11 @@
          </sizepolicy>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>2</number>
         </property>
-        <widget class="QWidget" name="tab">
-         <attribute name="title">
-          <string>Exps Grouped</string>
-         </attribute>
-         <layout class="QGridLayout" name="gridLayout_5">
-          <item row="1" column="0">
-           <layout class="QVBoxLayout" name="exp_grouped_plot_layout">
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_6">
-              <item>
-               <widget class="QRadioButton" name="premium_a_radio">
-                <property name="text">
-                 <string>Premium</string>
-                </property>
-                <attribute name="buttonGroup">
-                 <string notr="true">premium_price_all_group</string>
-                </attribute>
-               </widget>
-              </item>
-              <item>
-               <widget class="QRadioButton" name="price_a_radio">
-                <property name="text">
-                 <string>Price</string>
-                </property>
-                <property name="checked">
-                 <bool>true</bool>
-                </property>
-                <attribute name="buttonGroup">
-                 <string notr="true">premium_price_all_group</string>
-                </attribute>
-               </widget>
-              </item>
-              <item>
-               <widget class="QRadioButton" name="rel_premium_a_radio">
-                <property name="text">
-                 <string>Relative Premium</string>
-                </property>
-                <attribute name="buttonGroup">
-                 <string notr="true">premium_price_all_group</string>
-                </attribute>
-               </widget>
-              </item>
-              <item>
-               <widget class="QRadioButton" name="rel_price_a_radio">
-                <property name="text">
-                 <string>Relative Price</string>
-                </property>
-                <attribute name="buttonGroup">
-                 <string notr="true">premium_price_all_group</string>
-                </attribute>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_2">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_9">
-                <property name="text">
-                 <string>Plot range:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QComboBox" name="min_exp_plt_box"/>
-              </item>
-              <item>
-               <widget class="QComboBox" name="max_exp_plt_box"/>
-              </item>
-             </layout>
-            </item>
-           </layout>
-          </item>
-          <item row="0" column="0">
-           <layout class="QHBoxLayout" name="horizontalLayout_10">
-            <item>
-             <widget class="QPushButton" name="reset_button">
-              <property name="text">
-               <string>Reset</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="flush_button">
-              <property name="text">
-               <string>Flush</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_5">
-              <property name="text">
-               <string>Strikes</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QComboBox" name="min_strike_box"/>
-            </item>
-            <item>
-             <widget class="QComboBox" name="max_strike_box"/>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_6">
-              <property name="text">
-               <string>Exps</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QComboBox" name="min_exp_box"/>
-            </item>
-            <item>
-             <widget class="QComboBox" name="max_exp_box"/>
-            </item>
-            <item>
-             <widget class="QCheckBox" name="call_selection">
-              <property name="text">
-               <string>C</string>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QCheckBox" name="put_selection">
-              <property name="text">
-               <string>P</string>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="fetch_all_button">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="text">
-               <string>Fetch</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="horizontalSpacer_3">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>40</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
-        <widget class="QWidget" name="tab_2">
-         <attribute name="title">
-          <string>Strike Grouped</string>
-         </attribute>
-         <layout class="QGridLayout" name="gridLayout_6">
-          <item row="0" column="0">
-           <layout class="QVBoxLayout" name="strike_grouped_plot_layout">
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_11">
-              <item>
-               <widget class="QLabel" name="label_7">
-                <property name="text">
-                 <string>Strikes plot range:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QComboBox" name="min_strike_plt_box"/>
-              </item>
-              <item>
-               <widget class="QComboBox" name="max_strike_plt_box"/>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_4">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </widget>
         <widget class="QWidget" name="strike_plot_tab">
          <attribute name="title">
-          <string>Live by Strike</string>
+          <string>Live by Exp</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_3">
           <item row="0" column="0">
@@ -617,13 +402,6 @@
                 </property>
                </widget>
               </item>
-              <item>
-               <widget class="QCheckBox" name="checkBox">
-                <property name="text">
-                 <string>Live Stream</string>
-                </property>
-               </widget>
-              </item>
              </layout>
             </item>
            </layout>
@@ -632,11 +410,254 @@
         </widget>
         <widget class="QWidget" name="exp_plot_tab">
          <attribute name="title">
-          <string>Live by Exp</string>
+          <string>Live by Strike</string>
          </attribute>
          <layout class="QGridLayout" name="gridLayout_4">
           <item row="0" column="0">
-           <layout class="QVBoxLayout" name="exp_plot_layout"/>
+           <layout class="QVBoxLayout" name="exp_plot_layout">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_13">
+              <item>
+               <spacer name="horizontalSpacer_5">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_8">
+                <property name="text">
+                 <string>Strike price:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="strike_box"/>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="tab">
+         <attribute name="title">
+          <string>Exps Grouped</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_5">
+          <item row="1" column="0">
+           <layout class="QVBoxLayout" name="exp_grouped_plot_layout">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_6">
+              <item>
+               <widget class="QRadioButton" name="premium_a_radio">
+                <property name="text">
+                 <string>Premium</string>
+                </property>
+                <attribute name="buttonGroup">
+                 <string notr="true">premium_price_all_group</string>
+                </attribute>
+               </widget>
+              </item>
+              <item>
+               <widget class="QRadioButton" name="price_a_radio">
+                <property name="text">
+                 <string>Price</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+                <attribute name="buttonGroup">
+                 <string notr="true">premium_price_all_group</string>
+                </attribute>
+               </widget>
+              </item>
+              <item>
+               <widget class="QRadioButton" name="rel_premium_a_radio">
+                <property name="text">
+                 <string>Rel. Premium</string>
+                </property>
+                <attribute name="buttonGroup">
+                 <string notr="true">premium_price_all_group</string>
+                </attribute>
+               </widget>
+              </item>
+              <item>
+               <widget class="QRadioButton" name="rel_price_a_radio">
+                <property name="text">
+                 <string>Rel. Price</string>
+                </property>
+                <attribute name="buttonGroup">
+                 <string notr="true">premium_price_all_group</string>
+                </attribute>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_2">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_9">
+                <property name="text">
+                 <string>Plot range:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="min_exp_plt_box"/>
+              </item>
+              <item>
+               <widget class="QComboBox" name="max_exp_plt_box"/>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_10">
+              <item>
+               <widget class="QPushButton" name="reset_button">
+                <property name="text">
+                 <string>Reset</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="flush_button">
+                <property name="text">
+                 <string>Flush</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_5">
+                <property name="text">
+                 <string>Strikes</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="min_strike_box"/>
+              </item>
+              <item>
+               <widget class="QComboBox" name="max_strike_box"/>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_6">
+                <property name="text">
+                 <string>Exps</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="min_exp_box"/>
+              </item>
+              <item>
+               <widget class="QComboBox" name="max_exp_box"/>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="call_selection">
+                <property name="text">
+                 <string>C</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="put_selection">
+                <property name="text">
+                 <string>P</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="fetch_all_button">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>Fetch</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_3">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="tab_2">
+         <attribute name="title">
+          <string>Strike Grouped</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_6">
+          <item row="0" column="0">
+           <layout class="QVBoxLayout" name="strike_grouped_plot_layout">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_11">
+              <item>
+               <widget class="QLabel" name="label_7">
+                <property name="text">
+                 <string>Strikes plot range:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="min_strike_plt_box"/>
+              </item>
+              <item>
+               <widget class="QComboBox" name="max_strike_plt_box"/>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_4">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+           </layout>
           </item>
          </layout>
         </widget>
@@ -662,7 +683,7 @@
      <x>0</x>
      <y>0</y>
      <width>830</width>
-     <height>21</height>
+     <height>24</height>
     </rect>
    </property>
   </widget>
@@ -671,9 +692,9 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="premium_price_all_group"/>
-  <buttongroup name="premium_price_strike_group"/>
-  <buttongroup name="call_put_group"/>
   <buttongroup name="buy_sell_group"/>
+  <buttongroup name="premium_price_all_group"/>
+  <buttongroup name="call_put_group"/>
+  <buttongroup name="premium_price_strike_group"/>
  </buttongroups>
 </ui>

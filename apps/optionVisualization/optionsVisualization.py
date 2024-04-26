@@ -42,27 +42,21 @@ class OptionVisualization(VisualizationWindow):
     option_type = Constants.CALL
     order_type = Constants.BUY
     constr_type = OptionConstrType.single
+    
     first_price = False
-
+    stock_fetch_initiated = False
+    
     current_selection = None
 
     last_price = None
     _underlying_price = None
 
-    reqAllStrikesSignal = pyqtSignal(list)
-    make_selection_signal = pyqtSignal(DetailObject)
+    req_all_strikes = pyqtSignal(list, float, float, int, int)
+    stock_selection_signal = pyqtSignal(DetailObject)
 
-    reqByStrike = pyqtSignal(float, bool)
-    reqByStrikeAutoExecute = pyqtSignal(float)
-    reqByExp = pyqtSignal(str, bool)
-    reqByExpAutoExecute = pyqtSignal(str)
-
-
-    min_strike_signal = pyqtSignal(float)
-    max_strike_signal = pyqtSignal(float)
-    min_expiration_signal = pyqtSignal(int)
-    max_expiration_signal = pyqtSignal(int)
-
+    req_by_strike_execute = pyqtSignal(float)
+    req_by_exp = pyqtSignal(str, bool)
+    req_by_exp_execute = pyqtSignal(str)
 
     constr_change_signal = pyqtSignal(str, str, str, list, list)
 
@@ -70,43 +64,45 @@ class OptionVisualization(VisualizationWindow):
     def __init__(self, option_data_manager, symbol_manager):
         super().__init__()
 
-        print(f"OptionVisualization.__init__ init {int(QThread.currentThreadId())}")
         self.option_data_manager = option_data_manager
         self.symbol_manager = symbol_manager
         
-        self.connectOptionManager(option_data_manager)
+        self.connectManagerAndPlots(option_data_manager)
     
         self.symbol_manager.api_updater.connect(self.contractUpdate, Qt.QueuedConnection)
 
-
         self.connectSignals()
         self.resetInputBoxes(self.constr_type)
-        # self.setDefaults(self.option_type)
         
 
-    def connectOptionManager(self, option_data_manager):
+    def connectManagerAndPlots(self, option_data_manager):
         option_data_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
-        self.strike_comp_frame = self.option_data_manager.strike_comp_frame #ComputableStrikeFrame(None, self.option_type)
-        self.strike_comp_frame.frame_updater.connect(self.processingUpdate, Qt.QueuedConnection)
-        self.exp_comp_frame = option_data_manager.exp_comp_frame #ComputableExpirationFrame(None, self.option_type)
-        self.exp_comp_frame.frame_updater.connect(self.processingUpdate, Qt.QueuedConnection)
-        self.all_option_frame = option_data_manager.getBufferedFrame()   #Computable2DDataFrame(None, self.option_type)
-        self.all_option_frame.connectCallback(self.processingUpdate)
+        option_data_manager.latest_price_signal.connect(self.underlyingPriceUpdate, Qt.QueuedConnection)
+    
+        self.strike_comp_frame = self.option_data_manager.getStrikeFrame()
+        self.exp_comp_frame = option_data_manager.getExpirationFrame()
+        self.all_option_frame = option_data_manager.getBufferedFrame()
+        
+        print(self.all_option_frame)
+        self.min_all_strike.connect(self.all_option_frame.setMinimumStrike, Qt.QueuedConnection)
+        self.max_all_strike.connect(self.all_option_frame.setMaximumStrike, Qt.QueuedConnection)
+        self.min_all_expiration.connect(self.all_option_frame.setMinimumExpiration, Qt.QueuedConnection)
+        self.max_all_expiration.connect(self.all_option_frame.setMaximumExpiration, Qt.QueuedConnection)
+
+        self.strike_plot.setDataObject(self.strike_comp_frame)
+        self.expiration_plot.setDataObject(self.exp_comp_frame)
+        self.strike_grouped_plot.setDataObject(self.all_option_frame)
+        self.exp_grouped_plot.setDataObject(self.all_option_frame)
+        self.price_est_plot.setDataObject(self.all_option_frame)
 
 
     def connectSignals(self):
-        self.make_selection_signal.connect(self.option_data_manager.makeStockSelection, type=Qt.QueuedConnection)
-        self.reqAllStrikesSignal.connect(self.option_data_manager.requestForAllStrikesAndExpirations, type=Qt.QueuedConnection)
-        self.reqByStrike.connect(self.option_data_manager.requestOptionDataForStrike, type=Qt.QueuedConnection)
-        self.reqByStrikeAutoExecute.connect(self.option_data_manager.requestOptionDataForStrike, type=Qt.QueuedConnection)
+        self.stock_selection_signal.connect(self.option_data_manager.makeStockSelection, type=Qt.QueuedConnection)
+        self.req_all_strikes.connect(self.option_data_manager.requestForAllStrikesAndExpirations, type=Qt.QueuedConnection)
+        self.req_by_strike_execute.connect(self.option_data_manager.requestOptionDataForStrike, type=Qt.QueuedConnection)
 
-        self.reqByExp.connect(self.option_data_manager.requestOptionDataForExpiration, type=Qt.QueuedConnection)
-        self.reqByExpAutoExecute.connect(self.option_data_manager.requestOptionDataForExpiration, type=Qt.QueuedConnection)
-
-        self.min_strike_signal.connect(self.option_data_manager.setMinimumStrike, type=Qt.QueuedConnection)
-        self.max_strike_signal.connect(self.option_data_manager.setMaximumStrike, type=Qt.QueuedConnection)
-        self.min_expiration_signal.connect(self.option_data_manager.setMinimumExpiration, type=Qt.QueuedConnection)
-        self.max_expiration_signal.connect(self.option_data_manager.setMaximumExpiration, type=Qt.QueuedConnection)
+        self.req_by_exp.connect(self.option_data_manager.requestOptionDataForExpiration, type=Qt.QueuedConnection)
+        self.req_by_exp_execute.connect(self.option_data_manager.requestOptionDataForExpiration, type=Qt.QueuedConnection)
 
         self.flush_button.clicked.connect(self.option_data_manager.flushData, type=Qt.QueuedConnection)
         self.reset_button.clicked.connect(self.option_data_manager.resetWholeChain, type=Qt.QueuedConnection)
@@ -227,14 +223,9 @@ class OptionVisualization(VisualizationWindow):
         
     def radioStrikeSelection(self, value):
         if self.premium_s_radio.isChecked():
-            #self.strike_comp_frame.setPremium(True)
-            self.strike_plot.setPremium(True)
-            pass
+            self.strike_comp_frame.setPremium(True)
         elif self.price_s_radio.isChecked():
-            #self.strike_comp_frame.setPremium(False)
-            self.strike_plot.setPremium(False)
-        #self.strike_plot.updatePlot(self.strike_comp_frame)
-        
+            self.strike_comp_frame.setPremium(False)
 
 
     def snapshotChange(self, value):
@@ -246,9 +237,11 @@ class OptionVisualization(VisualizationWindow):
         self.current_selection = contractDetails
             
 
+        #this is the callback from the symbol textbox selection
     def returnSelection(self):
         if self.current_selection is not None:
-            self.make_selection_signal.emit(self.current_selection)
+            self.stock_selection_signal.emit(self.current_selection)
+            self.stock_fetch_initiated = True
             self.first_price = True
             self.updateOptionGUI([],[])
             self.current_selection = None
@@ -256,18 +249,17 @@ class OptionVisualization(VisualizationWindow):
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
-        #print(f"OptionVisualization.apiUpdate: {signal}")
         if signal == Constants.OPTION_INFO_LOADED:
             self.updateOptionGUI(sub_signal['expirations'], sub_signal['strikes'])
-        elif signal == Constants.OPTION_PRICE_UPDATE:
-            pd.set_option('display.max_rows', None)
-            if 'strike_frame' in sub_signal:
-                self.processNewStrikeData(sub_signal['strike_frame'])
-            if 'expiration_frame' in sub_signal:
-                self.processNewExpData(sub_signal['expiration_frame'])
+            self.fetch_all_button.setEnabled(sub_signal['is_verified'])
+            
+                #if we just fetched for the first time, we want to fetch basic price infs
+            if self.stock_fetch_initiated:
+                self.expiration_box.setCurrentIndex(1)
+                self.strike_box.setCurrentIndex(int(len(sub_signal['strikes'])/2))
+        
         elif signal == Constants.OPTIONS_LOADED:
             self.fetch_all_button.setEnabled(True)
-#            self.strike_plot.setStrikeLine(self._underlying_price)
             self.setGUIValues(self.all_option_frame.getBoundaries())
         elif signal == Constants.PROGRESS_UPDATE:
             if sub_signal['open_requests'] == 0:
@@ -275,53 +267,27 @@ class OptionVisualization(VisualizationWindow):
             else:
                 self.statusbar.showMessage(f"{sub_signal['open_requests']} of {sub_signal['total_requests']} {sub_signal['request_type']} requests left")
 
-        elif signal == Constants.UNDERLYING_PRICE_UPDATE:
-            if self.first_price:
-                self.strike_plot.addPriceLine()
-            self.updatePrice(sub_signal['price'])
-            if self.first_price:
-                self.first_price = False
-        
 
-    def findClosest(self, value, element_list):
-        np_list = np.array(element_list)
-        index = np.abs(np_list - value).argmin()
-        return np_list[index]
-
-
-    @pyqtSlot(str, dict)
-    def processingUpdate(self, signal, sub_signal):
-        print(f"What be goin' on? {sub_signal}")
-        if signal == Constants.DATA_DID_CHANGE:
-
-            if sub_signal['key'] == '2D_frame':
-                self.strike_grouped_plot.resetData(self.all_option_frame)
-                self.exp_grouped_plot.resetData(self.all_option_frame)
-                self.price_est_plot.resetData(self.all_option_frame)
-
-            
-            if sub_signal['key'] == '1D_frame':
-                self.strike_plot.updatePlot(self.strike_comp_frame)
-                self.expiration_plot.updatePlot(self.exp_comp_frame)
+    @pyqtSlot(float, str)
+    def underlyingPriceUpdate(self, price, tick_type):
+        if self.first_price:
+            self.strike_plot.addPriceLine()
+            self.first_price = False
+        self.updatePrice(price)
     
         
     def requestLiveUpdates(self, current_selection):
-        print(f"OptionVisualization requestLiveUpdates {int(QThread.currentThreadId())}")
-        print(self.expiration_pairs)
         dates_by_days = {item[0]: item[2] for item in self.expiration_pairs}
         if current_selection['plot_type'] == 'expiration_grouped':
-            self.reqByExp.emit(dates_by_days[current_selection['key']], False)
-            self.reqByStrikeAutoExecute.emit(current_selection['x_value'])
-            self.plot_widget.setCurrentIndex(3)
+            self.req_by_exp_execute.emit(dates_by_days[current_selection['key']])
+            self.tab_plot_widget.setCurrentIndex(0)
         elif current_selection['plot_type'] == 'strike_grouped':
-            self.reqByExp.emit(dates_by_days[current_selection['x_value']], False)
-            self.reqByStrikeAutoExecute.emit(current_selection['key'])
-            self.plot_widget.setCurrentIndex(3)
+            self.req_by_strike_execute.emit(current_selection['key'])
+            self.tab_plot_widget.setCurrentIndex(1)
         
 
     def requestPL(self, current_selection):
-        print(f"We want to showPL {current_selection}")
-        self.plot_widget.setCurrentIndex(4)
+        self.tab_plot_widget.setCurrentIndex(4)
         self.all_option_frame.setSelectedStrike(current_selection['x_value'], current_selection['key'], current_selection['y_value'])
     
 
@@ -339,36 +305,14 @@ class OptionVisualization(VisualizationWindow):
         self.updatePlotPrice(price)
 
 
-    def expirationSelectionChange(self, value):
-        print("Same here akdslmfalkdmf")
-        self.option_data_manager.updateExpirationSelection(value)
+    def expirationSelectionChange(self, index_value):
+        expirations = [item[2] for item in self.expiration_pairs]
+        self.req_by_exp_execute.emit(expirations[index_value])
 
 
-    def updateStrikeSelection(self, selected_strike):
-        print("Who should control the strike selection?")
-        self.selected_strike = selected_strike
-        # # self.base_selection_box.setStrike(selected_strike)
-        # # base_index = self.base_selection_box.findText(str(selected_strike), QtCore.Qt.MatchFixedString)
-        # # if base_index >= 0:
-        # #     self.base_selection_box.setCurrentIndex(base_index)
-        
-        # offsets = self.option_data_manager.getStrikes() - selected_strike
-        # self.offset_selection_box.clear()
-        # self.offset_selection_box.addItems(map(str, offsets))
-        # offset_index = self.offset_selection_box.findText(str("0.0"), QtCore.Qt.MatchFixedString)
-
-        # self.offset_selection_box.setCurrentIndex(offset_index)
-
-        # offset = float(self.offset_selection_box.currentText())
-        # if self.option_type == OptionConstrType.vertical_spread and offset != 0:
-        #     self.option_data_manager.requestSpreadsDataByExp(self.selected_strike, offset)
-        # else:
-        
-
-
-    def strikePriceChange(self, value):
-        print(f"This one is triggered {value} and thus screwing things up")
-        #self.strike_plot.setStrikeLine(float(value))
+    def strikeSelectionChange(self, index_value):
+        strike_values = [item[0] for item in self.strike_pairs]
+        self.req_by_strike_execute.emit(strike_values[index_value])
 
 
     def constructionPropsChange(self):
@@ -382,7 +326,17 @@ class OptionVisualization(VisualizationWindow):
             option_types.append(Constants.CALL)
         if self.put_selection.isChecked():
             option_types.append(Constants.PUT)
-        self.reqAllStrikesSignal.emit(option_types)
+
+        min_strike, max_strike, min_exp, max_exp = self.getDownloadRanges()
+        self.req_all_strikes.emit(option_types, )
+
+
+    def getDownloadRanges(self):
+        min_strike = self.strike_pairs[self.min_strike_box.currentIndex()][0]
+        max_strike = self.strike_pairs[self.max_strike_box.currentIndex()][0]
+        min_exp = self.expiration_pairs[self.min_exp_box.currentIndex()][0]
+        max_exp = self.expiration_pairs[self.max_exp_box.currentIndex()][0]
+        return min_strike, max_strike, min_exp, max_exp
 
 
     def callPutAction(self, value):
@@ -392,7 +346,6 @@ class OptionVisualization(VisualizationWindow):
             self.option_type = new_type
             self.constructionPropsChange()
             
- 
     
     def buySellAction(self, value):
         if value == self.buy_radio:
@@ -406,27 +359,4 @@ class OptionVisualization(VisualizationWindow):
         #TODO this should be in super
     def accepts(self, value):
         return False
-
-
-
-
-    # def processNewStrikeData(self, strike_frame):
-    #     self.strike_comp_frame.setData(strike_frame.copy())
-    #     self.strike_comp_frame.setUnderlyingPrice(self._underlying_price)
-    #     if self.strike_comp_frame.has_data:
-            
-            
-
-
-    # def processNewExpData(self, expiration_frame):
-    #     self.exp_comp_frame.setData(expiration_frame.copy())
-    #     self.exp_comp_frame.setUnderlyingPrice(self._underlying_price)
-    #     if self.exp_comp_frame.has_data:
-    #         self.expiration_plot.updatePlot(self.exp_comp_frame)
-    
-
-    # def processAllData(self, all_frame):
-    #     print("OptionVisualization.processAllData")
-    #     self.all_option_frame.setUnderlyingPrice(self._underlying_price)
-    #     self.all_option_frame.setData(all_frame.copy())
         

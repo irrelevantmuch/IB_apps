@@ -56,7 +56,7 @@ class ListManager(ListManagerWindow):
         self.buffered_manager.history_manager.mostRecentFirst = True
         
         self.buffered_manager.setStockList(self.stock_list)
-        self.fetchUnderlyingPrice.connect(self.option_manager.makeStockSelection) #, type=Qt.DirectConnection)
+        self.fetchUnderlyingPrice.connect(self.option_manager.makeStockSelection, type=Qt.DirectConnection)
 
 
     def loadData(self):
