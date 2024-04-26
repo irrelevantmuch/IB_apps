@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import json
+import pickle
 import re
 
 from os import walk
@@ -47,13 +48,14 @@ def writePositionNotes(dict):
 
 
 def getStockListNames():
-
+    print("UserDataManager.getStockListNames")
     files = []
     for (dirpath, dirnames, filenames) in walk('data/stock_lists/'):
         files.extend(filenames)
         break
 
-    files = [ fi for fi in files if fi.endswith(".json") ]
+    files = [fi for fi in files if fi.endswith(".pkl")]
+    print(files)
 
     list_names = []
     for file in files:
@@ -65,9 +67,9 @@ def getStockListNames():
 
 def getListName(file_name):
     try:
-        with open('data/stock_lists/' + file_name) as json_file:
-            json_dict = json.load(json_file)
-            return json_dict["list_name"]
+        with open('data/stock_lists/' + file_name, 'rb') as pickle_file:
+            list_dict = pickle.load(pickle_file)
+            return list_dict["list_name"]
     except: # (IOError, OSError) as e:
         return ""
 
@@ -75,11 +77,11 @@ def getListName(file_name):
 def readStockList(file_name, alphabetized=False):
     print(f"UserDataManager.readStockList {file_name}")
     try:
-        with open('data/stock_lists/' + file_name) as json_file:
-            json_dict = json.load(json_file)
+        with open('data/stock_lists/' + file_name, 'rb') as pickle_file:
+            list_dict = pickle.load(pickle_file)
             if alphabetized:
-                json_dict["stock_list"] = dict(sorted(json_dict["stock_list"].items()))
-            return json_dict["stock_list"]
+                list_dict["stock_list"] = dict(sorted(list_dict["stock_list"].items()))
+            return list_dict["stock_list"]
     except: # (IOError, OSError) as e:
         return dict()
 
@@ -89,11 +91,11 @@ def writeStockList(stock_dict, name, file_name=None):
     if file_name is None:
         file_name = convertToFileName(name)
 
-    json_dict = {"list_name": name, "file_name": file_name, "stock_list": stock_dict}
+    pickle_dict = {"list_name": name, "file_name": file_name, "stock_list": stock_dict}
     
     try:
-        with open('data/stock_lists/' + file_name, 'w') as outfile:
-            json.dump(json_dict, outfile)
+        with open('data/stock_lists/' + file_name, 'wb') as outfile:
+            pickle.dump(pickle_dict, outfile)
     except: # (IOError, OSError) as e:
         print("We couldn't wite the JSON file.... :(")
 
@@ -101,7 +103,7 @@ def writeStockList(stock_dict, name, file_name=None):
 def convertToFileName(name):
     name = name.lower().replace(" ", "_")
     name = re.sub("[^a-z_]+", "", name)
-    name = name + ".json"
+    name = name + ".pkl"
     return name
 
 

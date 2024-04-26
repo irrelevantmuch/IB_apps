@@ -148,13 +148,10 @@ class ComparisonPlotWidget(pg.PlotWidget):
                     self.createBands(key, time_indices, low_line, high_line)
                     
             if has_plots:
-                print(f"Where are these coming from {min_y_value} {max_y_value}")
-                print(f"Where are these coming from {min_x_value} {max_x_value}")
                 self.setYRange(min_y_value, max_y_value, padding=0.5)
                 self.setXRange(min_x_value, max_x_value, padding=0.5)
             
             if show_tops_bottoms:
-                print("Maybe this?")
                 self.min_points = self.plot(min_indices, min_points, pen=None, symbol='d')
                 self.max_points = self.plot(max_indices, max_points, pen=None, symbol='x')
 
@@ -231,12 +228,6 @@ class ComparisonPlotWidget(pg.PlotWidget):
             # self.curve_points[uid] = pg.CurvePoint(curve_mid)
 
         min_y_value, max_y_value, min_x_value, max_x_value, min_indices, max_indices, min_points, max_points = self.calculateMinMax()
-
-        # print(f"Where are these coming from {min_y_value} {max_y_value}")
-        # print(f"Where are these coming from {min_x_value} {max_x_value}")
-                
-        # self.setYRange(min_y_value, max_y_value, padding=0.5)
-        # self.setXRange(min_x_value, max_x_value, padding=0.5)
             
         if self.min_points is not None:
             self.min_points.clear()

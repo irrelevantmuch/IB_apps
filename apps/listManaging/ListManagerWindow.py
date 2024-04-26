@@ -35,6 +35,7 @@ from generalFunctionality.UIFunctions import findRowForValue
 class ListManagerWindow(QMainWindow, ListEditor_UI, SymbolFinderImplementation):
 
     current_selection = None
+    delete_button_set = set()
 
     def __init__(self):
         QMainWindow.__init__(self)
@@ -66,7 +67,7 @@ class ListManagerWindow(QMainWindow, ListEditor_UI, SymbolFinderImplementation):
 
     def returnSelection(self):
         if self.current_selection is not None:
-            numeric_id = str(self.current_selection.numeric_id)
+            numeric_id = self.current_selection.numeric_id
             self.stock_list[numeric_id] = {Constants.SYMBOL: self.current_selection.symbol, 'long_name': self.current_selection.long_name, 'exchange': self.current_selection.exchange, 'sec_type': self.symbol_manager.sec_type, 'currency': self.current_selection.currency}
 
             current_count = self.stock_table.rowCount()
@@ -83,25 +84,27 @@ class ListManagerWindow(QMainWindow, ListEditor_UI, SymbolFinderImplementation):
         if index >= current_count:
             self.stock_table.setRowCount(index+1)
 
-        self.stock_table.setItem(index, 0, QTableWidgetItem(numeric_id))
+        self.stock_table.setItem(index, 0, QTableWidgetItem(str(numeric_id)))
         self.stock_table.setItem(index, 1, QTableWidgetItem(details[Constants.SYMBOL]))
         self.stock_table.setItem(index, 2, QTableWidgetItem(details['long_name']))
         self.stock_table.setItem(index, 3, QTableWidgetItem(details['exchange']))
 
         delete_button = QtWidgets.QPushButton()
-        delete_button.setObjectName(numeric_id)
+        delete_button.setObjectName(str(numeric_id))
         delete_button.setText("-")
         delete_button.clicked.connect(lambda: self.deleteClicked(numeric_id))
         self.stock_table.setCellWidget(index, 4, delete_button)
     
 
     def deleteClicked(self, numeric_id):
+        print(f"ListManagerWindow.deleteClicked {numeric_id} {type(numeric_id)}")
+        print(self.stock_list[numeric_id])
         del self.stock_list[numeric_id]
-        row_index = findRowForValue(self.stock_table, numeric_id, 0)
+        row_index = findRowForValue(self.stock_table, str(numeric_id), 0)
+        print(f"guessing this is minus {row_index}")
         self.stock_table.removeRow(row_index)
 
+
+
     
-    @pyqtSlot(str, dict)
-    def apiUpdate(self, signal, sub_signal):
-        self.contractUpdate(signal)
 

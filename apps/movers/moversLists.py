@@ -228,8 +228,8 @@ class MoversList(MoversWindow):
         if index_file_name is not None:
             self.index_list = readStockList(index_file_name)
 
-        for key, item in self.index_list.items():
-            self.index_selector.addItem(item[Constants.SYMBOL])
+            for key, item in self.index_list.items():
+                self.index_selector.addItem(item[Constants.SYMBOL])
 
 
 ############## BUTTON ACTIONS

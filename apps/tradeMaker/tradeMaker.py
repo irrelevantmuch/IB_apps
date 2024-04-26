@@ -225,7 +225,7 @@ class TradeMaker(TradingWindow):
 
     def returnSelection(self):
         if self.current_selection is not None:
-            self.selected_key = str(self.current_selection.numeric_id)
+            self.selected_key = self.current_selection.numeric_id
             self.selected_symbol = self.current_selection.symbol
             stock_inf = {Constants.SYMBOL: self.current_selection.symbol, 'long_name': self.current_selection.long_name, 'exchange': self.current_selection.exchange, 'sec_type': self.symbol_manager.sec_type, 'currency': self.current_selection.currency}
             self.product_label.setText(self.current_selection.long_name)

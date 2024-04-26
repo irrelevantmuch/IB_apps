@@ -43,7 +43,6 @@ class DataBuffers(QObject):
         if not ((uid, bar_type) in self._locks):
             self._locks[uid, bar_type] = QReadWriteLock()
 
-
         self._locks[uid, bar_type].lockForWrite()
         self._buffers[uid, bar_type] = buffered_data
         if ranges is not None:
@@ -270,7 +269,7 @@ class DataBuffers(QObject):
 
     def loadExistingBuffer(self, uid, bar_type):
         try:
-            file_name = self.data_folder + uid + '_' + bar_type + '.pkl'
+            file_name = self.data_folder + str(uid) + '_' + bar_type + '.pkl'
             existing_buffer = pd.read_pickle(file_name)
             self.setBufferFor(uid, bar_type, existing_buffer, existing_buffer.attrs['ranges'])
         except Exception as inst:
@@ -279,7 +278,7 @@ class DataBuffers(QObject):
 
 
     def saveBuffer(self, uid, bar_type):
-        file_name = self.data_folder + uid + '_' + bar_type + '.pkl'
+        file_name = self.data_folder + str(uid) + '_' + bar_type + '.pkl'
         self._locks[uid, bar_type].lockForRead()
         
         cols_to_exclude = ['rsi', 'up_ema', 'down_ema']
