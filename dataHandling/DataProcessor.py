@@ -15,7 +15,7 @@
 
 from PyQt5.QtCore import QThread, QObject, pyqtSlot, Qt
 from dataHandling.Constants import Constants
-from datetime import datetime, timedelta
+from datetime import datetime
 import pandas as pd
 from pytz import timezone
 
@@ -24,7 +24,7 @@ class DataProcessor(QObject):
     stock_df = None
     previous_df = None
     _index_list = None
-    stale_delay_min = 15
+    stale_delay_secs = 15 * 60
 
     initial_fetch = False
 
@@ -72,8 +72,7 @@ class DataProcessor(QObject):
 
     def determineStale(self):
         keys = self._stock_list.keys()
-        delay_dif = timedelta(minutes=self.stale_delay_min)
-        now_time = pd.to_datetime(datetime.now(timezone(Constants.NYC_TIMEZONE)))
+        now_time = int(datetime.utcnow().timestamp())
         
         for uid in keys:
             self.stock_df.loc[uid, Constants.STALE] = True      #We assume data is stale
@@ -82,7 +81,7 @@ class DataProcessor(QObject):
                 last_five_min_mark = self.data_buffers.getIndicesFor(uid, Constants.FIVE_MIN_BAR).max()
                         
                 time_del = (now_time - last_five_min_mark)
-                if time_del < delay_dif:
+                if time_del < self.stale_delay_secs:
                     self.stock_df.loc[uid, Constants.STALE] = False   
             
 

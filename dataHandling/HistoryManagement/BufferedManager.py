@@ -16,9 +16,8 @@
 
 from dataHandling.Constants import Constants, MAIN_BAR_TYPES, DT_BAR_TYPES
 from dataHandling.DataStructures import DetailObject
-from pytz import timezone
 from dateutil.relativedelta import relativedelta
-from datetime import datetime
+from datetime import datetime, timezone
 from generalFunctionality.GenFunctions import standardBeginDateFor
 
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot, QThread, Qt, QEventLoop
@@ -41,7 +40,7 @@ class BufferedDataManager(QObject):
 
     reset_signal = pyqtSignal()
     create_request_signal = pyqtSignal(DetailObject, datetime, datetime, str)
-    request_update_signal = pyqtSignal(dict, str, bool, bool)
+    request_update_signal = pyqtSignal(dict, dict, str, bool, bool)
     group_request_signal = pyqtSignal(str)
     execute_request_signal = pyqtSignal(int)
 
@@ -181,9 +180,9 @@ class BufferedDataManager(QObject):
 
 
     def isRecent(self, timestamp):
-        current_dateTime = datetime.now(timezone(Constants.NYC_TIMEZONE)).replace(microsecond=0)
-        
-        day_diff = (current_dateTime-timestamp).days
+        current_dateTime = datetime.utcnow()
+        dt_timestamp = datetime.utcfromtimestamp(timestamp) 
+        day_diff = (current_dateTime-dt_timestamp).days
         return day_diff < self.max_day_diff
 
 
@@ -193,7 +192,8 @@ class BufferedDataManager(QObject):
             bar_types = MAIN_BAR_TYPES
 
         uid, value = self.stocks_to_fetch.popitem()
-        details = DetailObject(symbol=value[Constants.SYMBOL], exchange=value['exchange'], numeric_id=uid)
+        print(value)
+        details = DetailObject(numeric_id=uid, **value)
 
         for bar_type in bar_types:
             date_ranges = self.getDataRanges(uid, bar_type, full_fetch)
@@ -224,32 +224,35 @@ class BufferedDataManager(QObject):
         if allow_splitting and self.smallerThanFiveMin(update_bar):
             self.requestSmallUpdates(update_bar, keep_up_to_date, propagate_updates, update_list)
         else:
+            begin_dates = dict()
             for uid in update_list:
-                update_list[uid]['begin_date'] = self.getOldestEndDate(uid)
+                begin_dates[uid] = self.getOldestEndDate(uid)
             
-            self.request_update_signal.emit(update_list, update_bar, keep_up_to_date, propagate_updates)
+            self.request_update_signal.emit(update_list, begin_dates, update_bar, keep_up_to_date, propagate_updates)
 
 
     def requestSmallUpdates(self, update_bar, keep_up_to_date, propagate_updates, update_list):
         print(f"BufferedManager.requestSmallUpdates")
-        now_time = datetime.now(timezone(Constants.NYC_TIMEZONE))
+        now_time = datetime.now(timezone.utc)
         five_min_update_list = dict()
         for uid in update_list:
             begin_date = self.getOldestEndDate(uid)
+            print(f"We compare {begin_date} to {now_time}")
             total_seconds = int((now_time-begin_date).total_seconds())
             if total_seconds > 10800:
                 five_min_update_list[uid] = update_list[uid]
                 five_min_update_list[uid]['begin_date'] = begin_date
 
         
+        begin_dates = dict()
         for uid in update_list:
-            update_list[uid]['begin_date'] = now_time - relativedelta(minutes=180)
+            begin_dates[uid] = now_time - relativedelta(minutes=180)
         
         if len(five_min_update_list) > 0:
-            self.request_update_signal.emit(five_min_update_list, Constants.FIVE_MIN_BAR, False, propagate_updates)
+            self.request_update_signal.emit(five_min_update_list, begin_dates, Constants.FIVE_MIN_BAR, False, propagate_updates)
             self.queued_update_requests.append({'bar_type': update_bar, 'update_list': update_list, 'keep_up_to_date': keep_up_to_date})
         else:
-            self.request_update_signal.emit(update_list, update_bar, keep_up_to_date, propagate_updates)
+            self.request_update_signal.emit(update_list, begin_dates, update_bar, keep_up_to_date, propagate_updates)
 
 
     ################ DATE AND RANGE HANDLING
@@ -274,7 +277,7 @@ class BufferedDataManager(QObject):
 
 
     def getDataRanges(self, uid, bar_type, full_fetch=False):
-        end_date = datetime.now(timezone(Constants.NYC_TIMEZONE)).replace(microsecond=0)
+        end_date = datetime.now(timezone.utc)
 
         if full_fetch:
             return self.getFullRanges(uid, bar_type, end_date)
@@ -287,6 +290,9 @@ class BufferedDataManager(QObject):
         standard_begin_date = standardBeginDateFor(end_date, bar_type)
         if self.data_buffers.bufferExists(uid, bar_type):
             existing_ranges = self.data_buffers.getRangesForBuffer(uid, bar_type)
+            print(f"Existing: {existing_ranges}")
+            print(f"Standard: {standard_begin_date}")
+            print(standard_begin_date)
             if (existing_ranges[-1][1] > standard_begin_date):
                 return [(existing_ranges[-1][1], end_date)] 
 
@@ -297,7 +303,7 @@ class BufferedDataManager(QObject):
         if uid in self.history_manager.earliest_date_by_uid:
             earliest_date = self.history_manager.earliest_date_by_uid[uid]
         else:
-            now = datetime.now(timezone('America/New_York'))
+            now = datetime.now(timezone.utc)
             earliest_date = now - relativedelta(years=10)
 
         if (uid, bar_type) in self.existing_buffers:

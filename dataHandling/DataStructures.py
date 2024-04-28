@@ -16,9 +16,11 @@
 
 class DetailObject:
 
-    def __init__(self, symbol, exchange="", long_name="", numeric_id=0, currency=""):
+    def __init__(self, numeric_id, symbol, sec_type, exchange, time_zone, long_name, currency):
         self.symbol = symbol
+        self.sec_type = sec_type
         self.exchange = exchange
         self.long_name = long_name
         self.numeric_id = numeric_id
         self.currency = currency
+        self.time_zone = time_zone

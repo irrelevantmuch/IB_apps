@@ -17,11 +17,10 @@ from PyQt5.QtCore import QTimer, QThread, pyqtSlot, QObject, Qt, pyqtSignal
 
 import pandas as pd
 
-from datetime import datetime, timedelta, time
-from pytz import timezone
+from datetime import datetime, timedelta, time, timezone
 import math
 
-from dataHandling.Constants import Constants, MINUTES_PER_BAR, RESAMPLING_BARS
+from dataHandling.Constants import Constants, MINUTES_PER_BAR, RESAMPLING_BARS, RESAMPLING_SECONDS
 from dataHandling.DataStructures import DetailObject
 from generalFunctionality.GenFunctions import dateToString
 from dataHandling.UserDataManagement import readApiKeys
@@ -158,7 +157,7 @@ class FinazonDataManager(QObject):
         if "p" in json_dict:
             bar_dict = {key: json_dict[key] for key in keys_to_extract}
             if bar_dict['c'] != 0:
-                bar_df = self.processBars([bar_dict])
+                bar_df = self.processBars([bar_dict], Constants.ONE_MIN_BAR)
                 uid = self.findKeyForSymbol(json_dict["s"])
                 completed_req = self.createCompletedReq(uid, self.backward_bar_conversion[json_dict['aggr']], None, None)
                 completed_req['data'] = bar_df
@@ -239,9 +238,9 @@ class FinazonDataManager(QObject):
         print(f"groupCurrentRequests {for_uid}")
 
 
-    @pyqtSlot(dict, str, bool, bool)
-    @pyqtSlot(dict, str, bool, bool, bool)
-    def requestUpdates(self, stock_list, bar_type, keep_up_to_date, propagate_updates=False, prioritize_uids=False):
+    @pyqtSlot(dict, dict, str, bool, bool)
+    @pyqtSlot(dict, dict, str, bool, bool, bool)
+    def requestUpdates(self, stock_list, begin_dates, bar_type, keep_up_to_date, propagate_updates=False, prioritize_uids=False):
         print(f"FinazonDataManager.requestUpdates {keep_up_to_date}")
 
         if keep_up_to_date:
@@ -254,10 +253,9 @@ class FinazonDataManager(QObject):
             self.createWebSocketForTickers(tickers_to_fetch)
 
         for uid, stock_inf in stock_list.items():
-            print(f"Here we go {uid} {stock_inf}")
-            details = DetailObject(symbol=stock_inf[Constants.SYMBOL], exchange=stock_inf['exchange'], numeric_id=uid)
-            start_date = stock_list[uid]['begin_date']
-            end_date = datetime.now(timezone(Constants.NYC_TIMEZONE))
+            details = DetailObject(uid, **stock_inf)
+            start_date = begin_dates[uid]
+            end_date = datetime.now(timezone.utc)
             new_request = {"contract": details, "start_date": start_date, "end_date": end_date, "bar_type": Constants.ONE_MIN_BAR}
             self.request_buffer.append(new_request)
 
@@ -279,11 +277,10 @@ class FinazonDataManager(QObject):
 
 
     def performPeriodicUpdates(self, stock_list):
-        start_date = datetime.now(timezone(Constants.NYC_TIMEZONE)) - timedelta(minutes=6)
+        start_date = datetime.now(timezone.utc) - timedelta(minutes=6)
         for uid, stock_inf in stock_list.items():
-            details = DetailObject(symbol=stock_inf[Constants.SYMBOL], exchange=stock_inf['exchange'], numeric_id=uid)
-            start_date = stock_list[uid]['begin_date']
-            end_date = datetime.now(timezone(Constants.NYC_TIMEZONE))
+            details = DetailObject(uid, **stock_inf)
+            end_date = datetime.now(timezone.utc)
             new_request = {"contract": details, "start_date": start_date, "end_date": None, "bar_type": Constants.ONE_MIN_BAR}
             self.request_buffer.append(new_request)
 
@@ -322,7 +319,7 @@ class FinazonDataManager(QObject):
             query_params = {"dataset": "sip_non_pro",
                             "ticker": contract_details.symbol,
                             "interval": self.bar_conversion[bar_type],
-                            "timezone": "America/New_York",
+                            "timezone": "UTC",
                             "prepost": "true",
                             # "adjust":
                             "order": "asc",
@@ -345,15 +342,9 @@ class FinazonDataManager(QObject):
 
         if len(bars) > 0:
             
-            new_bar_frame = self.processBars(bars)
-            if bar_type == Constants.ONE_MIN_BAR:
-                new_bar_frame = new_bar_frame[~((new_bar_frame.index.hour >= 20) | (new_bar_frame.index.hour < 4))]
-            if bar_type == Constants.DAY_BAR:
-                final_row = new_bar_frame.loc[new_bar_frame.index.max()]
-                if final_row[Constants.CLOSE] == 0:
-                    new_bar_frame.drop(new_bar_frame.index.max(), inplace=True)
-
-            completed_req = self.createCompletedReq(uid, bar_type, start_date, new_bar_frame.index.max())
+            new_bar_frame = self.processBars(bars, bar_type)
+            
+            completed_req = self.createCompletedReq(uid, bar_type, start_date, end_date)
             completed_req['data'] = new_bar_frame
             return completed_req
         else:
@@ -408,7 +399,7 @@ class FinazonDataManager(QObject):
 
 
     def iterateHistoryRequests(self):
-
+        print("FinazonDataManager.iterateHistoryRequests")
             #only bars smaller than 5 mins give us outside regular hours data, so we need some of those for supplementing!
         one_min_bars, start_date = self.getOneMinForOutsideHours()
         while len(self.request_buffer) > 0:
@@ -420,7 +411,12 @@ class FinazonDataManager(QObject):
 
                     #we supplement the non-daily bars (for daily bars we stick to regular hours)
                 if request['bar_type'] != Constants.DAY_BAR:
-                    one_min_resampled = one_min_bars['data'].resample(RESAMPLING_BARS[request["bar_type"]]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+                    # one_min_resampled = one_min_bars['data'].resample(RESAMPLING_BARS[request["bar_type"]]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+
+                    
+                    one_min_bars['data']['New Indices'] = ((one_min_bars['data'].index - Constants.BASE_TIMESTAMP) // RESAMPLING_SECONDS[request["bar_type"]]) * RESAMPLING_SECONDS[request["bar_type"]] + Constants.BASE_TIMESTAMP
+                    one_min_resampled = one_min_bars['data'].groupby('New Indices').agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+
                     completed_req['data'] = one_min_resampled.combine_first(completed_req['data'])
 
             self.data_buffers.processData(completed_req)
@@ -473,29 +469,32 @@ class FinazonDataManager(QObject):
         # print(f"FinazonDataManager.barsFromSmallerData {bar_type}")
         uid = request['contract'].numeric_id
         end_date = request['end_date']
-        new_data = smallest_bars['data'].resample(RESAMPLING_BARS[bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+
+        smallest_bars['data']['New Indices'] = ((smallest_bars['data'].index - Constants.BASE_TIMESTAMP) // RESAMPLING_SECONDS[request["bar_type"]]) * RESAMPLING_SECONDS[request["bar_type"]] + Constants.BASE_TIMESTAMP
+        new_data = smallest_bars['data'].groupby('New Indices').agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+
         completed_req = self.createCompletedReq(uid, bar_type, start_date, end_date)
         completed_req['data'] = new_data
         return completed_req
 
 
-    def processBars(self, bars):
+    def processBars(self, bars, bar_type):
         bar_frame = pd.DataFrame(bars)
 
-
-        bar_frame['t'] = pd.to_datetime(bar_frame['t'], unit='s')  # Convert timestamp to datetime
         bar_frame.set_index('t', inplace=True)  # Set timestamp as the index
         bar_frame.index.name = None
-
-        # Set timezone to NYC
-        nyc_timezone = timezone('America/New_York')
-        bar_frame.index = bar_frame.index.tz_localize('UTC').tz_convert(nyc_timezone)
 
         # Rename columns based on the mapping
         bar_frame.rename(columns={"o": Constants.OPEN, "h": Constants.HIGH, "l": Constants.LOW, "c": Constants.CLOSE, "v": Constants.VOLUME}, inplace=True)
 
         bar_frame = bar_frame.astype(float)
         bar_frame.sort_index(ascending=True, inplace=True)
+
+        if bar_type == Constants.DAY_BAR:
+            final_row = bar_frame.loc[bar_frame.index.max()]
+            if final_row[Constants.CLOSE] == 0:
+                bar_frame.drop(bar_frame.index.max(), inplace=True)
+
         return bar_frame
         
 

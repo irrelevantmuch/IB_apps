@@ -37,7 +37,7 @@ class SpecBufferedDataManager(BufferedDataManager):
 
     reset_signal = pyqtSignal()
     create_request_signal = pyqtSignal(DetailObject, datetime, datetime, str)
-    request_update_signal = pyqtSignal(dict, str, bool, bool)
+    request_update_signal = pyqtSignal(dict, dict, str, bool, bool)
     group_request_signal = pyqtSignal(str)
     execute_request_signal = pyqtSignal(int)
 
@@ -103,10 +103,11 @@ class SpecBufferedDataManager(BufferedDataManager):
         if update_list is None:
             update_list = self._buffering_stocks.copy()
 
+        begin_dates = dict()
         for uid in update_list:
-            update_list[uid]['begin_date'] = self.getMinimumStoredDate(uid)
+            begin_dates[uid] = self.getMinimumStoredDate(uid)
         
-        self.request_update_signal.emit(update_list, update_bar, keep_up_to_date, propagate_updates)
+        self.request_update_signal.emit(update_list, begin_dates, update_bar, keep_up_to_date, propagate_updates)
 
 
     @pyqtSlot()

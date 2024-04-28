@@ -61,6 +61,7 @@ class ListManagerWindow(QMainWindow, ListEditor_UI, SymbolFinderImplementation):
         self.sectype_group.buttonClicked.connect(self.radioSelection)
         self.buffer_chains_button.clicked.connect(self.bufferChains)
 
+
     def selectedContract(self, contractDetails):
         self.current_selection = contractDetails
 
@@ -68,7 +69,7 @@ class ListManagerWindow(QMainWindow, ListEditor_UI, SymbolFinderImplementation):
     def returnSelection(self):
         if self.current_selection is not None:
             numeric_id = self.current_selection.numeric_id
-            self.stock_list[numeric_id] = {Constants.SYMBOL: self.current_selection.symbol, 'long_name': self.current_selection.long_name, 'exchange': self.current_selection.exchange, 'sec_type': self.symbol_manager.sec_type, 'currency': self.current_selection.currency}
+            self.stock_list[numeric_id] = {Constants.SYMBOL: self.current_selection.symbol, 'long_name': self.current_selection.long_name, 'exchange': self.current_selection.exchange, 'sec_type': self.symbol_manager.sec_type, 'currency': self.current_selection.currency, 'time_zone': self.current_selection.time_zone}
 
             current_count = self.stock_table.rowCount()
             self.addRowAt(current_count, numeric_id, self.stock_list[numeric_id])

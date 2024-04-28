@@ -37,6 +37,10 @@ class SymbolManager(IBConnectivity):
 
     def contractDetails(self, req_id, contract_details):
         print(f"SymbolManager.contractDetails {req_id}")
+        print(type(contract_details))
+        print(contract_details.timeZoneId)
+        print(type(contract_details.contract))
+        print(contract_details.contract)
         print(contract_details)
         contract = contract_details.contract
         
@@ -45,7 +49,7 @@ class SymbolManager(IBConnectivity):
         else:
             exchange = contract.primaryExchange
 
-        detailObject = DetailObject(symbol=contract.symbol, exchange=exchange, long_name=contract_details.longName, numeric_id=contract.conId, currency=contract.currency)
+        detailObject = DetailObject(numeric_id=contract.conId, symbol=contract.symbol, sec_type=self.sec_type, exchange=exchange, time_zone=contract_details.timeZoneId, long_name=contract_details.longName, currency=contract.currency)
         self._item_list.add(detailObject)
         self.api_updater.emit(Constants.CONTRACT_DETAILS_RETRIEVED, dict())
         

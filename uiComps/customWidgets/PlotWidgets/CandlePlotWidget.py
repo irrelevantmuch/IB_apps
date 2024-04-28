@@ -18,6 +18,8 @@ import pyqtgraph as pg
 from pyqtgraph import DateAxisItem
 from pyqtgraph import QtCore, QtGui
 
+import pytz
+from datetime import datetime
 import pandas as pd
 import numpy as np
 
@@ -125,6 +127,22 @@ class CandlestickItem(pg.GraphicsObject):
             return greater_than[0]
 
 
+# class EasternDateAxisItem(pg.DateAxisItem):
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.utc = pytz.utc
+#         self.eastern = pytz.timezone('US/Eastern')
+
+#     def tickStrings(self, values, scale, spacing):
+#         utc_offset = self.eastern.utcoffset(datetime.utcnow()).total_seconds()
+#         print(f"EasternDateAxisItem.tickStrings {utc_offset}")
+#         print(values)
+#         adjusted_values = [val + utc_offset for val in values]
+#         return super().tickStrings(adjusted_values, scale, spacing)
+    
+#     def printableVersion(self, value):
+#         print(datetime.fromtimestamp(val, self.utc).astimezone(self.eastern).strftime('%Y-%m-%d %H:%M:%S'))
+
 
 class CandlePlotWidget(pg.PlotWidget):
 
@@ -142,15 +160,22 @@ class CandlePlotWidget(pg.PlotWidget):
         self.call_back = call_back
         #self.proxy = pg.SignalProxy(self.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
         self.addLegend()
-
-        axis = DateAxisItem()
-        self.setAxisItems({'bottom':axis})
+    
+        self.dt_axis = DateAxisItem()
+        self.setAxisItems({'bottom': self.dt_axis})
 
         self.plotItem.setMouseEnabled(x=True, y=False)
 
         self.plotItem.sigXRangeChanged.connect(self.scaleChanging)
 
 
+    def setTimeZone(self, tz_string):
+        print(f"CandlePlotWidget.setTimeZone {tz_string}")
+        time_zone = pytz.timezone(tz_string)
+        now = datetime.now(time_zone)
+        utc_offset = now.utcoffset().total_seconds()
+        self.dt_axis.utcOffset = -utc_offset
+        
     # def addCrossHair(self):
     #     self.vLine = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(170,170,170), width=2, style=Qt.DashLine), movable=False)
     #     self.hLine = pg.InfiniteLine(pos=0.0, angle=0, pen=pg.mkPen(color=(170,170,170), width=2, style=Qt.DashLine), movable=False)
@@ -178,17 +203,11 @@ class CandlePlotWidget(pg.PlotWidget):
             self.setRange(yRange=y_range)
 
 
-
-
     def setHistoricalData(self, bar_data):
         self.current_data = pd.DataFrame()
         self.historical_data = pd.DataFrame()
-
         if len(bar_data) > 0:
-            unix_time_index = pd.to_datetime(bar_data.index)
-            bar_data.index = (unix_time_index - pd.Timestamp(Constants.BEGINNING_OF_TIME, tz='America/New_York')) // pd.Timedelta('1s')
-            self.last_index = bar_data.index.max()
-                        
+            self.last_index = bar_data.index.max()            
             self.historical_data = bar_data
 
             self.redrawHistoricalData()
@@ -211,9 +230,6 @@ class CandlePlotWidget(pg.PlotWidget):
     def addNewBars(self, bar_data, start_index):
 
         if len(bar_data) > 0:
-            unix_time_index = pd.to_datetime(bar_data.index)
-            bar_data.index = (unix_time_index - pd.Timestamp(Constants.BEGINNING_OF_TIME, tz='America/New_York')) // pd.Timedelta('1s')
-
             
                 #we want to update the variable bars.
             if self.current_data is None:
@@ -221,18 +237,16 @@ class CandlePlotWidget(pg.PlotWidget):
             else:
                 self.current_data = bar_data.combine_first(self.current_data)
             
-            start_index_unix = np.int64((pd.to_datetime(start_index) - pd.Timestamp(Constants.BEGINNING_OF_TIME, tz='America/New_York')) // pd.Timedelta('1s'))
-            if start_index_unix > self.last_index:
-                
-                self.historical_data = self.current_data.loc[:start_index_unix-1].copy().combine_first(self.historical_data)
+                #if we get a new bar, we want to relegate the completed bar(s) to the history
+            if start_index > self.last_index:    
+                self.historical_data = self.current_data.loc[:start_index-1].copy().combine_first(self.historical_data)
                 self.redrawHistoricalData()
-                self.current_data = self.current_data.loc[start_index_unix:]
+                self.current_data = self.current_data.loc[start_index:]
                 self.last_index = self.historical_data.index.max()
             
             if len(self.current_data) > 0:
                 if self.current_item is not None:
                     self.removeItem(self.current_item)
-
 
                 self.current_item = CandlestickItem(self.current_data, self.call_back, self.historical_item.w, alt_color=True)
                 self.addItem(self.current_item)

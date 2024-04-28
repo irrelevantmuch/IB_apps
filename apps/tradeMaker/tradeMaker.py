@@ -160,10 +160,11 @@ class TradeMaker(TradingWindow):
 
     @pyqtSlot(float, str)
     def priceUpdate(self, price, tick_type):
+        print(f"TradeMaker.priceUpdate {price} {tick_type}")
         if tick_type == Constants.ASK:
             self.ask_price_button.setText(str(price))
             self.latest_ask = price
-        elif tick_type == Constants.LAST:
+        elif tick_type == Constants.LAST or tick_type == Constants.CLOSE:
             self.last_price_button.setText(str(price))
             self.latest_trade = price
             self.price_label.setText(str(price))
@@ -191,6 +192,7 @@ class TradeMaker(TradingWindow):
             if signal == Constants.HISTORICAL_DATA_READY:
                 if self.data_buffers.bufferExists(self.selected_key, self.selected_bar_type):
                     bars = self.data_buffers.getBufferFor(self.selected_key, self.selected_bar_type)
+                    self.trade_plot.setTimeZone(self.stock_list[self.selected_key]['time_zone'])
                     self.trade_plot.setHistoricalData(bars.iloc[:-1])
                     self.trade_plot.addNewBars(bars.iloc[[-1]], bars.index[-1])
                     if self.fields_need_updating:
@@ -227,7 +229,7 @@ class TradeMaker(TradingWindow):
         if self.current_selection is not None:
             self.selected_key = self.current_selection.numeric_id
             self.selected_symbol = self.current_selection.symbol
-            stock_inf = {Constants.SYMBOL: self.current_selection.symbol, 'long_name': self.current_selection.long_name, 'exchange': self.current_selection.exchange, 'sec_type': self.symbol_manager.sec_type, 'currency': self.current_selection.currency}
+            stock_inf = {Constants.SYMBOL: self.current_selection.symbol, 'long_name': self.current_selection.long_name, 'exchange': self.current_selection.exchange, 'sec_type': self.symbol_manager.sec_type, 'currency': self.current_selection.currency, 'time_zone': self.current_selection.time_zone}
             self.product_label.setText(self.current_selection.long_name)
             self.set_ticker_signal.emit((self.selected_key, stock_inf), self.getActiveUids()) #second argument is do_not_remove list
             self.updateTrackingGUI()

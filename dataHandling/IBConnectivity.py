@@ -197,6 +197,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
     ################ Specific Callbacks
 
     def tickPrice(self, req_id, tickType, price, attrib):
+        print(f"IBConnectivity.tickPrice {price}")
         tick_type_str = TickTypeEnum.to_str(tickType)
         self.latest_price_signal.emit(price, tick_type_str)
 
@@ -230,7 +231,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
         req_type = request['type']
 
         if req_type == 'reqHistoricalData':
-            self.reqHistoricalData(request['req_id'], request['contract'], request['end_date'], request['duration'], request['bar_type'], Constants.TRADES, False, 1, request['keep_up_to_date'], [])
+            self.reqHistoricalData(request['req_id'], request['contract'], request['end_date'], request['duration'], request['bar_type'], Constants.TRADES, False, 2, request['keep_up_to_date'], [])
         elif req_type == 'cancelHistoricalData':
             self.cancelHistoricalData(request['req_id'])
         elif req_type == 'reqHeadTimeStamp':

@@ -31,9 +31,9 @@ class LiveDataManager(QObject):
 
     initial_fetch = True
 
-    stop_tracking_signal = pyqtSignal(str)
+    stop_tracking_signal = pyqtSignal(int)
     create_request_signal = pyqtSignal(DetailObject, datetime, datetime, str)
-    request_update_signal = pyqtSignal(dict, str, bool, bool, bool)
+    request_update_signal = pyqtSignal(dict, dict, str, bool, bool, bool)
     group_request_signal = pyqtSignal(str)
     execute_request_signal = pyqtSignal(int)
 
@@ -119,7 +119,7 @@ class LiveDataManager(QObject):
     ################ CREATING AND TRIGGERING HISTORIC REQUEST
 
     def fetchBasebars(self, uid, stock_inf, bar_types=QUICK_BAR_TYPES, primary_bar=None):
-        details = DetailObject(symbol=stock_inf[Constants.SYMBOL], exchange=stock_inf['exchange'], numeric_id=uid)
+        details = DetailObject(numeric_id=uid, **stock_inf)
         
             #We'll fetch get the smallers one from the updating
         to_fetch_bars = list(set(bar_types) - set([Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR]))
@@ -142,8 +142,8 @@ class LiveDataManager(QObject):
         print("BufferedManager.requestUpdates")
         
         end_date = datetime.now(timezone(Constants.NYC_TIMEZONE))
-        stock_inf['begin_date'] = end_date - relativedelta(minutes=180)
-        self.request_update_signal.emit({uid: stock_inf}, update_bar, True, True, prioritize_uids)
+        begin_date = end_date - relativedelta(minutes=180)
+        self.request_update_signal.emit({uid: stock_inf}, {uid: begin_date}, update_bar, True, True, prioritize_uids)
         
 
     ################ DATE AND RANGE HANDLING

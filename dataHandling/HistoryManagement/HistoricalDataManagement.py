@@ -20,14 +20,14 @@ from ibapi.common import BarData
 import pandas as pd
 import re
 
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
-from pytz import timezone
+from pytz import utc
 import sys, math, time
 from operator import attrgetter
 
 
-from generalFunctionality.GenFunctions import dateFromString, dateToString, pdDateFromIBString, dateFromIBString
+from generalFunctionality.GenFunctions import dateFromString, dateToString, pdDateFromIBString, utcDtFromIBString
 
 
 from PyQt5.QtCore import QThread, QObject, Qt, pyqtSignal, pyqtSlot, QTimer
@@ -60,6 +60,7 @@ class HistoricalDataManager(IBConnectivity):
     _priority_uids = []
     _historicalDFs = dict()          #frames for data collection 
     _request_buffer = []             #buffer holding the historical requests
+    _contract_details = dict()
 
     update_delay = 10
     most_recent_first = False       #order in which requests are processed
@@ -112,7 +113,7 @@ class HistoricalDataManager(IBConnectivity):
             self.update_delay = float(units)
         
 
-    @pyqtSlot(str)
+    @pyqtSlot(int)
     def stopTracking(self, uid):
         relevant_requests = [req_id for req_id, track_uid in self._uid_by_req.items() if track_uid == uid]
 
@@ -209,16 +210,19 @@ class HistoricalDataManager(IBConnectivity):
     def createRequestsForContract(self, contract_details, start_date, end_date, bar_type):
         # print(f"HistoryManagement.createRequestsForContract {contract_details.symbol} {bar_type}")
         weeks, days, seconds = self.getTimeSplits(start_date, end_date)
-        contract = self.getContractFor(contract_details)
-        requests = self.createBufferRequests(contract, end_date, bar_type, weeks, days, seconds)
+        
+        requests = self.createBufferRequests(contract_details, end_date, bar_type, weeks, days, seconds)
 
         if len(requests) > 0:
             self._request_buffer += requests
         
 
-    def createBufferRequests(self, contract, end_date, bar_type, weeks, days, seconds):
+    def createBufferRequests(self, contract_details, end_date, bar_type, weeks, days, seconds):
         requests = []
         
+        contract = self.getContractFor(contract_details)
+        self._contract_details[contract_details.numeric_id] = contract_details
+
         chunk_size = self.getWeekChunkSize(bar_type)
                 # Calculate the number of full chunks and the remainder
         num_chunks, remainder = divmod(weeks, chunk_size)
@@ -285,9 +289,9 @@ class HistoricalDataManager(IBConnectivity):
         return num_weeks, num_days, num_seconds
 
 
-    @pyqtSlot(dict, str, bool, bool)
-    @pyqtSlot(dict, str, bool, bool, bool)
-    def requestUpdates(self, stock_list, bar_type, keep_up_to_date, propagate_updates=False, prioritize_uids=False):
+    @pyqtSlot(dict, dict, str, bool, bool)
+    @pyqtSlot(dict, dict, str, bool, bool, bool)
+    def requestUpdates(self, stock_list, begin_dates, bar_type, keep_up_to_date, propagate_updates=False, prioritize_uids=False):
         print(f"HistoryManagement.requestUpdates are we prioritizing? {keep_up_to_date} {propagate_updates}")
         # print([stock_inf[Constants.SYMBOL] for _, stock_inf in stock_list.items()])
 
@@ -295,11 +299,10 @@ class HistoricalDataManager(IBConnectivity):
                 
             if prioritize_uids: self._priority_uids.append(uid)
 
-            details = DetailObject(symbol=stock_inf[Constants.SYMBOL], exchange=stock_inf['exchange'], numeric_id=uid)
+            details = DetailObject(numeric_id=uid, **stock_inf)
 
-            end_date = datetime.now(timezone(Constants.NYC_TIMEZONE))
-            begin_date = stock_list[uid]['begin_date']
-            total_seconds = int((end_date-begin_date).total_seconds())
+            end_date = datetime.now(timezone.utc)
+            total_seconds = int((end_date-begin_dates[uid]).total_seconds())
 
             self.createUpdateRequests(details, bar_type, total_seconds, keep_up_to_date, propagate_updates)
 
@@ -326,6 +329,7 @@ class HistoricalDataManager(IBConnectivity):
         # print(f"HistoricalDataManager.createUpdateRequests {keep_up_to_date} {propagate_updates}")
         req_id = self.getNextBufferReqID()
         uid = contract_details.numeric_id
+        self._contract_details[uid] = contract_details
         contract = self.getContractFor(contract_details)
 
         if keep_up_to_date:
@@ -424,6 +428,7 @@ class HistoricalDataManager(IBConnectivity):
                 request['req_id'] = hr.req_id
                 request['contract'] = hr.contract
                 request['end_date'] = hr.getEndDateString()
+                print(f"Enddate: {request['end_date']}")
                 print(request['end_date'])
                 request['duration'] = hr.period_string
                 request['bar_type'] = hr.bar_type
@@ -518,8 +523,7 @@ class HistoricalDataManager(IBConnectivity):
         uid = self.earliest_uid_by_req[req_id]
 
         date_time_obj = dateFromString(head_time_stamp, sep='-')
-        ny_timezone = timezone(Constants.NYC_TIMEZONE)
-        date_time_obj = ny_timezone.localize(date_time_obj)
+        date_time_obj = utc.localize(date_time_obj)
         self.earliest_date_by_uid[uid] = date_time_obj
         
         if req_id in self.earliest_uid_by_req:
@@ -542,11 +546,16 @@ class HistoricalDataManager(IBConnectivity):
     def processHistoricalBar(self, req_id, bar):
         if (req_id in self._historicalDFs) and (req_id in self._uid_by_req) and bar.volume != 0:
             uid = self._uid_by_req[req_id]
+            instrument_tz = self._contract_details[uid].time_zone
             bar_type = self._bar_type_by_req[req_id]
-
             new_row = {Constants.OPEN: bar.open, Constants.HIGH: bar.high, Constants.LOW: bar.low, Constants.CLOSE: bar.close, Constants.VOLUME: float(bar.volume)}
 
-            self._historicalDFs[req_id].loc[pdDateFromIBString(bar.date, bar_type)] = new_row
+            if bar_type == Constants.DAY_BAR:
+                date_time = pd.to_datetime(bar.date, format="%Y%m%d")
+                date_time = date_time.tz_localize(instrument_tz)
+                self._historicalDFs[req_id].loc[int(date_time.astimezone(utc).timestamp())] = new_row
+            else:
+                self._historicalDFs[req_id].loc[int(bar.date)] = new_row
 
             if (req_id in self._is_updating) and self._initial_fetch_complete[req_id] and (req_id in self._last_update_time):
                 if (uid in self._priority_uids) or ((time.time() - self._last_update_time[req_id]) > self.update_delay):
@@ -595,11 +604,7 @@ class HistoricalDataManager(IBConnectivity):
     def historicalDataEnd(self, req_id: int, start: str, end: str):
         super().historicalDataEnd(req_id, start, end)
         if req_id in self._active_requests: self._active_requests.remove(req_id)
-        self.signalHistoryDataComplete(req_id, start, end)
-
-
-    def signalHistoryDataComplete(self, req_id, start, end):
-        # print(f"HistoricalDataManager.signalHistoryDataComplete")
+        
         if req_id in self._hist_buffer_reqs:
             self._hist_buffer_reqs.remove(req_id)
             completed_req = self.getCompletedHistoryObject(req_id, start, end)
@@ -628,6 +633,7 @@ class HistoricalDataManager(IBConnectivity):
 
 
     def getCompletedHistoryObject(self, req_id, start, end):
+        print(f"HistoricalDataManager {req_id} {start} {end}")
         completed_req = dict()
         uid = self._uid_by_req[req_id]
         completed_req['key'] = self._uid_by_req[req_id]
@@ -636,8 +642,8 @@ class HistoricalDataManager(IBConnectivity):
         completed_req['req_id'] = req_id
         
         if (start is not None) and (end is not None):
-            start_date = dateFromIBString(start)
-            end_date = dateFromIBString(end)
+            start_date = utcDtFromIBString(start)
+            end_date = utcDtFromIBString(end)
             completed_req['range'] = (start_date, end_date)
         else:
             completed_req['range'] = None
@@ -661,5 +667,5 @@ class HistoryRequest():
             return ""
         else:
             datetime_string = dateToString(self.end_date)
-            return datetime_string + " US/Eastern" 
+            return datetime_string + " UTC" 
 

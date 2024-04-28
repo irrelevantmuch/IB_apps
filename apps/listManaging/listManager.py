@@ -127,7 +127,7 @@ class ListManager(ListManagerWindow):
             self.dialog.setOverallProgress(process_progress, f"Downloading chains for {self.stock_list[next_uid]['long_name']}")
 
             stock_inf = self.stock_list[next_uid]
-            contract_details = DetailObject(symbol=stock_inf[Constants.SYMBOL], exchange=stock_inf['exchange'], numeric_id=next_uid, currency=stock_inf['currency'])
+            contract_details = DetailObject(numeric_id=next_uid, **stock_inf)
 
             print(next_uid)
             
@@ -148,6 +148,7 @@ class ListManager(ListManagerWindow):
         self.stock_table.setRowCount(0)
         
         self.loadNewStockList(value)
+
 
     def saveStockList(self):
         current_index = self.list_selector.currentIndex()

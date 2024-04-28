@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from dataHandling.Constants import Constants, MAIN_BAR_TYPES, DT_BAR_TYPES, MINUTES_PER_BAR, RESAMPLING_BARS
+from dataHandling.Constants import Constants, MAIN_BAR_TYPES, DT_BAR_TYPES, MINUTES_PER_BAR, RESAMPLING_BARS, RESAMPLING_SECONDS
 import pandas as pd
 from PyQt5.QtCore import pyqtSignal, QThread, QReadWriteLock, QObject
           
@@ -343,7 +343,6 @@ class DataBuffers(QObject):
                     #we want to use the updated bars on lower time frames to complete bars on higher time frames
                 
                 greater_bars = self.getBarsAbove(curr_bar_type)
-
                 for to_bar_type in greater_bars:
                     from_bar_type = self.getUpdateBarType(to_bar_type)
                     if (from_bar_type in first_indices):    #this ensures the from has been updated, but may be superfluous
@@ -374,17 +373,18 @@ class DataBuffers(QObject):
                     new_first_index = to_frame.index[-2]
                 else:
                     new_first_index = to_frame.index[0]
-                origin_bars = from_frame.loc[new_first_index:]
-                # print(new_first_index)
-                # print(origin_bars)
-                # print(RESAMPLING_BARS[to_bar_type])
-                updated_bars = origin_bars.resample(RESAMPLING_BARS[to_bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
-                # print(updated_bars)
+                origin_bars = from_frame.loc[new_first_index:].copy()
+                
+                origin_bars['New Indices'] = ((origin_bars.index - Constants.BASE_TIMESTAMP) // RESAMPLING_SECONDS[to_bar_type]) * RESAMPLING_SECONDS[to_bar_type] + Constants.BASE_TIMESTAMP
+
+                updated_bars = origin_bars.groupby('New Indices').agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
                 self.addToBuffer(uid, to_bar_type, updated_bars, new_range)
             else:
                     #if no data for the time frame excisted we simply whole frame to update
                 new_first_index = from_frame.index.min()
-                updated_bars = from_frame.resample(RESAMPLING_BARS[to_bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+                from_frame['New Indices'] = ((from_frame.index - Constants.BASE_TIMESTAMP) // RESAMPLING_SECONDS[to_bar_type]) * RESAMPLING_SECONDS[to_bar_type] + Constants.BASE_TIMESTAMP
+                # updated_bars = from_frame.resample(RESAMPLING_BARS[to_bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+                updated_bars = from_frame.groupby('New Indices').agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
                 self.setBufferFor(uid, to_bar_type, updated_bars, [new_range])
         
         return updated_bars.index, to_bar_type

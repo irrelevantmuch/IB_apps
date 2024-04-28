@@ -332,7 +332,11 @@ class MoversProcessor(DataProcessor):
         if updated_list is None:
             updated_list = self.stock_df.index.values
 
+
         max_date = self.period_functions[time_period]
+        print(f"MoversProcessor.calculateMinMax {max_date}")
+        print(self.period_functions)
+        print(time_period)
         for uid in updated_list: 
             if self.data_buffers.bufferExists(uid, Constants.DAY_BAR):
                 price = self.data_wrapper.getValueFor(uid, Constants.PRICE)

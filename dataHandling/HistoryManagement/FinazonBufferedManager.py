@@ -41,7 +41,7 @@ class FinazonBufferedDataManager(BufferedDataManager):
             bar_types = MAIN_BAR_TYPES
 
         uid, value = self.stocks_to_fetch.popitem()
-        details = DetailObject(symbol=value[Constants.SYMBOL], exchange=value['exchange'], numeric_id=uid)
+        details = DetailObject(numeric_id=uid, **value)
 
         for bar_type in bar_types:
             date_ranges = self.getDataRanges(uid, bar_type, full_fetch)
@@ -72,8 +72,9 @@ class FinazonBufferedDataManager(BufferedDataManager):
         if allow_splitting and self.smallerThanFiveMin(update_bar):
             self.requestSmallUpdates(update_bar, keep_up_to_date, propagate_updates, update_list)
         else:
+            begin_dates = dict()
             for uid in update_list:
-                update_list[uid]['begin_date'] = self.getOldestEndDate(uid)
+                begin_dates[uid] = self.getOldestEndDate(uid)
             
             self.request_update_signal.emit(update_list, update_bar, keep_up_to_date, propagate_updates)
 
@@ -82,21 +83,23 @@ class FinazonBufferedDataManager(BufferedDataManager):
         print(f"BufferedManager.requestSmallUpdates")
         now_time = datetime.now(timezone(Constants.NYC_TIMEZONE))
         five_min_update_list = dict()
+
+        begin_dates = dict()
         for uid in update_list:
             begin_date = self.getOldestEndDate(uid)
             total_seconds = int((now_time-begin_date).total_seconds())
             if total_seconds > 10800:
                 five_min_update_list[uid] = update_list[uid]
-                five_min_update_list[uid]['begin_date'] = begin_date
+                begin_dates[uid] = begin_date
 
-        
+        print("THERE IS CLEARLY AN ERROR HERE, WHY THE PREVIOUS LOOP ONLY TO OVERWRITE THE BEGIN_DATA???")
         for uid in update_list:
-            update_list[uid]['begin_date'] = now_time - relativedelta(minutes=180)
+            begin_dates[uid] = now_time - relativedelta(minutes=180)
         
         if len(five_min_update_list) > 0:
-            self.request_update_signal.emit(five_min_update_list, Constants.FIVE_MIN_BAR, False, propagate_updates)
+            self.request_update_signal.emit(five_min_update_list, begin_dates, Constants.FIVE_MIN_BAR, False, propagate_updates)
             self.queued_update_requests.append({'bar_type': update_bar, 'update_list': update_list, 'keep_up_to_date': keep_up_to_date})
         else:
-            self.request_update_signal.emit(update_list, update_bar, keep_up_to_date, propagate_updates)
+            self.request_update_signal.emit(update_list, begin_dates, update_bar, keep_up_to_date, propagate_updates)
 
 

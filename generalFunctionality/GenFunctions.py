@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from datetime import datetime, time
-from pytz import timezone
+from pytz import timezone, utc
 import numpy as np
 import pandas as pd
 
@@ -65,38 +65,36 @@ def dateToString(date):
     return date.strftime(Constants.TIME_FORMAT_NO_TZ)
 
 
-def pdDateFromIBString(date_string, bar_type):
+def pdDateFromIBString(date_string, bar_type, instrument_tz):
 
     if bar_type == Constants.DAY_BAR:
-        date_time = pd.to_datetime(date_string)
-        tz_part = 'America/New_York'
-        #TODO get that from somewhere to make it less error prone
+        date_time = pd.to_datetime(date_string, format="%Y%m%d")
+        date_time = date_time.tz_localize(instrument_tz)
     else:
-        # Split the string into date, time, and timezone parts
-        date_part, time_part, tz_part = date_string.split()
-
-        # Combine the date and time parts and convert to a datetime object
-        date_time = pd.to_datetime(date_part + ' ' + time_part)
-
-    # Set the timezone
-    date_time = date_time.tz_localize(tz_part)
+        dt_part, tz_part = date_string.rsplit(' ', 1)
+        date_time = pd.to_datetime(dt_part, format="%Y%m%d %H:%M:%S")
+        date_time = date_time.tz_localize(tz_part)
     
-    return date_time
+    return date_time, int(date_time.astimezone(utc).timestamp())
 
 
-def dateFromIBString(date_string):
+
+def utcDtFromIBString(date_string):
 
     # Split the string into date, time, and timezone parts
-    date_part, time_part, tz_part = date_string.split()
+    date_time_part, tz_part = date_string.rsplit(' ', 1)
 
     # Combine the date and time parts and convert to a datetime object
-    date_time = datetime.strptime(date_part + ' ' + time_part, "%Y%m%d %H:%M:%S")
+    date_time = datetime.strptime(date_time_part, "%Y%m%d %H:%M:%S")
 
     # Localize the datetime object to the specified timezone
     tz = timezone(tz_part)
     date_time = tz.localize(date_time)
 
-    return date_time
+    # Convert to UTC
+    utc_time = date_time.astimezone(timezone('UTC'))
+
+    return utc_time
 
 
 def barStartTime(time_index, bar_type):
@@ -145,13 +143,13 @@ def dateToReadableString(date):
     return date.strftime(Constants.READABLE_DATE_FORMAT)
 
 def subtract_days(count):
-    return datetime.now(timezone(Constants.NYC_TIMEZONE)) - relativedelta(days=count)
+    return int((datetime.utcnow() - relativedelta(days=count)).timestamp())
 
 def subtract_weeks(count):
-    return datetime.now(timezone(Constants.NYC_TIMEZONE)) - relativedelta(weeks=count)
+    return int((datetime.utcnow() - relativedelta(weeks=count)).timestamp())
 
 def subtract_months(count):
-    return datetime.now(timezone(Constants.NYC_TIMEZONE)) - relativedelta(months=count)
+    return int((datetime.utcnow() - relativedelta(months=count)).timestamp())
 
 
 def getLowsHighsCount(stock_frame):

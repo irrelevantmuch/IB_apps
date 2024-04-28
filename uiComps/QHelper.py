@@ -31,14 +31,17 @@ class SymbolCompleter(QCompleter):
 
         self.highlighted[QtCore.QModelIndex].connect(self.highlightedCompletion)
 
+
     def refreshModel(self):
         self.model = QStandardItemModel(self)
         self.setModel(self.model)
+
 
     def addToList(self, details):
         item = QStandardItem(details.symbol + " (" + details.long_name + " @" + details.exchange + ")")
         item.setData(details)
         self.model.appendRow(item)
+
 
     def highlightedCompletion(self, value):
         sourceIndex = self.completionModel().mapToSource(value)
