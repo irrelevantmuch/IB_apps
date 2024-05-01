@@ -18,6 +18,8 @@ from PyQt5.QtCore import pyqtSlot, Qt
 import pyqtgraph as pg
 from pyqtgraph import exporters, DateAxisItem
 
+from pytz import timezone
+from datetime import datetime
 import numpy as np
 from dataHandling.Constants import Constants
 import sys
@@ -43,10 +45,17 @@ class ComparisonPlotWidget(pg.PlotWidget):
         self.proxy = pg.SignalProxy(self.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
         self.addLegend()
 
-        axis = DateAxisItem()
-        self.setAxisItems({'bottom':axis})
+        self.dt_axis = DateAxisItem()
+        self.setAxisItems({'bottom': self.dt_axis})
         #print(pg.colormap.listMaps())
 
+
+    def setTimezone(self, tz_string):
+        time_zone = timezone(tz_string)
+        now = datetime.now(time_zone)
+        utc_offset = now.utcoffset().total_seconds()
+        self.dt_axis.utcOffset = -utc_offset
+        
 
     def generateColorList(self, count):
         colors = cm.rainbow(np.linspace(0, 1, count))
@@ -204,10 +213,10 @@ class ComparisonPlotWidget(pg.PlotWidget):
 
     def getPlotLines(self, key):
         graph_line = self.data_object.getLineData(key)
-        # Ensure dt.date() conversion handles all cases correctly
+
         dates = np.array([dt.date() for dt in graph_line['original_dts']])
         day_change_ind = np.where(np.diff(dates) != np.timedelta64(0, 'D'))[0] + 1
-        
+
         def insert_nans(arr):
             return np.insert(np.array(arr).astype(float), day_change_ind, np.nan)
         
@@ -215,6 +224,8 @@ class ComparisonPlotWidget(pg.PlotWidget):
         original_line = insert_nans(graph_line['adapted'])
         low_line = insert_nans(graph_line['adapted_low'])
         high_line = insert_nans(graph_line['adapted_high'])
+
+
 
         return time_index_sel, original_line, low_line, high_line
 
@@ -314,10 +325,8 @@ class ComparisonPlotWidget(pg.PlotWidget):
         min_symbol = 'Not Found'
         for k, price_data in data_lines.items():
 
-            time_index_list = price_data['time_indices'].tolist()
-            
             data_line = price_data['adapted']
-            data_index, _ = findNearest(np.array(time_index_list), x_mouse)
+            data_index, _ = findNearest(np.array(price_data['time_indices']), x_mouse)
             
             y_for_x = data_line[data_index]
             y_dist = abs(y_mouse - y_for_x)

@@ -48,6 +48,7 @@ class HistoricalDataManager(IBConnectivity):
     
     _uid_by_req = dict()
     _bar_type_by_req = dict()
+    _date_ranges_by_req = dict()
     _grouped_req_ids = []
     
     _hist_buffer_reqs = set()       #general log of open history requests, allows for creating unique id's
@@ -143,6 +144,7 @@ class HistoricalDataManager(IBConnectivity):
     def performReqIdCleanupFor(self, req_id):
         self.processGroupSignal(req_id, supress_signal=True)
         if req_id in self._uid_by_req: del self._uid_by_req[req_id]
+        if req_id in self._date_ranges_by_req: del self._date_ranges_by_req[req_id]
         if req_id in self._bar_type_by_req: del self._bar_type_by_req[req_id]
 
         self._recently_cancelled_req_id.add(req_id)
@@ -266,6 +268,7 @@ class HistoricalDataManager(IBConnectivity):
         self._hist_buffer_reqs.add(req_id)
         self.addUIDbyReq(contract.conId, req_id)
         self._bar_type_by_req[req_id] = bar_type
+        self._date_ranges_by_req[req_id] = (begin_date, end_date)
         requests.append(HistoryRequest(req_id, contract, end_date, period, bar_type))
         # print(f"HistoricalDataManager.addRequest {req_id} {end_date} {period} {bar_type}")
         return requests
@@ -587,6 +590,7 @@ class HistoricalDataManager(IBConnectivity):
                 self._update_requests.remove(req_id)
             
             del self._uid_by_req[req_id]
+            del self._date_ranges_by_req[req_id]
 
 
     def processGroupSignal(self, req_id, supress_signal=False):
@@ -607,8 +611,12 @@ class HistoricalDataManager(IBConnectivity):
         
         if req_id in self._hist_buffer_reqs:
             self._hist_buffer_reqs.remove(req_id)
-            completed_req = self.getCompletedHistoryObject(req_id, start, end)
+            print(f"HistoricalDataManager.historicalDataEnd {start} {end}")
+            start, end = self._date_ranges_by_req[req_id]
+            print(f"saved ranges {start} {end}")
 
+            completed_req = self.getCompletedHistoryObject(req_id, start, end)
+            
             if self.isUpdatingRequest(req_id):
                 self.data_buffers.processUpdates(completed_req, self._propagating_updates[req_id])
             else:
@@ -630,6 +638,7 @@ class HistoricalDataManager(IBConnectivity):
             if not (req_id in self._is_updating):
                 del self._uid_by_req[req_id]
                 del self._bar_type_by_req[req_id]
+                del self._date_ranges_by_req[req_id]
 
 
     def getCompletedHistoryObject(self, req_id, start, end):
@@ -642,9 +651,9 @@ class HistoricalDataManager(IBConnectivity):
         completed_req['req_id'] = req_id
         
         if (start is not None) and (end is not None):
-            start_date = utcDtFromIBString(start)
-            end_date = utcDtFromIBString(end)
-            completed_req['range'] = (start_date, end_date)
+            # start_date = utcDtFromIBString(start)
+            # end_date = utcDtFromIBString(end)
+            completed_req['range'] = (start, end)
         else:
             completed_req['range'] = None
         completed_req['bar type'] = self._bar_type_by_req[req_id]

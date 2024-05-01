@@ -31,6 +31,10 @@ from apps.comparisons.comparisonLists import ComparisonList
 from apps.alerting.alertManager import AlertManager
 from apps.tradeMaker.tradeMaker import TradeMaker
 from apps.movers.moversLists import MoversList
+from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
+from dataHandling.HistoryManagement.SpecBufferedManager import SpecbufferedManagerIB, SpecbufferedManagerFZ
+from dataHandling.HistoryManagement.FinazonBufferedManager import FinazonBufferedDataManager 
+
 from apps.positionManaging.positionManager import PositionApp
 from IBConnector import IBConnector
 from TelegramBot import TelegramBot
@@ -138,7 +142,15 @@ class AppLauncher(AppLauncherWindow, IBConnector):
     
 
     def openAlertApp(self):
-        buffered_manager, indicator_processor = self.getBufferedManagerWithIndicator(indicators={'rsi', 'steps'})
+        history_manager = self.getHistoryManager('general_history')
+
+        if self.data_source == Constants.IB_SOURCE:
+            buffered_manager = BufferedDataManager(history_manager)
+        elif self.data_source == Constants.FINAZON_SOURCE:
+            buffered_manager = FinazonBufferedDataManager(history_manager)
+
+        indicator_processor = self.getIndicatorManager({'rsi', 'steps'}, buffered_manager.getDataBuffer())
+
         alert_app = AlertManager(buffered_manager, indicator_processor, QThread())
         if self.telegram_bot is not None:
             alert_app.setTelegramListener(self.telegram_signal)
@@ -164,7 +176,12 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
     def openMoversApp(self):
         if not self.appRunning(MoversList):
-            buffered_manager = self.getBufferedManager()
+            history_manager = self.getHistoryManager()
+
+            if self.data_source == Constants.IB_SOURCE:
+                buffered_manager = BufferedDataManager(history_manager)
+            elif self.data_source == Constants.FINAZON_SOURCE:
+                buffered_manager = FinazonBufferedDataManager(history_manager)
 
             new_app = MoversList(buffered_manager, QThread())
             self.running_apps.append(new_app)
@@ -180,7 +197,13 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
 
     def openComparisonApp(self):
-        buffered_manager = self.getBufferedManager()
+        
+        history_manager = self.getHistoryManager()
+        if self.data_source == Constants.IB_SOURCE:
+            buffered_manager = SpecbufferedManagerIB(history_manager)
+        elif self.data_source == Constants.FINAZON_SOURCE:
+            buffered_manager = SpecbufferedManagerFZ(history_manager)
+
         new_app = ComparisonList(buffered_manager, QThread())
         if self.telegram_bot is not None:
             new_app.telegram_signal = self.telegram_signal
@@ -191,7 +214,8 @@ class AppLauncher(AppLauncherWindow, IBConnector):
 
     def openListManager(self):
         symbol_manager = self.getNewSymbolManager(identifier='list_symbol_manager')
-        buffered_manager = self.getBufferedManager()
+        history_manager = self.getHistoryManagerIB()
+        buffered_manager = BufferedManager(history_manager)
         option_manager = self.getOptionManager()
         new_app = ListManager(symbol_manager, buffered_manager, option_manager)
         self.running_apps.append(new_app)

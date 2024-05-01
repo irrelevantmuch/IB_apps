@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from datetime import datetime, timedelta, time, date
-from pytz import timezone
+from pytz import timezone, utc
 
 
 from PyQt5.QtCore import pyqtSlot
@@ -44,7 +44,7 @@ class ComparisonProcessor(DataProcessor):
     conversion_type = Constants.INDEXED
     yesterday_close = False
 
-    selected_date = date.today()
+    selected_date = datetime.combine(date.today(), time(0,0,0))
 
     def __init__(self, buffered_manager, bar_types, stock_list):
         self.buffered_manager = buffered_manager
@@ -70,7 +70,7 @@ class ComparisonProcessor(DataProcessor):
 
     @pyqtSlot()
     def fetchStockRangeData(self):
-        start_date = datetime.combine(self.selected_date, time(0,0,0))
+        start_date = self.selected_date
         end_date = datetime.combine(self.getEndDate(), time(23, 59,0))
         
         self.buffered_manager.fetchStockDataForPeriod(self.selected_bar_type, start_date, end_date)
@@ -121,13 +121,14 @@ class ComparisonProcessor(DataProcessor):
 
     @pyqtSlot(dict)
     def updateProperties(self, property_dict):
+        print(f"ComparisonProcessor.updateProperties {property_dict}")
         for prop, value in property_dict.items():
             if prop == "conversion_type":
                 self.conversion_type = value
             elif prop == "regular_hours_type":
                 self.regular_hours = value
             elif prop == "date_selection_type":
-                self.selected_date = value.toPyDate()
+                self.selected_date = datetime.combine(value.toPyDate(), time(0,0,0))
             elif prop == "yesterday_close_type":
                 self.yesterday_close = value
             elif prop == "bar_change_type":
@@ -176,13 +177,16 @@ class ComparisonProcessor(DataProcessor):
 
 
     def recalculateGraphLines(self, uids, check_list):
-        time_indices = self.getTimeIndices()
+        print("ComparisonProcessor.recalculateGraphData")
         for key in (k for k in uids if check_list[k]):
-            symbol = self._stock_list[key][Constants.SYMBOL]
-            filtered_data_frame = self.getTimeFilteredBars(key, time_indices)
+            time_indices, dt_indices = self.getTimeIndices(key)
+            print(f"So these are not the same: {len(time_indices)} {len(dt_indices)}")
+            filtered_data_frame = self.getTimeFilteredBars(key, time_indices, dt_indices)
+            
             if filtered_data_frame is not None:
+                symbol = self._stock_list[key][Constants.SYMBOL]
                 base_price = self.getBasePrice(filtered_data_frame, key, self.selected_date)
-                graph_line = self.calculateSingleLine(filtered_data_frame, base_price, time_indices, symbol)
+                graph_line = self.calculateSingleLine(filtered_data_frame, base_price, symbol)
                 if graph_line is not None:
                     self.primary_graph_data[key] = graph_line
     
@@ -219,23 +223,16 @@ class ComparisonProcessor(DataProcessor):
 
 
 
-    def calculateSingleLine(self, filtered_frame, base_price, time_indices, symbol):
+    def calculateSingleLine(self, filtered_frame, base_price, symbol):
         price_data = filtered_frame[Constants.CLOSE].values
         low_data = filtered_frame[Constants.LOW].values
         high_data = filtered_frame[Constants.HIGH].values
 
-        int_indices = [time_indices.index(date_index) for date_index in filtered_frame.index]
-        time_index_sel = [date_index for date_index in filtered_frame.index]
-
         if len(filtered_frame) > 0:
             graph_line = dict()
-            unix_time_indices = pd.to_datetime(time_index_sel) #, utc=False)
-            unix_time_indices = (unix_time_indices.tz_localize(None) - pd.Timestamp("1970-01-01 02:00:00")) // pd.Timedelta('1s')
-            
-            graph_line['original_dts'] = time_index_sel
-            graph_line['time_indices'] = unix_time_indices
+            graph_line['time_indices'] = filtered_frame.index.to_numpy()
+            graph_line['original_dts'] = filtered_frame['original_dts'].to_numpy()
             graph_line['label'] = symbol
-            graph_line['indices'] = int_indices
             graph_line['original'] = price_data
             min_value = min(price_data)
             max_value = max(price_data)
@@ -250,7 +247,6 @@ class ComparisonProcessor(DataProcessor):
 
 
     def generateTimeIndices(self, start_time, end_time, bar_type):
-        print("ComparisonProcessor.generateTimeIndices")
 
                 # Generate the full datetime range for all days
         time_stamp_range = pd.date_range(start=start_time, end=end_time, freq=RESAMPLING_BARS[bar_type])
@@ -285,23 +281,31 @@ class ComparisonProcessor(DataProcessor):
 
     def getEndDate(self):
         if self.selected_duration == 'Max':
-            days = 1+(date.today() - self.selected_date).days
+            days = 1+(date.today() - self.selected_date.date()).days
         else:
             days = self.period_days[self.selected_duration]
         return (self.selected_date + timedelta(days=days))
 
 
-    def getTimeIndices(self):
+    def getTimeIndices(self, key):
+        time_zone = self._stock_list[key]['time_zone']
+
         bar_type = self.selected_bar_type
-        
-        start_time = pd.Timestamp(self.selected_date).tz_localize('America/New_York')
-        end_time = pd.Timestamp(self.getEndDate()).tz_localize('America/New_York')
-        time_indices = self.generateTimeIndices(start_time, end_time, bar_type)
-        nyc_timezone = timezone(Constants.NYC_TIMEZONE)
-        # pandas_start_time = to_pandas_datetime(nyc_timezone.localize(start_time))
-        # pandas_end_time = to_pandas_datetime(nyc_timezone.localize(end_time))
-        
-        return time_indices
+            
+        start_time = self.getLocalizedDt(self.selected_date, time_zone)
+        end_time = self.getLocalizedDt(self.getEndDate(), time_zone)
+        bar_times = self.generateTimeIndices(start_time, end_time, bar_type)
+        return [self.convertToUtcTimestamp(dt) for dt in bar_times], bar_times
+
+
+    def getLocalizedDt(self, dt, time_zone):
+        localized_tz = timezone(time_zone)
+        return localized_tz.localize(dt)
+
+    def convertToUtcTimestamp(self, dt_localized):
+        dt_utc = dt_localized.astimezone(utc)
+        return int(dt_utc.timestamp())
+
 
 
     def getBasePrice(self, filtered_data_frame, key, start_date):
@@ -323,11 +327,16 @@ class ComparisonProcessor(DataProcessor):
 
 
 
-    def getTimeFilteredBars(self, key, time_indices):
+    def getTimeFilteredBars(self, key, time_indices, dt_bars):
         if self.data_buffers.bufferExists(key, self.selected_bar_type):
             bar_frame = self.data_buffers.getBufferFor(key, self.selected_bar_type)
             
+            dt_series = pd.Series(data=dt_bars, index=time_indices)
+
             filtered_frame = bar_frame[bar_frame.index.isin(time_indices)]
+
+
+            filtered_frame['original_dts'] = dt_series.reindex(filtered_frame.index)
             if len(filtered_frame) > 0:
                 return filtered_frame
 

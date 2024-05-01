@@ -17,12 +17,13 @@
 from dataHandling.Constants import Constants
 from dataHandling.DataStructures import DetailObject
 from datetime import datetime
-from .BufferedManager import BufferedDataManager
+from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
+from dataHandling.HistoryManagement.FinazonBufferedManager import FinazonBufferedDataManager
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread
 
 
-class SpecBufferedDataManager(BufferedDataManager):
+class SpecBufferedDataManager:
 
     api_updater = pyqtSignal(str, dict)
 
@@ -72,18 +73,14 @@ class SpecBufferedDataManager(BufferedDataManager):
             details = DetailObject(symbol=value[Constants.SYMBOL], exchange=value['exchange'], numeric_id=uid)
 
             if self.data_buffers.bufferExists(uid, bar_type):
-                current_ranges = self.data_buffers.getRangesForBuffer(uid, bar_type)
-                missing_ranges = self.getMissingRanges(current_ranges, (start_date, end_date))
+                
+                missing_ranges = self.data_buffers.getMissingRanges(uid, bar_type, (start_date, end_date))
                 for missing_range in missing_ranges:
                     request_list.append((details, bar_type, missing_range)) 
             else:
                 request_list.append((details, bar_type, (start_date, end_date)))
 
         return request_list
-
-
-    def getMissingRanges(self, current_ranges, desired_range):
-        return [desired_range]
 
 
     def processRequests(self):
@@ -117,3 +114,8 @@ class SpecBufferedDataManager(BufferedDataManager):
 
  
 
+class SpecbufferedManagerIB(SpecBufferedDataManager, BufferedDataManager):
+    pass
+
+class SpecbufferedManagerFZ(SpecBufferedDataManager, FinazonBufferedDataManager):
+    pass

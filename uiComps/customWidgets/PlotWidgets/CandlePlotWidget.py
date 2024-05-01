@@ -127,23 +127,6 @@ class CandlestickItem(pg.GraphicsObject):
             return greater_than[0]
 
 
-# class EasternDateAxisItem(pg.DateAxisItem):
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.utc = pytz.utc
-#         self.eastern = pytz.timezone('US/Eastern')
-
-#     def tickStrings(self, values, scale, spacing):
-#         utc_offset = self.eastern.utcoffset(datetime.utcnow()).total_seconds()
-#         print(f"EasternDateAxisItem.tickStrings {utc_offset}")
-#         print(values)
-#         adjusted_values = [val + utc_offset for val in values]
-#         return super().tickStrings(adjusted_values, scale, spacing)
-    
-#     def printableVersion(self, value):
-#         print(datetime.fromtimestamp(val, self.utc).astimezone(self.eastern).strftime('%Y-%m-%d %H:%M:%S'))
-
-
 class CandlePlotWidget(pg.PlotWidget):
 
     current_item = None
@@ -169,8 +152,8 @@ class CandlePlotWidget(pg.PlotWidget):
         self.plotItem.sigXRangeChanged.connect(self.scaleChanging)
 
 
-    def setTimeZone(self, tz_string):
-        print(f"CandlePlotWidget.setTimeZone {tz_string}")
+    def setTimezone(self, tz_string):
+        print(f"CandlePlotWidget.setTimezone {tz_string}")
         time_zone = pytz.timezone(tz_string)
         now = datetime.now(time_zone)
         utc_offset = now.utcoffset().total_seconds()

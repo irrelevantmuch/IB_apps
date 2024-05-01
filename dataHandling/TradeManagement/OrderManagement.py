@@ -892,6 +892,7 @@ class StairManager(QObject):
 
     @pyqtSlot(int, dict)
     def orderUpdate(self, order_id, detail_object):
+        print(f"StairManager.orderUpdate {detail_object['status']} {detail_object.keys()}")
 
         status = detail_object['status']
 

@@ -135,7 +135,6 @@ def standardBeginDateFor(end_date, bar_type):
     else:
         begin_date = end_date - relativedelta(days=1)
 
-    # print(f"For bar_type {bar_type} we return {begin_date}")
     return begin_date
 
 

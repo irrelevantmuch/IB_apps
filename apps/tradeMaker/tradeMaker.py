@@ -192,7 +192,7 @@ class TradeMaker(TradingWindow):
             if signal == Constants.HISTORICAL_DATA_READY:
                 if self.data_buffers.bufferExists(self.selected_key, self.selected_bar_type):
                     bars = self.data_buffers.getBufferFor(self.selected_key, self.selected_bar_type)
-                    self.trade_plot.setTimeZone(self.stock_list[self.selected_key]['time_zone'])
+                    self.trade_plot.setTimezone(self.stock_list[self.selected_key]['time_zone'])
                     self.trade_plot.setHistoricalData(bars.iloc[:-1])
                     self.trade_plot.addNewBars(bars.iloc[[-1]], bars.index[-1])
                     if self.fields_need_updating:

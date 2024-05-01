@@ -196,7 +196,7 @@ class BufferedDataManager(QObject):
         details = DetailObject(numeric_id=uid, **value)
 
         for bar_type in bar_types:
-            date_ranges = self.getDataRanges(uid, bar_type, full_fetch)
+            date_ranges = self.getDateRanges(uid, bar_type, full_fetch)
             for begin_date, end_date in date_ranges:
                 self.create_request_signal.emit(details, begin_date, end_date, bar_type)
 
@@ -204,10 +204,8 @@ class BufferedDataManager(QObject):
             if len(self.stocks_to_fetch) > 0:
                 self.fetchNextStock(bar_types=bar_types, full_fetch=full_fetch)
             else:
-                # print("Or here")
                 self.execute_request_signal.emit(11_000)
         else:
-            # print("Via here")
             self.group_request_signal.emit('stock_group')
             self.execute_request_signal.emit(2_000)
 
@@ -276,7 +274,7 @@ class BufferedDataManager(QObject):
         return ((bar_type == Constants.ONE_MIN_BAR) or (bar_type == Constants.TWO_MIN_BAR) or (bar_type == Constants.THREE_MIN_BAR))
 
 
-    def getDataRanges(self, uid, bar_type, full_fetch=False):
+    def getDateRanges(self, uid, bar_type, full_fetch=False):
         end_date = datetime.now(timezone.utc)
 
         if full_fetch:
@@ -285,21 +283,16 @@ class BufferedDataManager(QObject):
             return self.getStandardRanges(uid, bar_type, end_date)
         
 
-
     def getStandardRanges(self, uid, bar_type, end_date):
         standard_begin_date = standardBeginDateFor(end_date, bar_type)
+        desired_range = (standard_begin_date, end_date)
         if self.data_buffers.bufferExists(uid, bar_type):
-            existing_ranges = self.data_buffers.getRangesForBuffer(uid, bar_type)
-            print(f"Existing: {existing_ranges}")
-            print(f"Standard: {standard_begin_date}")
-            print(standard_begin_date)
-            if (existing_ranges[-1][1] > standard_begin_date):
-                return [(existing_ranges[-1][1], end_date)] 
-
-        return [(standard_begin_date, end_date)]
+            return self.data_buffers.getMissingRangesFor(uid, bar_type, desired_range)
+        return desired_range
 
 
     def getFullRanges(self, uid, bar_type, end_date):
+            #TODO: this code should be updated
         if uid in self.history_manager.earliest_date_by_uid:
             earliest_date = self.history_manager.earliest_date_by_uid[uid]
         else:
@@ -308,50 +301,10 @@ class BufferedDataManager(QObject):
 
         if (uid, bar_type) in self.existing_buffers:
             begin_date = earliest_date
-            existing_ranges = self.existing_buffers[uid, bar_type].attrs['ranges']
-            missing_ranges = self.determineMissingRanges(existing_ranges, (begin_date, end_date))
-            missing_ranges = self.combineAdjacentRanges(missing_ranges)
+            missing_ranges = self.data_buffers.getMissingRangesFor(uid, bar_type, (begin_date, end_date))
             return missing_ranges
         else:
             return [(earliest_date, end_date)]
-
-
-    def combineAdjacentRanges(self, missing_ranges):
-        last_range = missing_ranges[-1]
-
-        difference = last_range[1] - last_range[0]
-        if difference.days == 0:
-            missing_ranges.pop()
-
-        return missing_ranges
-
-
-    def determineMissingRanges(self, existing_ranges, new_range):
-        start_new, end_new = new_range
-        missing_ranges = []
-        
-        # Add the start of the new range to the missing ranges
-        missing_ranges.append((start_new, end_new))
-        for start_existing, end_existing in sorted(existing_ranges):
-            for index, (start_missing, end_missing) in enumerate(missing_ranges):
-                # If the existing range is entirely within a missing range
-                if start_existing >= start_missing and end_existing <= end_missing:
-                    del missing_ranges[index]
-                    if start_existing > start_missing:
-                        missing_ranges.append((start_missing, start_existing))
-                    if end_existing < end_missing:
-                        missing_ranges.append((end_existing, end_missing))
-                    break
-                # If the existing range overlaps the start of a missing range
-                elif start_existing <= start_missing and end_existing > start_missing and end_existing <= end_missing:
-                    missing_ranges[i] = (end_existing, end_missing)
-                    break
-                # If the existing range overlaps the end of a missing range
-                elif start_existing >= start_missing and start_existing < end_missing and end_existing >= end_missing:
-                    missing_ranges[i] = (start_missing, start_existing)
-                    break
-                    
-        return sorted(missing_ranges)
 
 
     @pyqtSlot()

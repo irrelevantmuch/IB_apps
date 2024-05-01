@@ -74,6 +74,7 @@ class ComparisonList(ComparisonWindow):
     def listSetup(self):
         file_name, _ = self.stock_lists[0]
         self.stock_list = readStockList(file_name)
+        self.setPlotTimezone()
         # self.comparison_list = readStockList(file_name)
         self.check_list = self.generateCheckList(self.stock_list)
         self.focus_list = self.check_list.copy()
@@ -108,7 +109,6 @@ class ComparisonList(ComparisonWindow):
         self.data_processor.data_buffers.buffer_updater.connect(self.bufferUpdate, Qt.QueuedConnection)
         
 
-
     def fillTickerLists(self):
         # print("ComparisonList.fillTickerLists")
         addCheckableTickersTo(self.visible_ticker_box, self.stock_list, self.check_list)
@@ -116,8 +116,7 @@ class ComparisonList(ComparisonWindow):
         filtered_list = {uid: value for (uid, value) in self.stock_list.items() if self.check_list[uid]}
         addCheckableTickersTo(self.focus_box, filtered_list, self.focus_list)
         self.check_list_signal.emit(self.check_list)
-                
-        
+                  
 
     def generateCheckList(self, stock_list, default_bool=True):
         return {k: default_bool for k in stock_list}
@@ -209,10 +208,15 @@ class ComparisonList(ComparisonWindow):
         self.comparison_selector_2.blockSignals(False)
 
 
+    def setPlotTimezone(self):
+        first_stock = next(iter(self.stock_list.values()))
+        self.compare_plot.setTimezone(first_stock['time_zone'])
+
     def listSelection(self, value):
-        print("ComparisonList.listSelection")
+        print(f"ComparisonList.listSelection {value}")
         file_name, _ = self.stock_lists[value]
         self.stock_list = readStockList(file_name)
+        self.setPlotTimezone()
         self.set_stock_list_signal.emit(self.stock_list)
         self.check_list = self.generateCheckList(self.stock_list)
         self.check_list_signal.emit(self.check_list)

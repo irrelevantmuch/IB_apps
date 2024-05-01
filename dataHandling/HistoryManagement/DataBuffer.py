@@ -50,54 +50,6 @@ class DataBuffers(QObject):
         self._locks[uid, bar_type].unlock()
 
 
-    def setIndicatorValues(self, uid, bar_type, new_value_dict):
-        
-        self._locks[uid, bar_type].lockForWrite()
-        if not((uid, bar_type) in self._indicators):
-            self._indicators[uid, bar_type] = dict()
-        self._indicators[uid, bar_type].update(new_value_dict)
-        self._locks[uid, bar_type].unlock()
-
-
-    def getIndicatorValues(self, uid, bar_type, indicators):
-        self._locks[uid, bar_type].lockForRead()
-        try:
-            if ((uid, bar_type) in self._indicators) and all(indicator in self._indicators[uid, bar_type] for indicator in indicators):
-                ind_dict = {ind: value for ind, value in self._indicators[uid, bar_type].items() if ind in indicators}
-                return ind_dict
-            else:
-                return None
-        finally:
-            self._locks[uid, bar_type].unlock()
-        
-
-    def getBufferFor(self, uid, bar_type):
-        
-        self._locks[uid, bar_type].lockForRead()
-        try:
-            return self._buffers[uid, bar_type].copy()
-        finally:
-            self._locks[uid, bar_type].unlock()
-    
-
-    def getRangesForBuffer(self, uid, bar_type):
-        self._locks[uid, bar_type].lockForRead()
-        try:
-            if (uid, bar_type) in self._date_ranges:
-                return self._date_ranges[uid, bar_type]
-            return []
-        finally:
-            self._locks[uid, bar_type].unlock()
-
-
-    def bufferExists(self, uid, bar_type):
-        return (uid, bar_type) in self._buffers
-
-
-    def getAllUIDs(self):
-        return [key for key in self._buffers.keys]
-
-
     def addToBuffer(self, uid, bar_type, new_data, new_range):
         self._locks[uid, bar_type].lockForWrite()
         
@@ -113,6 +65,23 @@ class DataBuffers(QObject):
             
         self._locks[uid, bar_type].unlock()
         
+
+    def getBufferFor(self, uid, bar_type):
+        
+        self._locks[uid, bar_type].lockForRead()
+        try:
+            return self._buffers[uid, bar_type].copy()
+        finally:
+            self._locks[uid, bar_type].unlock()
+    
+
+    def bufferExists(self, uid, bar_type):
+        return (uid, bar_type) in self._buffers
+
+
+    def getAllUIDs(self):
+        return [key for key in self._buffers.keys]
+
 
     def printRanges(self, date_ranges):
         for date_range in date_ranges:
@@ -234,6 +203,8 @@ class DataBuffers(QObject):
             self._locks[uid, bar_type].unlock()
 
 
+    ##################### Sorting
+
     def sortIndex(self, uid, bar_type, ascending=True):
         self._locks[uid, bar_type].lockForWrite()
         self._buffers[uid, bar_type].sort_index(ascending=ascending, inplace=True)
@@ -245,12 +216,89 @@ class DataBuffers(QObject):
         self._buffers[uid, bar_type].sort_values(column, ascending=ascending, inplace=True)
         self._locks[uid, bar_type].unlock()
 
-    def rangesFor(self, uid, bar_type):
-        self._locks[uid, bar_type].lockForRead()
-        value = self._buffers[uid, bar_type].attrs['ranges']
-        self._locks[uid, bar_type].unlock()
-        return value
 
+   ##################### Range management
+
+
+    def getMissingRangesFor(self, uid, bar_type, desired_range):
+        self._locks[uid, bar_type].lockForRead()
+        try:
+            current_ranges = self._buffers[uid, bar_type].attrs['ranges']
+            return self.determineMissingRanges(desired_range, current_ranges)
+        finally:
+            self._locks[uid, bar_type].unlock()
+        
+
+    def getRangesForBuffer(self, uid, bar_type):
+        self._locks[uid, bar_type].lockForRead()
+        try:
+            if (uid, bar_type) in self._date_ranges:
+                return self._date_ranges[uid, bar_type]
+            return []
+        finally:
+            self._locks[uid, bar_type].unlock()
+
+
+    def determineMissingRanges(self, desired_range, current_ranges):
+        desired_start, desired_end = desired_range
+        missing_ranges = []
+        current_start = desired_start
+        
+        for start, end in current_ranges:
+            if start > current_start:  # There is a gap before this range begins
+                # Ensure we add a gap only if it's within the desired range
+                if current_start < min(desired_end, start):
+                    missing_ranges.append((current_start, min(desired_end, start)))
+            current_start = max(current_start, end)  # Move current_start beyond the current range
+        
+        # After processing all existing ranges, check if there's still a gap at the end
+        if current_start < desired_end:
+            missing_ranges.append((current_start, desired_end))
+        
+        return missing_ranges
+
+
+    def mergeAdjRanges(self, date_ranges):
+        date_ranges.sort()  # Ensure the ranges are sorted
+        for index_right in reversed(range(len(date_ranges))):
+            date_range_right = date_ranges[index_right]
+            for index_left in range(index_right):
+                date_range_left = date_ranges[index_left]
+                if date_range_right[0] <= date_range_left[1] and date_range_right[1] > date_range_left[1]:
+                    date_ranges[index_left] = (date_range_left[0], date_range_right[1])
+                    del date_ranges[index_right]
+                    break
+                elif date_range_right[1] >= date_range_left[0] and date_range_right[0] < date_range_left[0]:
+                    date_ranges[index_left] = (date_range_right[0], date_range_left[1])
+                    del date_ranges[index_right]
+                    break
+
+        return date_ranges
+
+
+   ##################### Indicator addition
+
+    def setIndicatorValues(self, uid, bar_type, new_value_dict):
+        
+        self._locks[uid, bar_type].lockForWrite()
+        if not((uid, bar_type) in self._indicators):
+            self._indicators[uid, bar_type] = dict()
+        self._indicators[uid, bar_type].update(new_value_dict)
+        self._locks[uid, bar_type].unlock()
+
+
+    def getIndicatorValues(self, uid, bar_type, indicators):
+        self._locks[uid, bar_type].lockForRead()
+        try:
+            if ((uid, bar_type) in self._indicators) and all(indicator in self._indicators[uid, bar_type] for indicator in indicators):
+                ind_dict = {ind: value for ind, value in self._indicators[uid, bar_type].items() if ind in indicators}
+                return ind_dict
+            else:
+                return None
+        finally:
+            self._locks[uid, bar_type].unlock()
+        
+ 
 
     ##################### Loading and saving
 
@@ -287,7 +335,6 @@ class DataBuffers(QObject):
         temp_df.to_pickle(file_name)
 
         self._locks[uid, bar_type].unlock()
-
 
 
     ##################### Processing
@@ -436,23 +483,5 @@ class DataBuffers(QObject):
         bar_low = self.getValueForColumnByIndex(uid, from_bar_type, Constants.LOW, indices).min()
         bar_high = self.getValueForColumnByIndex(uid, from_bar_type, Constants.HIGH, indices).max()
         return {Constants.OPEN: bar_open, Constants.HIGH: bar_high, Constants.LOW: bar_low, Constants.CLOSE: bar_close, Constants.VOLUME: bar_volume}
-
-    ##################### Range management
-
-    def mergeAdjRanges(self, date_ranges):
-        for index_right in reversed(range(len(date_ranges))):
-            date_range_right = date_ranges[index_right]
-            for index_left in range(index_right):
-                date_range_left = date_ranges[index_left]
-                if date_range_right[0] <= date_range_left[1] and date_range_right[1] > date_range_left[1]:
-                    date_ranges[index_left] = (date_range_left[0], date_range_right[1])
-                    del date_ranges[index_right]
-                    break
-                elif date_range_right[1] >= date_range_left[0] and date_range_right[0] < date_range_left[0]:
-                    date_ranges[index_left] = (date_range_right[0], date_range_left[1])
-                    del date_ranges[index_right]
-                    break
-
-        return date_ranges
 
     
