@@ -570,7 +570,7 @@ class OptionChainManager(IBConnectivity):
         return True
 
 
-    @pyqtSlot(list)
+    @pyqtSlot(list, float, float, int, int)
     def requestForAllStrikesAndExpirations(self, option_types, min_strike, max_strike, min_expiration, max_expiration):
         
         self.fetching_all = True
@@ -590,8 +590,7 @@ class OptionChainManager(IBConnectivity):
                 self.request_buffer.append({'req_id': req_id, 'contract': contract, 'keep_up_to_date': True})
                 counter += 1
 
-        if execute:
-            self.iterateOptionRequests(delay=10)
+        self.iterateOptionRequests(delay=10)
 
 
     def getExpirationsFor(self, strike):

@@ -488,7 +488,7 @@ class StairManager(QObject):
     update_order_signal = pyqtSignal(int, dict)
 
     propagate_to_current = True
-    step_hist_count = 2
+    step_hist_count = 5
 
     tracking_updater = pyqtSignal(str, dict)
 

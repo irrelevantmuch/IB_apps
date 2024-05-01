@@ -83,7 +83,6 @@ class OptionVisualization(VisualizationWindow):
         self.exp_comp_frame = option_data_manager.getExpirationFrame()
         self.all_option_frame = option_data_manager.getBufferedFrame()
         
-        print(self.all_option_frame)
         self.min_all_strike.connect(self.all_option_frame.setMinimumStrike, Qt.QueuedConnection)
         self.max_all_strike.connect(self.all_option_frame.setMaximumStrike, Qt.QueuedConnection)
         self.min_all_expiration.connect(self.all_option_frame.setMinimumExpiration, Qt.QueuedConnection)
@@ -328,7 +327,7 @@ class OptionVisualization(VisualizationWindow):
             option_types.append(Constants.PUT)
 
         min_strike, max_strike, min_exp, max_exp = self.getDownloadRanges()
-        self.req_all_strikes.emit(option_types, )
+        self.req_all_strikes.emit(option_types, min_strike, max_strike, min_exp, max_exp)
 
 
     def getDownloadRanges(self):

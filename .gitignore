@@ -1,5 +1,6 @@
 .DS_Store
-appLauncher.sublime-workspace
+*.sublime-workspace
+*.sublime-project
 
 .idea/*
 junkFolder/*

@@ -306,8 +306,8 @@ class HistoricalDataManager(IBConnectivity):
 
             end_date = datetime.now(timezone.utc)
             total_seconds = int((end_date-begin_dates[uid]).total_seconds())
-
-            self.createUpdateRequests(details, bar_type, total_seconds, keep_up_to_date, propagate_updates)
+            date_range = (begin_dates[uid], end_date)
+            self.createUpdateRequests(details, bar_type, total_seconds, date_range, keep_up_to_date, propagate_updates)
 
         self.iterateHistoryRequests(100)        
 
@@ -328,7 +328,7 @@ class HistoricalDataManager(IBConnectivity):
                 self.cancelRealTimeBars(req_id)
 
 
-    def createUpdateRequests(self, contract_details, bar_type, time_in_sec, keep_up_to_date=True, propagate_updates=False):
+    def createUpdateRequests(self, contract_details, bar_type, time_in_sec, date_range, keep_up_to_date=True, propagate_updates=False):
         # print(f"HistoricalDataManager.createUpdateRequests {keep_up_to_date} {propagate_updates}")
         req_id = self.getNextBufferReqID()
         uid = contract_details.numeric_id
@@ -344,12 +344,14 @@ class HistoricalDataManager(IBConnectivity):
         self._historicalDFs[req_id] = pd.DataFrame(columns=[Constants.OPEN, Constants.HIGH, Constants.LOW, Constants.CLOSE, Constants.VOLUME])
         self.addUIDbyReq(uid, req_id)
         self._bar_type_by_req[req_id] = bar_type
+        self._date_ranges_by_req[req_id] = date_range
         if time_in_sec > Constants.SECONDS_IN_DAY:
             total_days = int(math.ceil(time_in_sec/(Constants.SECONDS_IN_DAY)))
             self._request_buffer.append(HistoryRequest(req_id, contract, "", f"{total_days} D", bar_type, keep_up_to_date))
         else:
             self._request_buffer.append(HistoryRequest(req_id, contract, "", f"{(time_in_sec+300)} S", bar_type, keep_up_to_date))
         
+
         self._hist_buffer_reqs.add(req_id)
         self._update_requests.add(req_id)
 

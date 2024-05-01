@@ -188,11 +188,14 @@ class TradeMaker(TradingWindow):
 
     @pyqtSlot(str, dict)
     def dataUpdate(self, signal, sub_signal):
+        print(f"TradeMaker.dataUpdate {signal}")
+        print(sub_signal)
         if (self.selected_key == sub_signal['uid']) and (self.selected_bar_type in sub_signal['bars']):
             if signal == Constants.HISTORICAL_DATA_READY:
                 if self.data_buffers.bufferExists(self.selected_key, self.selected_bar_type):
                     bars = self.data_buffers.getBufferFor(self.selected_key, self.selected_bar_type)
-                    self.trade_plot.setTimezone(self.stock_list[self.selected_key]['time_zone'])
+                    print(self.stock_list)
+                    self.trade_plot.setTimezone(self.stock_inf['time_zone'])
                     self.trade_plot.setHistoricalData(bars.iloc[:-1])
                     self.trade_plot.addNewBars(bars.iloc[[-1]], bars.index[-1])
                     if self.fields_need_updating:
@@ -229,9 +232,9 @@ class TradeMaker(TradingWindow):
         if self.current_selection is not None:
             self.selected_key = self.current_selection.numeric_id
             self.selected_symbol = self.current_selection.symbol
-            stock_inf = {Constants.SYMBOL: self.current_selection.symbol, 'long_name': self.current_selection.long_name, 'exchange': self.current_selection.exchange, 'sec_type': self.symbol_manager.sec_type, 'currency': self.current_selection.currency, 'time_zone': self.current_selection.time_zone}
+            self.stock_inf = {Constants.SYMBOL: self.current_selection.symbol, 'long_name': self.current_selection.long_name, 'exchange': self.current_selection.exchange, 'sec_type': self.symbol_manager.sec_type, 'currency': self.current_selection.currency, 'time_zone': self.current_selection.time_zone}
             self.product_label.setText(self.current_selection.long_name)
-            self.set_ticker_signal.emit((self.selected_key, stock_inf), self.getActiveUids()) #second argument is do_not_remove list
+            self.set_ticker_signal.emit((self.selected_key, self.stock_inf), self.getActiveUids()) #second argument is do_not_remove list
             self.updateTrackingGUI()
             self.fields_need_updating = True
             self.stair_tracker.propagate_to_current = False
@@ -241,6 +244,7 @@ class TradeMaker(TradingWindow):
         print("TradeMaker.tickerSelection do we get here early?")
         ordered_keys = list(self.stock_list.keys())
         self.selected_key = ordered_keys[value]
+        self.stock_inf = self.stock_list[self.selected_key]
         self.selected_symbol = self.stock_list[self.selected_key][Constants.SYMBOL]
         self.product_label.setText(self.stock_list[self.selected_key]['long_name'])
         self.set_ticker_signal.emit((self.selected_key, self.stock_list[self.selected_key]), self.getActiveUids()) #second argument is do_not_remove list
