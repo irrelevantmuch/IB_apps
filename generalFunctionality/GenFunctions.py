@@ -233,6 +233,7 @@ def addRSIsEMAs(stock_frame, from_index=None):
     stock_frame['rsi'] = stock_frame['rsi'].ffill()
     stock_frame['rsi'] = stock_frame['rsi'].round(1)
 
+    print(stock_frame[['rsi', 'up_ema','down_ema']])
     return stock_frame
 
 

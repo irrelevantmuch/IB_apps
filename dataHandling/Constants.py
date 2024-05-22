@@ -219,7 +219,9 @@ class Constants:
     FIFTEEN_MIN_BAR: Final = '15 mins'
     HOUR_BAR: Final = '1 hour'
     FOUR_HOUR_BAR: Final = '4 hours'
+    TWELVE_HOUR_BAR: Final = '12 hours'
     DAY_BAR: Final = '1 day'
+    THREE_DAY_BAR: Final = '3 days'
 
 
 QUICK_BAR_TYPES: Final = [Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR]

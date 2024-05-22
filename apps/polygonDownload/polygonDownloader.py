@@ -28,6 +28,7 @@ base_url = 'https://api.polygon.io'
 class PolygonDownloader(QObject):
 
     api_updater = pyqtSignal(str, dict)
+    ib_eq_bars = {'1 minute': Constants.ONE_MIN_BAR,'2 minute': Constants.TWO_MIN_BAR,'3 minute': Constants.THREE_MIN_BAR,'5 minute': Constants.FIVE_MIN_BAR, '15 minute': Constants.FIFTEEN_MIN_BAR, '1 hour': Constants.HOUR_BAR, '4 hour': Constants.FOUR_HOUR_BAR, '12 hour': Constants.TWELVE_HOUR_BAR, '1 day': Constants.DAY_BAR, '3 day': Constants.THREE_DAY_BAR}
 
     def run(self):
         print("We start the thread")
@@ -54,13 +55,16 @@ class PolygonDownloader(QObject):
 
     @pyqtSlot(list, list, tuple)
     def downloadForSymbols(self, symbols, bar_types, time_range):
+        print(f"Polygon.downloadForSymbols {symbols}")
         self.total_count = len(symbols) * len(bar_types)
         self.symbol_count = len(symbols)
 
         data_dict = dict()
         for symbol in symbols:
             data_dict[symbol] = self.downloadForSymbol(symbol, bar_types, time_range)
+        print("Dont we come here?")
         self.api_updater.emit(Constants.POLYGON_REQUESTS_COMPLETED, dict())
+
 
     def getCountAndUnit(self, polygon_bar):
         split_polygon_bar = polygon_bar.split()
@@ -69,9 +73,8 @@ class PolygonDownloader(QObject):
         return count, unit
 
 
-    @pyqtSlot(str, list, tuple)
     def downloadForSymbol(self, symbol, bar_types, time_range):
-
+        print("PolygonDownloader.downloadForSymbol")
         print(f"We attempt to download {symbol} for {bar_types} between {time_range[0]} to {time_range[1]}")
         # Specify the columns you're interested in
         columns = ['o', 'h', 'l', 'c', 'v', 't']
@@ -94,8 +97,10 @@ class PolygonDownloader(QObject):
                 if response.status_code == 200:
                     # Parse the JSON response
                     data = response.json()
-                    
-                    symbol_df = pd.concat([symbol_df, pd.DataFrame(data['results'], columns=columns)])
+                    # print(len(data['results']))
+                    # print(data['results'])
+                    if 'results' in data:
+                        symbol_df = pd.concat([symbol_df, pd.DataFrame(data['results'], columns=columns)])
                     
                     # Get the next page URL
                     url = data.get('next_url')
@@ -115,7 +120,7 @@ class PolygonDownloader(QObject):
 
             symbol_df = symbol_df.apply(pd.to_numeric, errors='coerce', axis=0)
 
-            file_name = Constants.POLYGON_BUFFER_FOLDER + symbol + '_' + bar_type + '.pkl'
+            file_name = Constants.POLYGON_BUFFER_FOLDER + symbol + '_' + self.ib_eq_bars[bar_type] + '.pkl'
             symbol_df.to_pickle(file_name)
             # Remove the name of the index column
             

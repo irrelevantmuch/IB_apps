@@ -215,7 +215,7 @@ class AppLauncher(AppLauncherWindow, IBConnector):
     def openListManager(self):
         symbol_manager = self.getNewSymbolManager(identifier='list_symbol_manager')
         history_manager = self.getHistoryManagerIB()
-        buffered_manager = BufferedManager(history_manager)
+        buffered_manager = BufferedDataManager(history_manager)
         option_manager = self.getOptionManager()
         new_app = ListManager(symbol_manager, buffered_manager, option_manager)
         self.running_apps.append(new_app)

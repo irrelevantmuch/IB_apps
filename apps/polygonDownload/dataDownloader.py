@@ -50,7 +50,6 @@ class DataDownloader(DataDownloaderWindow):
     data_processor = None
     status_window = None
 
-    polygon_symbol_download = pyqtSignal(str, list, tuple)
     polygon_list_download = pyqtSignal(list, list, tuple)
 
 
@@ -72,8 +71,7 @@ class DataDownloader(DataDownloaderWindow):
 
     def prepPolygonDownloader(self, processor_thread):
         self.polygonDownloader = PolygonDownloader()
-        self.polygonDownloader.api_updater.connect(self.apiUpdate)
-        self.polygon_symbol_download.connect(self.polygonDownloader.downloadForSymbol, Qt.QueuedConnection)
+        self.polygonDownloader.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         self.polygon_list_download.connect(self.polygonDownloader.downloadForSymbols, Qt.QueuedConnection)
 
         self.polygon_thread = processor_thread
@@ -150,15 +148,17 @@ class DataDownloader(DataDownloaderWindow):
 
 
     def updateTables(self):
-        self.data_count_model.setDataFrame(self.data_count_frame)
-        self.data_point_model.setDataFrame(self.data_frame_points)
-        self.data_ranges_model.setDataFrame(self.data_frame_ranges)
-        self.trade_plot.clearPlot()
-        self.trade_plot.setHistoricalData(self.data_frame_points.copy())
+        pass
 
-        self.data_ranges_model.layoutChanged.emit()
-        self.data_point_model.layoutChanged.emit()
-        self.data_count_model.layoutChanged.emit()
+        # self.data_count_model.setDataFrame(self.data_count_frame)
+        # self.data_point_model.setDataFrame(self.data_frame_points)
+        # self.data_ranges_model.setDataFrame(self.data_frame_ranges)
+        # self.trade_plot.clearPlot()
+        # self.trade_plot.setHistoricalData(self.data_frame_points.copy())
+
+        # self.data_ranges_model.layoutChanged.emit()
+        # self.data_point_model.layoutChanged.emit()
+        # self.data_count_model.layoutChanged.emit()
         
 
     def generateColumnNames(self):
@@ -269,6 +269,7 @@ class DataDownloader(DataDownloaderWindow):
             self.download_selection = "Whole List"
             self.download_list_checker.setEnabled(False)
 
+
     def tickerSelection(self, value):
         ordered_keys = list(self.stock_list.keys())
         self.selected_key = ordered_keys[value]
@@ -289,7 +290,7 @@ class DataDownloader(DataDownloaderWindow):
             self.download_button.setEnabled(False)
             symbol = self.stock_list[self.selected_key][Constants.SYMBOL]
             self.total_count = len(bar_types)
-            self.polygon_symbol_download.emit(symbol, bar_types, (start_date, current_date))
+            self.polygon_list_download.emit([symbol], bar_types, (start_date, current_date))
         elif self.download_selection == "Whole List":
             self.download_button.setEnabled(False)
 
