@@ -291,7 +291,6 @@ class StepModel(PandasStaleModel):
                     steps = self._table_data.getValueForColRow(column_name,row)
                     move = abs(self._table_data.getValueForColRow(column_name + '_Move',row))
                     if isnan(steps): return super().data(index, role)
-                    print(f"What is this {move} {type(move)}")
                     intensity = int(5 * (steps + move))
                     return QBrush(QColor(255, 255, max(255-intensity,0)))
                 elif role == Qt.DisplayRole:

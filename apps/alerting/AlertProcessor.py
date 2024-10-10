@@ -249,8 +249,11 @@ class AlertProcessor(QObject):
     def stopUpdating(self):
         self.buffered_manager.cancelUpdates()
     
+    
+    @pyqtSlot()
     def stop(self):
-        print("Perform cleanup here")
+        self.buffered_manager.deregister()
+        
 
         
 class AlertProcessorFinazon(AlertProcessor):

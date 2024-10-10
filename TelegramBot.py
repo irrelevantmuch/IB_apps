@@ -43,7 +43,6 @@ class TelegramBot(QObject):
     def createHandlers(self):
         @self.bot.message_handler(func=lambda message: True)
         def echo_all(message):
-            print(message)
             self.temp_reply_id = message.message_id
             photo_path = './data/graphs/sharing_graph.webp'
             command, params = self.parseCommands(message.text)
@@ -138,13 +137,11 @@ class TelegramBot(QObject):
 
     @pyqtSlot()
     def run(self):
-        print("TelegramBot.run Do we ever run????")
         def target():
             self.bot.polling(non_stop=True, timeout=90)
          
         self.polling_thread = Thread(target=target, daemon=True)
         self.polling_thread.start()
-        print("TelegramBot.run but don't get here")
     
 
     def readBotInfo(self):

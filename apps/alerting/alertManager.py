@@ -29,8 +29,6 @@ from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
 from dataHandling.HistoryManagement.FinazonBufferedManager import FinazonBufferedDataManager 
 from .AlertWindow import AlertWindow
 
-from PyQt5.QtWidgets import QMainWindow
-
 from .AlertProcessor import AlertProcessorFinazon, AlertProcessorIB
 from dataHandling.UserDataManagement import getStockListNames
 

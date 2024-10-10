@@ -27,7 +27,8 @@ from dataHandling.Constants import Constants, TableType
 from dataHandling.DataProcessor import DataProcessor
 from .MoversFrame import MoversFrame
 from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
-from generalFunctionality.GenFunctions import subtract_days, subtract_weeks, subtract_months, addRSIsEMAs, getLowsHighsCount, calculateCorrelation
+from generalFunctionality.GenFunctions import addRSIsEMAs, getLowsHighsCount, calculateCorrelation
+from generalFunctionality.DateTimeFunctions import subtract_days, subtract_weeks, subtract_months
 
 class MoversProcessor(DataProcessor):
 
@@ -94,7 +95,7 @@ class MoversProcessor(DataProcessor):
 
     def isUpdatable(self):
         for stock in self._stock_list:
-            if not self.buffered_manager.allRangesUpToDate(stock):
+            if not self.buffered_manager.allRangesWithinUpdate(stock):
                 return False
 
         return True
@@ -105,14 +106,6 @@ class MoversProcessor(DataProcessor):
         if signal == Constants.HAS_NEW_DATA:
             uid = sub_signal['uid']
             if uid in self._stock_list:
-                now_time = datetime.now(timezone(Constants.NYC_TIMEZONE))
-                delay_dif = timedelta(seconds=3)
-                # for uid, update_time in self.last_uid_update.items():
-                #     if uid in uids and (now_time - update_time) < delay_dif:
-                #         uids.remove(uid)
-
-                self.last_uid_update[uid] = now_time
-
                 if 'bars' in sub_signal:
                     bars = sub_signal['bars']
                 else:
@@ -334,9 +327,6 @@ class MoversProcessor(DataProcessor):
 
 
         max_date = self.period_functions[time_period]
-        print(f"MoversProcessor.calculateMinMax {max_date}")
-        print(self.period_functions)
-        print(time_period)
         for uid in updated_list: 
             if self.data_buffers.bufferExists(uid, Constants.DAY_BAR):
                 price = self.data_wrapper.getValueFor(uid, Constants.PRICE)
@@ -382,19 +372,22 @@ class MoversProcessor(DataProcessor):
 
         
     def calculateDayMove(self, updated_list=None):
+        # print("MoversProcessor.calculateDayMove")
         if updated_list is None:
             updated_list = self.stock_df.index.values
         
         for uid in updated_list:
-            
+            # print(f"For: {self._stock_list[uid][Constants.SYMBOL]}")
             if self.data_buffers.bufferExists(uid, Constants.DAY_BAR):
 
                 last_known_price = self.data_wrapper.getValueFor(uid, Constants.PRICE)
                 
                 day_buffer = self.data_buffers.getBufferFor(uid, Constants.DAY_BAR)
+                # print(f"Length {len(day_buffer)}")
                 if len(day_buffer) > 1:
                     last_day_close = day_buffer[Constants.CLOSE].iloc[-2]
-
+                    # print(day_buffer[Constants.CLOSE].tail())
+                    # print(f"Previous day vs today: {last_day_close}, {last_known_price}")
                     price_move_perc = ((last_known_price-last_day_close)/last_day_close)*100
 
                     self.data_wrapper.updateValueFor(uid, Constants.DAY_MOVE, price_move_perc)

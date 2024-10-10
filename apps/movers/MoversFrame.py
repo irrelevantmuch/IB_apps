@@ -40,9 +40,6 @@ class MoversFrame(QObject):
     def getValueForColRow(self, column, row):
         self._lock.lockForRead()
         try:
-            # print(f"What the {column} and the {row}")
-            # print(f"hhmmmm {self._data_frame.columns}")
-            # print(f"hhmmmm,,, {self._data_frame[column]}")
             return self._data_frame[column].iloc[row]
         finally:
             self._lock.unlock()
@@ -61,7 +58,6 @@ class MoversFrame(QObject):
     def sortIndex(self, ascending=True):
         self._lock.lockForRead()
         try:
-            print(self._data_frame.index)
             self._data_frame.sort_index(ascending=ascending, inplace=True)
         finally:
             self._lock.unlock()
