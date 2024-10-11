@@ -153,7 +153,6 @@ class CandlePlotWidget(pg.PlotWidget):
 
 
     def setTimezone(self, tz_string):
-        print(f"CandlePlotWidget.setTimezone {tz_string}")
         time_zone = pytz.timezone(tz_string)
         now = datetime.now(time_zone)
         utc_offset = now.utcoffset().total_seconds()
