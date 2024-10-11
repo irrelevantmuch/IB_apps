@@ -262,14 +262,14 @@ class Ui_MainWindow(object):
         self.socket_line.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.socket_line.setObjectName("socket_line")
         self.gridLayout_4.addWidget(self.socket_line, 2, 1, 1, 1)
-        self.connect_button = QtWidgets.QPushButton(self.centralwidget)
+        self.verify_conn_button = QtWidgets.QPushButton(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.connect_button.sizePolicy().hasHeightForWidth())
-        self.connect_button.setSizePolicy(sizePolicy)
-        self.connect_button.setObjectName("connect_button")
-        self.gridLayout_4.addWidget(self.connect_button, 3, 1, 1, 1)
+        sizePolicy.setHeightForWidth(self.verify_conn_button.sizePolicy().hasHeightForWidth())
+        self.verify_conn_button.setSizePolicy(sizePolicy)
+        self.verify_conn_button.setObjectName("verify_conn_button")
+        self.gridLayout_4.addWidget(self.verify_conn_button, 3, 1, 1, 1)
         self.verticalLayout_2.addLayout(self.gridLayout_4)
         spacerItem2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_2.addItem(spacerItem2)
@@ -303,7 +303,7 @@ class Ui_MainWindow(object):
         self.gridLayout_2.addLayout(self.verticalLayout, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 24))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -311,7 +311,17 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
-        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+        # self.inspectMetaObject()
+        # QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+    def inspectMetaObject(self):
+        meta = self.metaObject()
+        for method_index in range(meta.methodCount()):
+            print(f"Method: {meta.method(method_index).name()}, Type: {meta.method(method_index).methodType()}")
+
+        for prop_index in range(meta.propertyCount()):
+            print(f"Property: {meta.property(prop_index).name()}")
+
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -339,7 +349,7 @@ class Ui_MainWindow(object):
         self.real_tws_button.setText(_translate("MainWindow", "TWS Real"))
         self.paper_tws_button.setText(_translate("MainWindow", "TWS Paper"))
         self.address_label.setText(_translate("MainWindow", "Local Address"))
-        self.connect_button.setText(_translate("MainWindow", "Connect"))
+        self.verify_conn_button.setText(_translate("MainWindow", "Verify Connect"))
         self.telegram_checkbox.setText(_translate("MainWindow", "Telegram Bot"))
         self.fetch_rates.setText(_translate("MainWindow", "Fetch Short Rates"))
         self.label_6.setText(_translate("MainWindow", "TWS Messages:"))

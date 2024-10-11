@@ -160,7 +160,7 @@
       <item>
        <widget class="QTabWidget" name="tab_widget">
         <property name="currentIndex">
-         <number>2</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="tab_2">
          <attribute name="title">
@@ -1188,10 +1188,10 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="buy_sell_group"/>
   <buttongroup name="step_buy_sell_group"/>
-  <buttongroup name="step_profit_selection_group"/>
   <buttongroup name="combo_buy_sell_group"/>
+  <buttongroup name="buy_sell_group"/>
   <buttongroup name="input_selection_group"/>
+  <buttongroup name="step_profit_selection_group"/>
  </buttongroups>
 </ui>

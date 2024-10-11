@@ -541,7 +541,7 @@
              </widget>
             </item>
             <item row="3" column="1">
-             <widget class="QPushButton" name="connect_button">
+             <widget class="QPushButton" name="verify_conn_button">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
                 <horstretch>0</horstretch>
@@ -549,7 +549,7 @@
                </sizepolicy>
               </property>
               <property name="text">
-               <string>Connect</string>
+               <string>Verify Connect</string>
               </property>
              </widget>
             </item>
@@ -622,7 +622,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>24</height>
     </rect>
    </property>
   </widget>
@@ -631,9 +631,9 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="general_history_group"/>
-  <buttongroup name="trading_type_group"/>
-  <buttongroup name="ib_group"/>
   <buttongroup name="data_group"/>
+  <buttongroup name="ib_group"/>
+  <buttongroup name="trading_type_group"/>
+  <buttongroup name="general_history_group"/>
  </buttongroups>
 </ui>
