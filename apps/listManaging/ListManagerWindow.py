@@ -25,20 +25,21 @@
 
 from PyQt5.QtCore import pyqtSlot
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QTableWidgetItem
+from PyQt5.QtWidgets import QTableWidgetItem
 from uiComps.qtGeneration.ListEditor_UI import Ui_MainWindow as ListEditor_UI
 from dataHandling.Constants import Constants
 
+from uiComps.generalUIFunctionality import MyAppWindow
 from generalFunctionality.SymbolFinderImpl import SymbolFinderImplementation
 from generalFunctionality.UIFunctions import findRowForValue
 
-class ListManagerWindow(QMainWindow, ListEditor_UI, SymbolFinderImplementation):
+class ListManagerWindow(MyAppWindow, ListEditor_UI, SymbolFinderImplementation):
 
     current_selection = None
     delete_button_set = set()
 
     def __init__(self):
-        QMainWindow.__init__(self)
+        MyAppWindow.__init__(self)
         ListEditor_UI.__init__(self)
         SymbolFinderImplementation.__init__(self)
         self.setupUi(self)
@@ -102,7 +103,6 @@ class ListManagerWindow(QMainWindow, ListEditor_UI, SymbolFinderImplementation):
         print(self.stock_list[numeric_id])
         del self.stock_list[numeric_id]
         row_index = findRowForValue(self.stock_table, str(numeric_id), 0)
-        print(f"guessing this is minus {row_index}")
         self.stock_table.removeRow(row_index)
 
 

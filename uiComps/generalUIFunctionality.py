@@ -41,14 +41,23 @@ def addCheckableTickersTo(ticker_box, stock_list, check_list):
     ticker_box.blockSignals(False)
 
 
-class ProcessorWindow(QMainWindow):
+class MyAppWindow(QMainWindow):
 
-    close_signal = pyqtSignal()
+    closing = pyqtSignal()
+
+    def closeEvent(self, event):
+        self.closing.emit()  # Emit the custom signal
+        event.accept()
+
+
+class ProcessorWindow(MyAppWindow):
 
     def closeEvent(self, *args, **kwargs):
         print("ProcessorWindow.closeEvent")
+        
         self.data_processor.stop()
+        self.data_processor.deleteLater()
         self.processor_thread.quit()
         self.processor_thread.wait()
-        super(QMainWindow, self).closeEvent(*args, **kwargs)
-        self.close_signal.emit()
+        super().closeEvent(*args, **kwargs)
+        

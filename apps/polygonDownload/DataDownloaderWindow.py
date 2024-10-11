@@ -24,7 +24,8 @@
 
 from PyQt5.QtCore import Qt
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QMainWindow, QHeaderView, QStyledItemDelegate
+from PyQt5.QtWidgets import QHeaderView, QStyledItemDelegate
+from uiComps.generalUIFunctionality import MyAppWindow
 from uiComps.qtGeneration.DataDetails_UI import Ui_MainWindow as DataDetails_UI
 from dataHandling.Constants import Constants
 from dataHandling.UserDataManagement import getStockListNames
@@ -40,7 +41,7 @@ class RightAlignedDelegate(QStyledItemDelegate):
 
         
 
-class DataDownloaderWindow(QMainWindow, DataDetails_UI):
+class DataDownloaderWindow(MyAppWindow, DataDetails_UI):
 
     column_for_name = {'Price': 1, 'Day': 2, 'Week': 3, '2 Weeks': 4, 'Month': 5, "2 Months": 6, "6 Months": 7 , "1 Year": 8}
     period_options = ["Day", "Week", "2 Weeks", "Month", "2 Months", "3 Months", "6 Months", "1 Year"]
@@ -48,7 +49,7 @@ class DataDownloaderWindow(QMainWindow, DataDetails_UI):
     
 
     def __init__(self, bar_types):
-        QMainWindow.__init__(self)
+        MyAppWindow.__init__(self)
         DataDetails_UI.__init__(self)
 
         self.bar_types = bar_types

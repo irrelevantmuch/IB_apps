@@ -117,7 +117,6 @@ class DataDownloader(DataDownloaderWindow):
                 else:
                     self.data_count_frame = self.data_count_frame.join(counts, how='outer')
 
-        print(self.data_count_frame)
         self.data_count_frame = self.data_count_frame.reindex(columns=self.count_columns)
         self.data_count_frame.dropna(how='all', inplace=True)
 
