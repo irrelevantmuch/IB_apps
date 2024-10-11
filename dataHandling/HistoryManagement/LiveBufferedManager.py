@@ -32,8 +32,8 @@ class LiveDataManager(QObject):
     initial_fetch = True
 
     stop_tracking_signal = pyqtSignal(int)
-    create_request_signal = pyqtSignal(DetailObject, datetime, datetime, str)
-    request_update_signal = pyqtSignal(dict, dict, str, bool, bool, bool)
+    create_request_signal = pyqtSignal(int, DetailObject, datetime, datetime, str)
+    request_update_signal = pyqtSignal(int, dict, dict, str, bool, bool, bool)
     group_request_signal = pyqtSignal(str)
     execute_request_signal = pyqtSignal(int)
 
@@ -41,6 +41,7 @@ class LiveDataManager(QObject):
     def __init__(self, history_manager):
         super().__init__()
         self.history_manager = history_manager
+        self.hist_id = self.history_manager.registerOwner()
         self.data_buffers = history_manager.getDataBuffer()
         self.data_buffers.bars_to_propagate = QUICK_BAR_TYPES
         self.history_manager.addNewListener(self, self.apiUpdate)
@@ -59,24 +60,30 @@ class LiveDataManager(QObject):
         self.execute_request_signal.connect(self.history_manager.iterateHistoryRequests, Qt.QueuedConnection)
 
     
+    def deregister(self):
+        self.history_manager.deregisterOwner(self.hist_id)
+        self.history_manager.finished.emit()
+
+
     ################ STOCK HANDLING
 
     def setStockTracker(self, uid, stock_inf, bar_selection, do_not_remove):
         print(f"BufferedManager.setStockList is performed on {int(QThread.currentThreadId())}")
 
         to_remove = [uid for uid in self._tracking_stocks if uid not in do_not_remove]
+        print(f"We remove the previous? {to_remove}")
         if len(to_remove) != 0:
             self.removeStockFromList(to_remove)
 
         self.initial_fetch = True
         self._tracking_stocks.update({uid: stock_inf})
-
-        self.fetchBasebars(uid, stock_inf, primary_bar=bar_selection)
+        # self._current_stock = (uid, stock_inf)
+        # self.fetchBasebars(uid, stock_inf, primary_bar=bar_selection)
         self.requestTrackingUpdates(uid, stock_inf)
 
 
-    def removeStockFromList(self, to_cancel_uid):
-        for uid in to_cancel_uid:
+    def removeStockFromList(self, to_cancel_uids):
+        for uid in to_cancel_uids:
             self.stop_tracking_signal.emit(uid)
             del self._tracking_stocks[uid]
 
@@ -85,66 +92,44 @@ class LiveDataManager(QObject):
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, data_dict):
-        pass
+        print(f"LiveDataManager.apiUpdate {signal}")
         # if signal == Constants.HISTORICAL_GROUP_COMPLETE:
-        #     if len(self.stocks_to_fetch) != 0:
-        #         self.fetchNextStock()
-        #     elif self.partial_update:
-        #         self.requestUpdates(update_list=self.update_list)
-        #         self.partial_update = False
-        #     else:
-        #         self.api_updater.emit(Constants.ALL_DATA_LOADED, dict())
-        #         self.initial_fetch = False
-        # elif signal == Constants.HISTORICAL_UPDATE_COMPLETE:
-        #     self.api_updater.emit(Constants.ALL_DATA_LOADED, dict())
-        #     self.initial_fetch = False
+        #     self.requestTrackingUpdates(self._current_stock[0], self._current_stock[1])
 
-
-    def standardBeginDateFor(self, end_date, bar_type):
-
-        if bar_type == Constants.FIVE_MIN_BAR:
-            begin_date = end_date - relativedelta(days=1)
-        elif bar_type == Constants.FIFTEEN_MIN_BAR:
-            begin_date = end_date - relativedelta(days=1)
-        elif bar_type == Constants.HOUR_BAR:
-            begin_date = end_date - relativedelta(days=3)
-        elif bar_type == Constants.FOUR_HOUR_BAR:
-            begin_date = end_date - relativedelta(days=7)
-        elif bar_type == Constants.DAY_BAR:
-            begin_date = end_date - relativedelta(days=30)
-        
-        return begin_date
 
 
     ################ CREATING AND TRIGGERING HISTORIC REQUEST
 
-    def fetchBasebars(self, uid, stock_inf, bar_types=QUICK_BAR_TYPES, primary_bar=None):
-        details = DetailObject(numeric_id=uid, **stock_inf)
+    # def fetchBasebars(self, uid, stock_inf, bar_types=QUICK_BAR_TYPES, primary_bar=None):
+    #     print("LiveBufferedManager.fetchBasebars")
+    #     details = DetailObject(numeric_id=uid, **stock_inf)
         
-            #We'll fetch get the smallers one from the updating
-        to_fetch_bars = list(set(bar_types) - set([Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR]))
-        end_date = datetime.now(timezone(Constants.NYC_TIMEZONE))
+    #         #We'll fetch get the smallers one from the updating
+    #     to_fetch_bars = list(set(bar_types) - set([Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR]))
+    #     end_date = datetime.now(timezone(Constants.NYC_TIMEZONE))
 
-        if primary_bar is not None:
-            if primary_bar in to_fetch_bars:
-                to_fetch_bars.remove(primary_bar)
-                to_fetch_bars.insert(0, primary_bar)
+    #     if primary_bar is not None:
+    #         if primary_bar in to_fetch_bars:
+    #             to_fetch_bars.remove(primary_bar)
+    #             to_fetch_bars.insert(0, primary_bar)
 
-        for bar_type in to_fetch_bars:
-            begin_date = self.standardBeginDateFor(end_date, bar_type)
-            self.create_request_signal.emit(details, begin_date, end_date, bar_type)
+    #     for bar_type in to_fetch_bars:
+    #         begin_date = end_date - relativedelta(days=1)
+    #         self.create_request_signal.emit(self.hist_id, details, begin_date, end_date, bar_type)
 
-        self.group_request_signal.emit('stock_combo')
-        self.execute_request_signal.emit(2_000)
+    #     self.group_request_signal.emit('stock_combo')
+    #     self.execute_request_signal.emit(50)
+
 
 
     def requestTrackingUpdates(self, uid, stock_inf, update_bar=Constants.ONE_MIN_BAR, prioritize_uids=True):
         print("BufferedManager.requestUpdates")
         
         end_date = datetime.now(timezone(Constants.NYC_TIMEZONE))
-        begin_date = end_date - relativedelta(minutes=180)
-        self.request_update_signal.emit({uid: stock_inf}, {uid: begin_date}, update_bar, True, True, prioritize_uids)
+        begin_date = end_date.replace(hour=4, minute=0, second=0, microsecond=0)
+        self.request_update_signal.emit(self.hist_id, {uid: stock_inf}, {uid: begin_date}, update_bar, True, True, prioritize_uids)
         
+
 
     ################ DATE AND RANGE HANDLING
 

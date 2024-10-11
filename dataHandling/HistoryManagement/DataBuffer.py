@@ -13,11 +13,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from dataHandling.Constants import Constants, MAIN_BAR_TYPES, DT_BAR_TYPES, MINUTES_PER_BAR, RESAMPLING_BARS, RESAMPLING_SECONDS
+from dataHandling.Constants import Constants, MAIN_BAR_TYPES, DT_BAR_TYPES, MINUTES_PER_BAR, RESAMPLING_BARS, RESAMPLING_DT_BARS, RESAMPLING_SECONDS
+from generalFunctionality.GenFunctions import stringRange
+from dataHandling.HistoryManagement.RangeObject import RangeObject
 import pandas as pd
+from datetime import datetime, timedelta
+from pytz import utc
+from zoneinfo import ZoneInfo
 from PyQt5.QtCore import pyqtSignal, QThread, QReadWriteLock, QObject
-          
-    
+
+
 class DataBuffers(QObject):
 
     save_on = False
@@ -38,19 +43,19 @@ class DataBuffers(QObject):
 
     ###### read/write protected buffer interactions
 
-    def setBufferFor(self, uid, bar_type, buffered_data, ranges=None):
-
+    def setBufferFor(self, uid, bar_type, buffered_data, req_ranges_list=None):
         if not ((uid, bar_type) in self._locks):
             self._locks[uid, bar_type] = QReadWriteLock()
 
         self._locks[uid, bar_type].lockForWrite()
         self._buffers[uid, bar_type] = buffered_data
-        if ranges is not None:
-            self._date_ranges[uid, bar_type] = ranges
+        
+        if not((uid, bar_type) in self._date_ranges) or (req_ranges_list is not None):
+            self._date_ranges[uid, bar_type] = RangeObject(requested_ranges=req_ranges_list) 
         self._locks[uid, bar_type].unlock()
 
 
-    def addToBuffer(self, uid, bar_type, new_data, new_range):
+    def addToBuffer(self, uid, bar_type, new_data, new_req_range=None):
         self._locks[uid, bar_type].lockForWrite()
         
         if len(new_data) < 3:
@@ -59,9 +64,8 @@ class DataBuffers(QObject):
         else: 
             self._buffers[uid, bar_type] = new_data.combine_first(self._buffers[uid, bar_type])
         
-        if new_range is not None:
-            self._date_ranges[uid, bar_type].append(new_range)            
-            self._date_ranges[uid, bar_type] = self.mergeAdjRanges(self._date_ranges[uid, bar_type])
+        if (new_req_range is not None):
+            self._date_ranges[uid, bar_type].addRanges(new_req_range)
             
         self._locks[uid, bar_type].unlock()
         
@@ -79,13 +83,24 @@ class DataBuffers(QObject):
         return (uid, bar_type) in self._buffers
 
 
+    def containsRange(self, uid, bar_type, inner_range):
+        self._locks[uid, bar_type].lockForRead()
+        try:
+            return self._date_ranges[uid, bar_type].containsRange(inner_range)
+        finally:
+            self._locks[uid, bar_type].unlock()
+    
+
+    def withinRange(self, uid, bar_type, dt_obj):
+        self._locks[uid, bar_type].lockForRead()
+        try:
+            return self._date_ranges[uid, bar_type].withinRange(dt_obj)
+        finally:
+            self._locks[uid, bar_type].unlock()
+
+
     def getAllUIDs(self):
         return [key for key in self._buffers.keys]
-
-
-    def printRanges(self, date_ranges):
-        for date_range in date_ranges:
-            print(f"Range from: {date_range[0].strftime('%Y-%m-%d %H:%M:%S')} to {date_range[1].strftime('%Y-%m-%d %H:%M:%S')}")
 
 
     def getValuesForColumn(self, uid, bar_type, column_name):
@@ -145,6 +160,14 @@ class DataBuffers(QObject):
         finally:
             self._locks[uid, bar_type].unlock()
 
+
+    def hasBarForDtIndex(self, uid, bar_type, dt_index):
+        ts_index = dt_index.timestamp()
+        self._locks[uid, bar_type].lockForRead()
+        try:
+            return ts_index in self._buffers[uid, bar_type].index
+        finally:
+            self._locks[uid, bar_type].unlock()
 
     def getBarForIntIndex(self, uid, bar_type, int_index):
         self._locks[uid, bar_type].lockForRead()
@@ -223,17 +246,17 @@ class DataBuffers(QObject):
     def getMissingRangesFor(self, uid, bar_type, desired_range):
         self._locks[uid, bar_type].lockForRead()
         try:
-            current_ranges = self._buffers[uid, bar_type].attrs['ranges']
+            current_ranges = self._date_ranges[uid, bar_type].getRanges()
             return self.determineMissingRanges(desired_range, current_ranges)
         finally:
             self._locks[uid, bar_type].unlock()
-        
+
 
     def getRangesForBuffer(self, uid, bar_type):
         self._locks[uid, bar_type].lockForRead()
         try:
             if (uid, bar_type) in self._date_ranges:
-                return self._date_ranges[uid, bar_type]
+                return self._date_ranges[uid, bar_type].getRanges()
             return []
         finally:
             self._locks[uid, bar_type].unlock()
@@ -243,7 +266,7 @@ class DataBuffers(QObject):
         desired_start, desired_end = desired_range
         missing_ranges = []
         current_start = desired_start
-        
+
         for start, end in current_ranges:
             if start > current_start:  # There is a gap before this range begins
                 # Ensure we add a gap only if it's within the desired range
@@ -254,26 +277,7 @@ class DataBuffers(QObject):
         # After processing all existing ranges, check if there's still a gap at the end
         if current_start < desired_end:
             missing_ranges.append((current_start, desired_end))
-        
         return missing_ranges
-
-
-    def mergeAdjRanges(self, date_ranges):
-        date_ranges.sort()  # Ensure the ranges are sorted
-        for index_right in reversed(range(len(date_ranges))):
-            date_range_right = date_ranges[index_right]
-            for index_left in range(index_right):
-                date_range_left = date_ranges[index_left]
-                if date_range_right[0] <= date_range_left[1] and date_range_right[1] > date_range_left[1]:
-                    date_ranges[index_left] = (date_range_left[0], date_range_right[1])
-                    del date_ranges[index_right]
-                    break
-                elif date_range_right[1] >= date_range_left[0] and date_range_right[0] < date_range_left[0]:
-                    date_ranges[index_left] = (date_range_right[0], date_range_left[1])
-                    del date_ranges[index_right]
-                    break
-
-        return date_ranges
 
 
    ##################### Indicator addition
@@ -319,7 +323,7 @@ class DataBuffers(QObject):
         try:
             file_name = self.data_folder + str(uid) + '_' + bar_type + '.pkl'
             existing_buffer = pd.read_pickle(file_name)
-            self.setBufferFor(uid, bar_type, existing_buffer, existing_buffer.attrs['ranges'])
+            self.setBufferFor(uid, bar_type, existing_buffer, req_ranges_list=existing_buffer.attrs['requested_ranges'])
         except Exception as inst:
             pass
             #print(f"Cannot load {uid} due to: {inst}")
@@ -331,7 +335,7 @@ class DataBuffers(QObject):
         
         cols_to_exclude = ['rsi', 'up_ema', 'down_ema']
         temp_df = self._buffers[uid, bar_type][self._buffers[uid, bar_type].columns.difference(cols_to_exclude)]
-        temp_df.attrs['ranges'] = self._date_ranges[uid, bar_type]
+        temp_df.attrs['requested_ranges'] = self._date_ranges[uid, bar_type].getRequestedRanges()
         temp_df.to_pickle(file_name)
 
         self._locks[uid, bar_type].unlock()
@@ -347,94 +351,140 @@ class DataBuffers(QObject):
         return MINUTES_PER_BAR[bar_type] >= 5
 
 
-    def processData(self, data_dict):
-        uid = data_dict['key']
-        bar_type = data_dict['bar type']
-        new_data = data_dict['data']
-
-        if self.bufferExists(uid, bar_type):
-            self.addToBuffer(uid, bar_type, new_data, data_dict['range'])
-        else:
-            self.setBufferFor(uid, bar_type, new_data, [data_dict['range']])
-            
-        self.sortIndex(uid, bar_type)
-        
-        first_index = {bar_type: new_data.index.min()}
-        last_index = {bar_type: new_data.index.max()}
-        self.buffer_updater.emit(Constants.HAS_NEW_DATA, {'uid': uid, 'bars': [bar_type], 'updated_from': first_index, 'update_through': last_index, 'state': 'update'})
-
-        if self.isSavableBartype(bar_type) and self.save_on:
-            self.saveBuffer(uid, bar_type)
-                    
-
-    def processUpdates(self, min_data, propagate_updates=False):
+    def processNewData(self, data_dict, propagate_data=False):
             #we want to reuse these so names for clarity
-        curr_bar_type = min_data['bar type']
+        curr_bar_type = data_dict['bar type']
         updated_bar_types = [curr_bar_type]
-        uid = min_data['key']
-        new_data = min_data['data']
-        date_range = min_data['range']
-
-        if len(new_data) > 0:
-
+        uid = data_dict['key']
+        
+        if len(data_dict['data']) > 0:
+            
                 #we put the new data in the buffer
             if self.bufferExists(uid, curr_bar_type):
-                self.addToBuffer(uid, curr_bar_type, new_data, date_range)
+                self.addToBuffer(uid, curr_bar_type, data_dict['data'], new_req_range=data_dict['requested_range'])
             else:
-                self.setBufferFor(uid, curr_bar_type, new_data, [date_range])
+                self.setBufferFor(uid, curr_bar_type, data_dict['data'], req_ranges_list=[data_dict['requested_range']])
 
+            first_indices = {curr_bar_type: data_dict['data'].index.min()}
+            last_indices = {curr_bar_type: data_dict['data'].index.max()}
             greater_bars = []
-            first_indices = {curr_bar_type: new_data.index.min()}
-            last_indices = {curr_bar_type: new_data.index.max()}
-            if propagate_updates:
+            
+            if propagate_data:
+                    
                     #we want to use the updated bars on lower time frames to complete bars on higher time frames
-                
                 greater_bars = self.getBarsAbove(curr_bar_type)
+
                 for to_bar_type in greater_bars:
+
                     from_bar_type = self.getUpdateBarType(to_bar_type)
                     if (from_bar_type in first_indices):    #this ensures the from has been updated, but may be superfluous
-                        new_indices, return_type = self.incoorporateUpdates(uid, from_bar_type, to_bar_type, date_range)
-                        first_indices[to_bar_type] = new_indices.min()
-                        last_indices[to_bar_type] = new_indices.max()
-                        updated_bar_types.append(to_bar_type)
+                        new_indices, return_type = self.propagateUpdates(uid, from_bar_type, to_bar_type, data_dict['requested_range'])
+                        if len(new_indices) > 0:
+                            first_indices[to_bar_type] = new_indices.min()
+                            last_indices[to_bar_type] = new_indices.max()
+                            updated_bar_types.append(to_bar_type)
 
                 #other components need to know the data is updated
             self.buffer_updater.emit(Constants.HAS_NEW_DATA, {'uid': uid, 'updated_from': first_indices, 'update_through': last_indices, 'bars': [curr_bar_type] + greater_bars, 'state': 'update'})
 
                 #if it was proper fetch we want to save
-            if (date_range is not None) and self.save_on:
+            if (data_dict['requested_range'] is not None) and self.save_on:
                 for bar_type in updated_bar_types:
-                    self.saveBuffer(uid, bar_type)
+                    if self.isSavableBartype(bar_type): self.saveBuffer(uid, bar_type)
             
 
-    def incoorporateUpdates(self, uid, from_bar_type, to_bar_type, new_range, update_full=True):
-        # print(f"DataBuffer.incoorporateUpdates {uid} {from_bar_type} {to_bar_type} {new_range}")
-            # we ensure the origin data exists
-        if self.bufferExists(uid, from_bar_type):
-            from_frame = self.getBufferFor(uid, from_bar_type)
-                
-            if self.bufferExists(uid, to_bar_type):
-                to_frame = self.getBufferFor(uid, to_bar_type)
-                    #if there is an excisting buffer for the frame we update we assume everything up until the last index
-                if len(to_frame) > 1:
-                    new_first_index = to_frame.index[-2]
-                else:
-                    new_first_index = to_frame.index[0]
-                origin_bars = from_frame.loc[new_first_index:].copy()
-                
-                origin_bars['New Indices'] = ((origin_bars.index - Constants.BASE_TIMESTAMP) // RESAMPLING_SECONDS[to_bar_type]) * RESAMPLING_SECONDS[to_bar_type] + Constants.BASE_TIMESTAMP
+    def propagateToHighOrderBars(self, origin_bars, to_bar_type):
+        origin_bars['datetime_utc'] = pd.to_datetime(origin_bars.index, unit='s') 
+        origin_bars['datetime_nyc'] = origin_bars['datetime_utc'].dt.tz_localize(utc).dt.tz_convert(Constants.NYC_TIMEZONE)
+        origin_bars.set_index('datetime_nyc', inplace=True)
 
-                updated_bars = origin_bars.groupby('New Indices').agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
-                self.addToBuffer(uid, to_bar_type, updated_bars, new_range)
-            else:
-                    #if no data for the time frame excisted we simply whole frame to update
-                new_first_index = from_frame.index.min()
-                from_frame['New Indices'] = ((from_frame.index - Constants.BASE_TIMESTAMP) // RESAMPLING_SECONDS[to_bar_type]) * RESAMPLING_SECONDS[to_bar_type] + Constants.BASE_TIMESTAMP
-                # updated_bars = from_frame.resample(RESAMPLING_BARS[to_bar_type]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
-                updated_bars = from_frame.groupby('New Indices').agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
-                self.setBufferFor(uid, to_bar_type, updated_bars, [new_range])
+        if to_bar_type == Constants.FOUR_HOUR_BAR:
+            updated_bars = origin_bars.resample('4H').agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+        elif to_bar_type == Constants.DAY_BAR:
+            origin_bars = origin_bars.between_time('09:30', '15:59')
+            updated_bars = origin_bars.resample('D').agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+
+        updated_bars.index = updated_bars.index.map(lambda x: int(x.timestamp()))
+        updated_bars.index.name = None
         
-        return updated_bars.index, to_bar_type
+        updated_indices = updated_bars.index
+        return updated_indices, updated_bars
+        
+        
+    def propagateToLowerOrderBars(self, origin_bars, to_bar_type):
+        indices_for_grouping = ((origin_bars.index - Constants.BASE_TIMESTAMP_NY) // RESAMPLING_SECONDS[to_bar_type]) * RESAMPLING_SECONDS[to_bar_type] + Constants.BASE_TIMESTAMP_NY
+        origin_bars['Grouping Indices'] = indices_for_grouping.tolist()
+
+        updated_bars = origin_bars.groupby('Grouping Indices').agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
+        updated_bars.index.name = None
+
+        updated_indices = updated_bars.index
+        return updated_indices, updated_bars    
+
+
+    def propagateUpdates(self, uid, from_bar_type, to_bar_type, new_req_range, update_full=True):
+        updatable_range = self.getUpdatableRange(new_req_range, uid, from_bar_type, to_bar_type)
+        updated_indices = pd.Int64Index([])
+
+            # we ensure the origin data exists
+        if updatable_range is not None:
+            if self.bufferExists(uid, from_bar_type):
+                from_frame = self.getBufferFor(uid, from_bar_type)
+                    
+                existing_indices = from_frame.index
+                indices_in_range = existing_indices[(existing_indices >= updatable_range[0].timestamp()) & (existing_indices < updatable_range[1].timestamp())]
+                origin_bars = from_frame.loc[indices_in_range]
+
+                if to_bar_type == Constants.FOUR_HOUR_BAR or to_bar_type == Constants.DAY_BAR:
+                    updated_indices, updated_bars = self.propagateToHighOrderBars(origin_bars, to_bar_type)
+                else:
+                    updated_indices, updated_bars = self.propagateToLowerOrderBars(origin_bars, to_bar_type)
+
+                if self.bufferExists(uid, to_bar_type):   
+                    self.addToBuffer(uid, to_bar_type, updated_bars, new_req_range=updatable_range)
+                else:
+                    self.setBufferFor(uid, to_bar_type, updated_bars, req_ranges_list=[updatable_range])
+            
+        return updated_indices, to_bar_type
+
+
+    def getNearestNineThirties(self, dt):
+        dt_nyc_time = dt.astimezone(ZoneInfo(Constants.NYC_TIMEZONE))
+        current_day_930 = dt_nyc_time.replace(hour=9, minute=30, second=0, microsecond=0)
+        previous_930 = current_day_930 if dt_nyc_time >= current_day_930 else current_day_930 - timedelta(days=1)
+        next_930 = current_day_930 if dt_nyc_time < current_day_930 else current_day_930 + timedelta(days=1)
+        return previous_930.astimezone(utc), next_930.astimezone(utc)
+
+
+    def capAtFour(self, dt):
+        cap_time = dt.astimezone(ZoneInfo(Constants.NYC_TIMEZONE)).replace(hour=16, minute=0, second=0, microsecond=0)
+        return min(dt, cap_time.astimezone(utc))
+
+    def barFollowing(self, dt, bar_type):
+        freq = RESAMPLING_DT_BARS[bar_type]
+        return pd.Timestamp(dt).ceil(freq).to_pydatetime()
+
+
+    def barPreceeding(self, dt, bar_type):
+        freq = RESAMPLING_DT_BARS[bar_type]
+        return pd.Timestamp(dt).floor(freq).to_pydatetime()
+
+
+    def getUpdatableRange(self, new_range, uid, from_bar_type, to_bar_type):
+        if to_bar_type == Constants.DAY_BAR:
+            timestamp_before, timestamp_after = self.getNearestNineThirties(new_range[0])
+            end_time = self.capAtFour(new_range[1])     #don't think this is necesarry
+        else:
+            timestamp_before = self.barPreceeding(new_range[0], to_bar_type)
+            timestamp_after = self.barFollowing(new_range[0], to_bar_type)
+            end_time = new_range[1]
+
+        if self.withinRange(uid, from_bar_type, timestamp_before):
+            return (timestamp_before, end_time)
+        elif (timestamp_after < end_time):
+            return (timestamp_after, end_time)
+        else:
+            return None
 
 
 
@@ -446,15 +496,15 @@ class DataBuffers(QObject):
         return bar_list
 
 
-    def getUpdateBarType(self, bar_type):
-        if bar_type == Constants.ONE_MIN_BAR: return Constants.ONE_MIN_BAR
-        elif bar_type == Constants.TWO_MIN_BAR: return Constants.ONE_MIN_BAR
-        elif bar_type == Constants.THREE_MIN_BAR: return Constants.ONE_MIN_BAR
-        elif bar_type == Constants.FIVE_MIN_BAR: return Constants.ONE_MIN_BAR
-        elif bar_type == Constants.FIFTEEN_MIN_BAR: return Constants.FIVE_MIN_BAR
-        elif bar_type == Constants.HOUR_BAR: return Constants.FIFTEEN_MIN_BAR
-        elif bar_type == Constants.FOUR_HOUR_BAR: return Constants.HOUR_BAR
-        elif bar_type == Constants.DAY_BAR: return Constants.HOUR_BAR
+    def getUpdateBarType(self, to_bar_type):
+        if to_bar_type == Constants.ONE_MIN_BAR: return Constants.ONE_MIN_BAR
+        elif to_bar_type == Constants.TWO_MIN_BAR: return Constants.ONE_MIN_BAR
+        elif to_bar_type == Constants.THREE_MIN_BAR: return Constants.ONE_MIN_BAR
+        elif to_bar_type == Constants.FIVE_MIN_BAR: return Constants.ONE_MIN_BAR
+        elif to_bar_type == Constants.FIFTEEN_MIN_BAR: return Constants.FIVE_MIN_BAR
+        elif to_bar_type == Constants.HOUR_BAR: return Constants.FIFTEEN_MIN_BAR
+        elif to_bar_type == Constants.FOUR_HOUR_BAR: return Constants.HOUR_BAR
+        elif to_bar_type == Constants.DAY_BAR: return Constants.FIFTEEN_MIN_BAR
 
 
 
