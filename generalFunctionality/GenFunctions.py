@@ -16,6 +16,7 @@
 from datetime import datetime, time
 from pytz import timezone, utc
 import numpy as np
+import sys
 import pandas as pd
 
 from dataHandling.Constants import Constants, MINUTES_PER_BAR
@@ -54,66 +55,6 @@ def isRegularTradingHours():
     
     return market_open_time <= current_time <= market_close_time
 
-
-def dateFromString(date_string, sep=' '):
-    return datetime.strptime(date_string, f"%Y%m%d{sep}%H:%M:%S")
-
-# def dateFromStringTZ(date_string):
-#     return datetime.strptime(date_string, Constants.TIME_FORMAT)
-
-def dateToString(date):
-    return date.strftime(Constants.TIME_FORMAT_NO_TZ)
-
-
-def pdDateFromIBString(date_string, bar_type, instrument_tz):
-
-    if bar_type == Constants.DAY_BAR:
-        date_time = pd.to_datetime(date_string, format="%Y%m%d")
-        date_time = date_time.tz_localize(instrument_tz)
-    else:
-        dt_part, tz_part = date_string.rsplit(' ', 1)
-        date_time = pd.to_datetime(dt_part, format="%Y%m%d %H:%M:%S")
-        date_time = date_time.tz_localize(tz_part)
-    
-    return date_time, int(date_time.astimezone(utc).timestamp())
-
-
-
-def utcDtFromIBString(date_string):
-
-    # Split the string into date, time, and timezone parts
-    date_time_part, tz_part = date_string.rsplit(' ', 1)
-
-    # Combine the date and time parts and convert to a datetime object
-    date_time = datetime.strptime(date_time_part, "%Y%m%d %H:%M:%S")
-
-    # Localize the datetime object to the specified timezone
-    tz = timezone(tz_part)
-    date_time = tz.localize(date_time)
-
-    # Convert to UTC
-    utc_time = date_time.astimezone(timezone('UTC'))
-
-    return utc_time
-
-
-def barStartTime(time_index, bar_type):
-    return time_index
-    # if bar_type == Constants.FIVE_MIN_BAR or bar_type == Constants.FIFTEEN_MIN_BAR or bar_type == Constants.HOUR_BAR or bar_type == Constants.FOUR_HOUR_BAR:
-    #     return time_index
-    # elif bar_type == Constants.DAY_BAR:
-    #     return time_index + relativedelta(minutes=570)
-
-
-def barEndTime(time_index, bar_type,):
-    return time_index + relativedelta(minutes=MINUTES_PER_BAR[bar_type])
-    
-    # if bar_type == Constants.FIVE_MIN_BAR or bar_type == Constants.FIFTEEN_MIN_BAR or bar_type == Constants.HOUR_BAR or bar_type == Constants.FOUR_HOUR_BAR:
-    #     return time_index + relativedelta(minutes=self.bar_minutes[bar_type])
-    # elif bar_type == Constants.DAY_BAR:
-    #     return time_index + relativedelta(minutes=960)
-
-
 def standardBeginDateFor(end_date, bar_type):
 
     if (bar_type == Constants.ONE_MIN_BAR) or (bar_type == Constants.TWO_MIN_BAR) or (bar_type == Constants.THREE_MIN_BAR):
@@ -138,17 +79,21 @@ def standardBeginDateFor(end_date, bar_type):
     return begin_date
 
 
+def stringRange(req_range):
+    if req_range is None:
+        return "Empty range"
+    return f"from: {req_range[0].strftime('%Y-%m-%d %H:%M:%S')} to {req_range[1].strftime('%Y-%m-%d %H:%M:%S')}"
+
+
 def dateToReadableString(date):
     return date.strftime(Constants.READABLE_DATE_FORMAT)
 
-def subtract_days(count):
-    return int((datetime.utcnow() - relativedelta(days=count)).timestamp())
 
-def subtract_weeks(count):
-    return int((datetime.utcnow() - relativedelta(weeks=count)).timestamp())
-
-def subtract_months(count):
-    return int((datetime.utcnow() - relativedelta(months=count)).timestamp())
+def floatFromString(str_flt, default=0.0):
+    try:
+        return float(str_flt)
+    except ValueError:
+        return default
 
 
 def getLowsHighsCount(stock_frame):
@@ -213,12 +158,6 @@ def getEMAColumns(stock_frame, periods, from_index):
     return column_names, columns
 
 
-def calculateRSI(stock_frame):
-    _, up_emas, down_emas = getUpDownEMAColumns(stock_frame)
-    rsi = calculateRSIfromEMAs(up_emas, down_emas)
-    return rsi
-
-
 def addRSIsEMAs(stock_frame, from_index=None):
     updated_indices, up_emas, down_emas = getUpDownEMAColumns(stock_frame, from_index)
     
@@ -228,12 +167,10 @@ def addRSIsEMAs(stock_frame, from_index=None):
     
     stock_frame.loc[updated_indices, ['up_ema', 'down_ema', 'rsi']] = np.column_stack([up_emas, down_emas, rsi])
     
-    
         #we want to remove any NaNs, not sure if this is still necesarry 
     stock_frame['rsi'] = stock_frame['rsi'].ffill()
     stock_frame['rsi'] = stock_frame['rsi'].round(1)
 
-    print(stock_frame[['rsi', 'up_ema','down_ema']])
     return stock_frame
 
 
@@ -278,21 +215,52 @@ def calculateUpDownEMAsFromIndex(stock_frame, from_index):
     
         #we only want to recalculate those emas that are necesarry
     alpha = 1/14
-    buffer = min(30, len(stock_frame))
+    recalc_size = min(100, len(stock_frame))
 
     integer_index = getStartRecalcIndex(stock_frame, from_index)
-    
     if integer_index < 10:
         return calculateUpDownEMAsFromScratch(stock_frame)
     else:
             #we need up and down movements to calculate emas
-        last_closes = stock_frame.iloc[max(0,(integer_index-buffer)):][Constants.CLOSE]
+        last_closes = stock_frame.iloc[max(0,(integer_index-recalc_size)):][Constants.CLOSE]
         ups, downs = getUpsAndDownsSeries(last_closes)
             #pandas provides the fastest way to calculate emas
         up_emas = pd.Series.ewm(ups, alpha=alpha).mean()
         down_emas = pd.Series.ewm(downs, alpha=alpha).mean()
-        return last_closes.index[buffer:], up_emas[buffer:], down_emas[buffer:]
 
+        return last_closes.index[recalc_size:], up_emas[recalc_size:], down_emas[recalc_size:]
+
+
+def getStartRecalcIndex(stock_frame, from_index):
+    
+      #at the least we want to recalculate the last two values
+    indexer = len(stock_frame)-2
+
+      #if we have a from index we want to see if we need to go further back
+    if from_index is not None:
+        try:
+            from_int_index = stock_frame.index.get_loc(from_index)
+            indexer = min(indexer, from_int_index)
+        except KeyError:
+            print(f"We have a problem finding {from_index}")
+      
+        
+        #finally we want to make sure there are no NaNs that may need recomputing
+    first_up_nan = stock_frame['up_ema'].isna().idxmax()
+    first_down_nan = stock_frame['down_ema'].isna().idxmax()
+    if first_up_nan < first_down_nan:
+        smaller_selection = stock_frame.index < first_up_nan
+    else:
+        smaller_selection = stock_frame.index < first_down_nan
+
+    if len(smaller_selection) > 0:
+
+        true_value_set = np.where(smaller_selection)[0]
+        if len(true_value_set) > 0:
+            from_int_index = true_value_set.max()
+            indexer = min(indexer, from_int_index)
+
+    return indexer
 # def calculateEMAsFrom(stock_frame, from_index):
     
 #         #we only want to recalculate those emas that are necesarry
@@ -322,38 +290,20 @@ def calculateUpDownEMAsFromIndex(stock_frame, from_index):
 
 #         return last_closes.index, updatable_up_emas, updatable_down_emas
 
-def getStartRecalcIndex(stock_frame, from_index):
-    
-      #at the least we want to recalculate the last two values
-    indexer = len(stock_frame)-2
 
-      #if we have a from index we want to see if we need to go further back
-    if from_index is not None:
-        try:
-            from_int_index = stock_frame.index.get_loc(from_index)
-            indexer = min(indexer, from_int_index)
-        except KeyError:
-            print(f"We have a problem finding {from_index}")
-            print(f"in {stock_frame.index}")
-      
-        
-        #finally we want to make sure there are no NaNs that may need recomputing
-    first_up_nan = stock_frame['up_ema'].isna().idxmax()
-    first_down_nan = stock_frame['down_ema'].isna().idxmax()
-    if first_up_nan < first_down_nan:
-        smaller_selection = stock_frame.index < first_up_nan
+def getTradingHours(bar_type, regular_hours):
+    if regular_hours:
+        if bar_type == Constants.HOUR_BAR:            
+            start_time = '09:00:00'
+            end_time = '15:59:30'
+        else:
+            start_time = '09:30:00'
+            end_time = '15:59:00'
     else:
-        smaller_selection = stock_frame.index < first_down_nan
-
-    if len(smaller_selection) > 0:
-
-        true_value_set = np.where(smaller_selection)[0]
-        if len(true_value_set) > 0:
-            from_int_index = true_value_set.max()
-            indexer = min(indexer, from_int_index)
-
-    return indexer
-
+        start_time = '04:00:00'
+        end_time = '19:59:00'
+        
+    return start_time, end_time
 
 
 def getUpsAndDownsNumpy(closes):
@@ -393,6 +343,20 @@ def getUpsAndDownsSeries(closes):
 #     return last_price * alpha + (1 - alpha) * previous_ema
 
 
+def getExpirationString(expiration_date):
+    datetime_obj = datetime.strptime(expiration_date, '%Y%m%d')
+    return datetime_obj.date().strftime("%d %B %Y")
+
+
+def getDaysTillExpiration(expiration_date):
+    #TODO This one is called an aweful lot
+    datetime_obj = datetime.strptime(expiration_date, '%Y%m%d').date()
+    today = datetime.now(utc).date()
+    return (datetime_obj - today).days
+
+
+
+
 def calculateCorrelation(frame_1, frame_2):
     # lin_reg = linregress(frame_1, frame_2)
     # print(lin_reg.slope)
@@ -404,6 +368,7 @@ def calculateCorrelation(frame_1, frame_2):
 
 def findNearest(any_array, value):
     np_array = np.asarray(any_array)
+    np_array = np.nan_to_num(np_array, nan=np.inf)
     idx = (np.abs(np_array - value)).argmin()
     closest_value = np_array[idx]
     return idx, closest_value
