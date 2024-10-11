@@ -45,7 +45,6 @@ class IndicatorProcessor(QObject):
         self.ema_bar_types = ema_bars
         self.step_bar_types = step_bars
 
-        print(type(self.data_buffers))
         
 
     def addIndicators(self, indicators):
@@ -63,7 +62,7 @@ class IndicatorProcessor(QObject):
 
     def isUpdatable(self):
         for stock in self._stock_list:
-            if not self.buffered_manager.allRangesUpToDate(stock):
+            if not self.buffered_manager.allRangesWithinUpdate(stock):
                 return False
 
         return True
@@ -167,7 +166,6 @@ class IndicatorProcessor(QObject):
                 if len(stock_frame) > 14:
                     ema_padded_frame = addEMAColumns(stock_frame, periods, starting_index)
                     self.data_buffers.setBufferFor(uid, bar_type, ema_padded_frame)
-                    print(ema_padded_frame.tail())
                     if not supress_signal:
                         self.indicator_updater.emit(Constants.HAS_NEW_VALUES, {'uid': uid, 'bar_type': bar_type, 'update_type': 'ema'})
 
@@ -187,9 +185,6 @@ class IndicatorProcessor(QObject):
                 starting_index = from_indices[bar_type]
             if self.data_buffers.bufferExists(uid, bar_type):
                 stock_frame = self.data_buffers.getBufferFor(uid, bar_type)
-                if bar_type == Constants.ONE_MIN_BAR:
-                    print("so this is delayed?")
-                    print(stock_frame.iloc[-1].name)
                 if len(stock_frame) > 14:
                     rsi_padded_frame = addRSIsEMAs(stock_frame, starting_index)
                     self.data_buffers.setBufferFor(uid, bar_type, rsi_padded_frame)

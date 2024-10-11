@@ -24,13 +24,14 @@
 
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QMainWindow
 
 from dataHandling.Constants import Constants, DT_BAR_TYPES, TableType
 from .MoversWindow import MoversWindow
 
 from .MoversProcessor import MoversProcessor
 import sys
+
+from datetime import datetime
 
 from ibapi.contract import Contract
 from uiComps.TableModels import StepModel, RSIModel, LevelModel, OverviewModel, CorrModel
@@ -59,15 +60,15 @@ class MoversList(MoversWindow):
     data_processor = None
 
 
-    def __init__(self, history_manager, processor_thread):
+    def __init__(self, buffered_manager, processor_thread):
         super().__init__(self.bar_types)
 
         file_name, _ = self.stock_lists[0]
         self.stock_list = readStockList(file_name)
         self.attemptIndexLoading(self.findIndexList())
 
-        history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
-        self.setupProcessor(history_manager, processor_thread)
+        buffered_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
+        self.setupProcessor(buffered_manager, processor_thread)
 
         self.initTableModels()
         #self.fetchShortRates()
@@ -77,8 +78,8 @@ class MoversList(MoversWindow):
         sys.setrecursionlimit(20_000)
 
 
-    def setupProcessor(self, history_manager, processor_thread):
-        self.data_processor = MoversProcessor(history_manager, DT_BAR_TYPES, self.stock_list) #, self.index_list)
+    def setupProcessor(self, buffered_manager, processor_thread):
+        self.data_processor = MoversProcessor(buffered_manager, DT_BAR_TYPES, self.stock_list) #, self.index_list)
         self.table_data = self.data_processor.getDataObject()
         main_thread = QThread.currentThread()
         self.processor_thread = processor_thread
@@ -184,14 +185,11 @@ class MoversList(MoversWindow):
 
 
     def processingUpdate(self, signal):
-        print(f"MoversList.processingUpdate {signal}")
-        # print(f"Do we get data loaded? ")
         if signal == Constants.ALL_DATA_LOADED:
             self.setHistoryEnabled(True)
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
-        print(f"MoversList.apiUpdate {signal}")
         if signal == Constants.ALL_DATA_LOADED:
             self.setHistoryEnabled(True)
         elif signal == Constants.DATA_LOADED_FROM_FILE:
@@ -306,7 +304,6 @@ class MoversList(MoversWindow):
         if value:
             self.update_stock_list_signal.emit(Constants.ONE_MIN_BAR, value, True)
         else:
-            print("WE CALL FOR CANCELATION")
             self.cancel_update_signal.emit()
     
 
@@ -368,20 +365,7 @@ class MoversList(MoversWindow):
             else:
                 bars = self.data_processor.getBarData(uid, bar_type).copy() #buffered_manager.existing_buffers[uid, bar_type]
             
-                # index_uid = self.getIndexUI()
-                # index_bars = self.data_processor.getBarData(index_uid, bar_type) #self.buffered_manager.existing_buffers[index_uid, bar_type]
-                # if len(bars) > len(index_bars):
-                #     bars = bars[-len(index_bars):]
-                # else:
-                #     index_bars = index_bars[-len(bars):]
-                # bars = bars/index_bars
-                # index_name = self.index_list[index_uid][Constants.SYMBOL]
-                # symbol = f"{symbol}/{index_name}"
-
-            dialog = QuickChart(symbol, bar_type, bars)
-            # print(self.buffered_manager.existing_buffers[uid, bar_type].attrs['ranges'])
-            # for date_range in self.buffered_manager.existing_buffers[uid, bar_type].attrs['ranges']:
-            #     print(f"From {date_range[0].strftime('%m/%d/%Y, %H:%M:%S')} {date_range[1].strftime('%m/%d/%Y, %H:%M:%S')}")
+            dialog = QuickChart(symbol, bar_type, tz=self.stock_list[uid]['time_zone'], bars=bars)
             dialog.exec()
 
 
@@ -390,22 +374,25 @@ class MoversList(MoversWindow):
         column = item.column()
         
         symbol, uid = self.overview_model.getStockFor(item.row())
-        if column >= 2 and column <= 6:
-            QtWidgets.QToolTip.hideText()
-            r = self.overview_table.visualRect(item)
-            p = self.overview_table.viewport().mapToGlobal(QtCore.QPoint(r.center().x(), r.top()))
+        print(f"MoversList.overviewClicked: {row} {column} {symbol} {uid}")
+        
+        QtWidgets.QToolTip.hideText()
+        r = self.overview_table.visualRect(item)
+        p = self.overview_table.viewport().mapToGlobal(QtCore.QPoint(r.center().x(), r.top()))
 
-            if column == 2:
-                value = self.table_data.getValueFor(uid, 'YESTERDAY_CLOSE')
-                QtWidgets.QToolTip.showText(p, str(value))
-            elif column == 5:
-                min_value = self.table_data.getValueFor(uid, 'MIN')
-                min_date = self.table_data.getValueFor(uid, 'MIN_DATE').strftime('%Y.%m.%d')
-                QtWidgets.QToolTip.showText(p, f"{min_value} on {min_date}")
-            elif column == 6:
-                max_value = self.table_data.getValueFor(uid, 'MAX')
-                max_date = self.table_data.getValueFor(uid, 'MAX_DATE').strftime('%Y.%m.%d')
-                QtWidgets.QToolTip.showText(p, f"{max_value} on {max_date}")
+        if column == 1:
+            value = self.table_data.getValueFor(uid, 'YESTERDAY_CLOSE')
+            QtWidgets.QToolTip.showText(p, f"Yest close: {value}")
+        elif column == 4:
+            min_value = self.table_data.getValueFor(uid, 'MIN')
+            unix_timestamp = self.table_data.getValueFor(uid, 'MIN_DATE')
+            min_date = datetime.utcfromtimestamp(unix_timestamp).strftime('%Y.%m.%d')
+            QtWidgets.QToolTip.showText(p, f"{min_value} on {min_date}")
+        elif column == 5:
+            max_value = self.table_data.getValueFor(uid, 'MAX')
+            unix_timestamp = self.table_data.getValueFor(uid, 'MAX_DATE')
+            max_date = datetime.utcfromtimestamp(unix_timestamp).strftime('%Y.%m.%d')
+            QtWidgets.QToolTip.showText(p, f"{max_value} on {max_date}")
 
 
 

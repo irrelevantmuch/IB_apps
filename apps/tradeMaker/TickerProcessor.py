@@ -53,7 +53,7 @@ class LiveTickerProcessor(QObject):
         
 
     def stop(self):
-        pass
+        self.buffered_manager.deregister()
         #perform cleanup here
         
     @pyqtSlot(tuple, set)
@@ -80,7 +80,6 @@ class LiveTickerProcessor(QObject):
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
-        print(f"SO WE DONT ALWAYS GET ALL_DATA_LOADED {signal}")
         if (signal == Constants.ALL_DATA_LOADED) and (not self.all_data_loaded) and (not self.updating_on):
 
             self.buffered_manager.requestUpdates(update_bar=Constants.ONE_MIN_BAR, keep_up_to_date=True, prioritize_uids=True)

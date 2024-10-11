@@ -85,8 +85,10 @@ class Constants:
     ANAYLIS_RESULTS_FOLDER: Final = './data/treeAnalysis/'
     POLYGON_BUFFER_FOLDER: Final = './data/downloads/polygon_buffers/'
     FINAZON_BUFFER_FOLDER: Final = './data/downloads/finazon_buffers/'
+    OPTION_CHAIN_FOLDER: Final = './data/downloads/option_buffers/'
 
-    BASE_TIMESTAMP: Final = 1704117600      #We need some timestamp to anchor bars to, to ensure, e.g., the 3m bar starts at 9:30, not 9:31
+    BASE_TIMESTAMP_UTC: Final = 1704067200
+    BASE_TIMESTAMP_NY: Final = 1704085200      #We need some timestamp to anchor bars to, to ensure, e.g., the 3m bar starts at 9:30, not 9:31
 
     BID: Final = "BID"
     ASK: Final = "ASK"
@@ -205,6 +207,7 @@ class Constants:
     DAY_HIGH_DIFF: Final = "Day_HIGH_DIFF"          
 
     NYC_TIMEZONE: Final = 'US/Eastern'
+    UTC_TIMEZONE: Final = 'US/Eastern'
 
     DATA_STRUCTURE_CHANGED: Final = "Data structure change"
     DATA_WILL_CHANGE: Final = "Data about to change"
@@ -226,8 +229,10 @@ class Constants:
 
 QUICK_BAR_TYPES: Final = [Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR]
 MAIN_BAR_TYPES: Final = [Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR, Constants.DAY_BAR]
-DT_BAR_TYPES: Final = [Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR, Constants.DAY_BAR] 
+DT_BAR_TYPES: Final = [Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR, Constants.DAY_BAR]
+DOWNLOADABLE_BAR_TYPES: Final = {Constants.ONE_MIN_BAR: Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR: Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR: Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR: Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR: Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR: Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR: Constants.HOUR_BAR, Constants.DAY_BAR: Constants.DAY_BAR}
 RESAMPLING_BARS: Final = {Constants.TWO_MIN_BAR: '2min', Constants.THREE_MIN_BAR: '3min', Constants.FIVE_MIN_BAR: '5min', Constants.FIFTEEN_MIN_BAR: '15min', Constants.HOUR_BAR: '1h', Constants.FOUR_HOUR_BAR: '4h', Constants.DAY_BAR: 'D'}
+RESAMPLING_DT_BARS: Final = {Constants.TWO_MIN_BAR: '2min', Constants.THREE_MIN_BAR: '3min', Constants.FIVE_MIN_BAR: '5min', Constants.FIFTEEN_MIN_BAR: '15min', Constants.HOUR_BAR: 'h', Constants.FOUR_HOUR_BAR: '4h', Constants.DAY_BAR: 'D'}
 RESAMPLING_SECONDS: Final = {Constants.TWO_MIN_BAR: 120, Constants.THREE_MIN_BAR: 180, Constants.FIVE_MIN_BAR: 300, Constants.FIFTEEN_MIN_BAR: 900, Constants.HOUR_BAR: 3600, Constants.FOUR_HOUR_BAR: 14400, Constants.DAY_BAR: 86400}
 
 

@@ -36,14 +36,16 @@ class SymbolManager(IBConnectivity):
     ############# CALLBACKS
 
     def contractDetails(self, req_id, contract_details):
-        print(f"SymbolManager.contractDetails {req_id}")
-        print(type(contract_details))
-        print(contract_details.timeZoneId)
-        print(type(contract_details.contract))
-        print(contract_details.contract)
-        print(contract_details)
         contract = contract_details.contract
-        
+        # print("SymbolManager.contractDetails")
+        # print(contract_details.tradingHours)
+        # print(contract_details.liquidHours)
+        # print(contract_details.lastTradeTime)
+        # print(type(contract_details.tradingHours))
+        # print(type(contract_details.liquidHours))
+        # print(type(contract_details.lastTradeTime))
+        # print(contract_details.contract)
+
         if contract.primaryExchange == "":
             exchange = contract.exchange
         else:
@@ -55,7 +57,6 @@ class SymbolManager(IBConnectivity):
         
 
     def contractDetailsEnd(self, req_id: int):
-        print(f"SymbolManager.contractDetailsEnd {req_id}")
         super().contractDetailsEnd(req_id)
         self.api_updater.emit(Constants.CONTRACT_DETAILS_FINISHED, dict())
 

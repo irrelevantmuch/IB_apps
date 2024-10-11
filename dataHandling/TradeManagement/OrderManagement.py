@@ -454,11 +454,7 @@ class OrderManager(IBConnectivity):
 
             order.transmit = True
 
-            request = dict()
-            request['type'] = 'placeOrder'
-            request['order_id'] = order_id
-            request['contract'] = contract
-            request['order'] = order
+            request = {'type': 'placeOrder', 'order_id': order_id, 'contract': contract, 'order': order}
             self.makeRequest(request)
 
 

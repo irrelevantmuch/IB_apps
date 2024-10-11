@@ -22,7 +22,7 @@ import math
 
 from dataHandling.Constants import Constants, MINUTES_PER_BAR, RESAMPLING_BARS, RESAMPLING_SECONDS
 from dataHandling.DataStructures import DetailObject
-from generalFunctionality.GenFunctions import dateToString
+from generalFunctionality.DateTimeFunctions import dateToString
 from dataHandling.UserDataManagement import readApiKeys
 from dataHandling.HistoryManagement.DataBuffer import DataBuffers
 import websocket
@@ -211,15 +211,6 @@ class FinazonDataManager(QObject):
         self.api_updater.connect(listener_function, Qt.QueuedConnection)
         self.controller = controller
         #self.cancelActiveRequests(controller)
-
-
-    def lockForCentralUpdating(self, controller):
-        self.controller = controller
-        self.api_updater.emit(Constants.HISTORY_LOCK, dict())
-
-
-    def unlockCentralUpdating(self):
-        self.api_updater.emit(Constants.HISTORY_UNLOCK, dict())
 
 
     @pyqtSlot()
@@ -414,7 +405,7 @@ class FinazonDataManager(QObject):
                     # one_min_resampled = one_min_bars['data'].resample(RESAMPLING_BARS[request["bar_type"]]).agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
 
                     
-                    one_min_bars['data']['New Indices'] = ((one_min_bars['data'].index - Constants.BASE_TIMESTAMP) // RESAMPLING_SECONDS[request["bar_type"]]) * RESAMPLING_SECONDS[request["bar_type"]] + Constants.BASE_TIMESTAMP
+                    one_min_bars['data']['New Indices'] = ((one_min_bars['data'].index - Constants.BASE_TIMESTAMP_NY) // RESAMPLING_SECONDS[request["bar_type"]]) * RESAMPLING_SECONDS[request["bar_type"]] + Constants.BASE_TIMESTAMP_NY
                     one_min_resampled = one_min_bars['data'].groupby('New Indices').agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
 
                     completed_req['data'] = one_min_resampled.combine_first(completed_req['data'])
@@ -470,7 +461,7 @@ class FinazonDataManager(QObject):
         uid = request['contract'].numeric_id
         end_date = request['end_date']
 
-        smallest_bars['data']['New Indices'] = ((smallest_bars['data'].index - Constants.BASE_TIMESTAMP) // RESAMPLING_SECONDS[request["bar_type"]]) * RESAMPLING_SECONDS[request["bar_type"]] + Constants.BASE_TIMESTAMP
+        smallest_bars['data']['New Indices'] = ((smallest_bars['data'].index - Constants.BASE_TIMESTAMP_NY) // RESAMPLING_SECONDS[request["bar_type"]]) * RESAMPLING_SECONDS[request["bar_type"]] + Constants.BASE_TIMESTAMP_NY
         new_data = smallest_bars['data'].groupby('New Indices').agg({Constants.OPEN: 'first', Constants.HIGH: 'max', Constants.LOW: 'min', Constants.CLOSE: 'last', Constants.VOLUME: 'sum'}).dropna()
 
         completed_req = self.createCompletedReq(uid, bar_type, start_date, end_date)

@@ -181,6 +181,15 @@ class ListManager(ListManagerWindow):
             self.symbol_manager.setSelectedSectype(Constants.WARRANT)
 
 
+    # def closeEvent(self, *args, **kwargs):
+    #     print("ProcessorWindow.closeEvent")
+    #     super().closeEvent(*args, **kwargs)
+    #     self.data_processor.stop()
+    #     self.data_processor.deleteLater()
+    #     self.processor_thread.quit()
+    #     self.processor_thread.wait()
+        
+
         #TODO this should be in super
     def accepts(self, value):
         return False

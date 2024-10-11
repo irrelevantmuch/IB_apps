@@ -50,9 +50,11 @@ class DataProcessor(QObject):
 
         self.setStockList(self.initial_stock_list)
 
+
+    @pyqtSlot()
     def stop(self):
-        print("THIS SHOULD BE MADE DEPENDENT ON WHETHER THE OWNER IS SINGULAR")
-        # self.buffered_manager.reset_signal.emit()
+        self.buffered_manager.deregister()
+        
 
 
 ############## DATA PROCESSING
@@ -78,11 +80,11 @@ class DataProcessor(QObject):
             self.stock_df.loc[uid, Constants.STALE] = True      #We assume data is stale
 
             if self.data_buffers.bufferExists(uid, Constants.FIVE_MIN_BAR):
+                
                 last_five_min_mark = self.data_buffers.getIndicesFor(uid, Constants.FIVE_MIN_BAR).max()
-                        
                 time_del = (now_time - last_five_min_mark)
                 if time_del < self.stale_delay_secs:
-                    self.stock_df.loc[uid, Constants.STALE] = False   
+                    self.stock_df.loc[uid, Constants.STALE] = False
             
 
     def getBarData(self, uid, bar_type):
