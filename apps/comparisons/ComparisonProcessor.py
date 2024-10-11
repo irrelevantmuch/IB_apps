@@ -13,14 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import datetime, timedelta, time, date
-from pytz import timezone, utc
-
-
+from datetime import timedelta, date
 from PyQt5.QtCore import pyqtSlot
 import numpy as np
 import pandas as pd
 
+from generalFunctionality.GenFunctions import getTradingHours
+from generalFunctionality.DateTimeFunctions import getLocalizedDt, convertToUtcTimestamp, todayDT, utcLocalize, dtFromDate
 from dataHandling.Constants import Constants, MINUTES_PER_BAR, RESAMPLING_BARS
 from dataHandling.DataProcessor import DataProcessor
 from .ComparisonDataWrapper import ComparisonDataWrapper
@@ -44,18 +43,19 @@ class ComparisonProcessor(DataProcessor):
     conversion_type = Constants.INDEXED
     yesterday_close = False
 
-    selected_date = datetime.combine(date.today(), time(0,0,0))
+    selected_date = todayDT()
 
     def __init__(self, buffered_manager, bar_types, stock_list):
         self.buffered_manager = buffered_manager
         super().__init__(stock_list)
-        self.data_object = ComparisonDataWrapper()
+        self.data_object = ComparisonDataWrapper(set(stock_list))
         
         self.bar_types = bar_types
 
 
     def setStockList(self, stock_list):
         self.check_list = {key: True for key in stock_list.keys()}
+        self.data_object.setUIDs(set(stock_list.keys()))
         super().setStockList(stock_list)
 
 
@@ -71,8 +71,9 @@ class ComparisonProcessor(DataProcessor):
     @pyqtSlot()
     def fetchStockRangeData(self):
         start_date = self.selected_date
-        end_date = datetime.combine(self.getEndDate(), time(23, 59,0))
-        
+        start_date = utcLocalize(start_date)
+        end_date = dtFromDate(self.getEndDate())
+        end_date = utcLocalize(end_date)
         self.buffered_manager.fetchStockDataForPeriod(self.selected_bar_type, start_date, end_date)
 
 
@@ -128,7 +129,7 @@ class ComparisonProcessor(DataProcessor):
             elif prop == "regular_hours_type":
                 self.regular_hours = value
             elif prop == "date_selection_type":
-                self.selected_date = datetime.combine(value.toPyDate(), time(0,0,0))
+                self.selected_date = dtFromDate(value.toPyDate())
             elif prop == "yesterday_close_type":
                 self.yesterday_close = value
             elif prop == "bar_change_type":
@@ -154,7 +155,6 @@ class ComparisonProcessor(DataProcessor):
 
 
     def recalculateGraphData(self, uids=None, forced_reset=False):
-        # print(f"ComparisonProcessor.recalculateGraphData {uids}")
         if uids is None:
             self.primary_graph_data = dict()
             uids = list(self._stock_list.keys())
@@ -165,22 +165,9 @@ class ComparisonProcessor(DataProcessor):
             self.data_object.updatePrimaryGraphData(self.primary_graph_data, self.selected_bar_type, forced_reset=forced_reset)
 
 
-    # def insertDayBreak(self, graph_line, time_index_sel):
-    #     day_change_ind = np.where(np.diff([dt.date() for dt in time_index_sel]))[0] + 1
-    #     graph_line['time_indices'] = np.insert(np.array(graph_line['time_indices']).astype(float), day_change_ind, np.nan)
-    #     graph_line['indices'] = np.insert(np.array(graph_line['indices']).astype(float), day_change_ind, np.nan)
-    #     graph_line['original'] = np.insert(np.array(graph_line['original']).astype(float), day_change_ind, np.nan)
-    #     graph_line['adapted'] = np.insert(np.array(graph_line['adapted']).astype(float), day_change_ind, np.nan)
-    #     graph_line['adapted_low'] = np.insert(np.array(graph_line['adapted_low']).astype(float), day_change_ind, np.nan)
-    #     graph_line['adapted_high'] = np.insert(np.array(graph_line['adapted_high']).astype(float), day_change_ind, np.nan)
-    #     return graph_line
-
-
     def recalculateGraphLines(self, uids, check_list):
-        print("ComparisonProcessor.recalculateGraphData")
         for key in (k for k in uids if check_list[k]):
             time_indices, dt_indices = self.getTimeIndices(key)
-            print(f"So these are not the same: {len(time_indices)} {len(dt_indices)}")
             filtered_data_frame = self.getTimeFilteredBars(key, time_indices, dt_indices)
             
             if filtered_data_frame is not None:
@@ -233,6 +220,7 @@ class ComparisonProcessor(DataProcessor):
             graph_line['time_indices'] = filtered_frame.index.to_numpy()
             graph_line['original_dts'] = filtered_frame['original_dts'].to_numpy()
             graph_line['label'] = symbol
+            graph_line['bar_type'] = self.selected_bar_type
             graph_line['original'] = price_data
             min_value = min(price_data)
             max_value = max(price_data)
@@ -253,7 +241,7 @@ class ComparisonProcessor(DataProcessor):
 
         if bar_type != Constants.DAY_BAR:
 
-            start_time, end_time = self.getTradingHours(bar_type)
+            start_time, end_time = getTradingHours(bar_type, self.regular_hours)
             # Filter to keep only the times between 9:30 and 16:00, excluding weekends
             time_stamp_range = time_stamp_range[((time_stamp_range.time >= pd.Timestamp(start_time).time()) & 
                                          (time_stamp_range.time <= pd.Timestamp(end_time).time())) &
@@ -262,21 +250,6 @@ class ComparisonProcessor(DataProcessor):
         datetime_list = time_stamp_range.to_list()
 
         return datetime_list
-
-
-    def getTradingHours(self, bar_type):
-        if self.regular_hours:
-            if bar_type == Constants.HOUR_BAR:            
-                start_time = '09:00:00'
-                end_time = '16:00:00'
-            else:
-                start_time = '09:30:00'
-                end_time = '16:00:00'
-        else:
-            start_time = '04:00:00'
-            end_time = '20:00:00'
-            
-        return start_time, end_time
 
 
     def getEndDate(self):
@@ -288,24 +261,15 @@ class ComparisonProcessor(DataProcessor):
 
 
     def getTimeIndices(self, key):
-        time_zone = self._stock_list[key]['time_zone']
+        timezone = self._stock_list[key]['time_zone']
 
         bar_type = self.selected_bar_type
-            
-        start_time = self.getLocalizedDt(self.selected_date, time_zone)
-        end_time = self.getLocalizedDt(self.getEndDate(), time_zone)
+        
+        start_time = getLocalizedDt(self.selected_date, timezone)
+        end_time = getLocalizedDt(self.getEndDate(), timezone)
         bar_times = self.generateTimeIndices(start_time, end_time, bar_type)
-        return [self.convertToUtcTimestamp(dt) for dt in bar_times], bar_times
-
-
-    def getLocalizedDt(self, dt, time_zone):
-        localized_tz = timezone(time_zone)
-        return localized_tz.localize(dt)
-
-    def convertToUtcTimestamp(self, dt_localized):
-        dt_utc = dt_localized.astimezone(utc)
-        return int(dt_utc.timestamp())
-
+        bar_timestamps = [convertToUtcTimestamp(dt) for dt in bar_times]
+        return bar_timestamps, bar_times
 
 
     def getBasePrice(self, filtered_data_frame, key, start_date):
@@ -313,6 +277,8 @@ class ComparisonProcessor(DataProcessor):
             day_frame = self.data_buffers.getBufferFor(key, Constants.DAY_BAR)
             
             datetime_for_start = datetime(start_date.year, start_date.month, start_date.day)
+
+                #todo, make this contingent on instrument tz
             nyc_timezone = timezone(Constants.NYC_TIMEZONE)
             datetime_for_start = nyc_timezone.localize(datetime_for_start)
 
@@ -333,8 +299,7 @@ class ComparisonProcessor(DataProcessor):
             
             dt_series = pd.Series(data=dt_bars, index=time_indices)
 
-            filtered_frame = bar_frame[bar_frame.index.isin(time_indices)]
-
+            filtered_frame = bar_frame[bar_frame.index.isin(time_indices)].copy()
 
             filtered_frame['original_dts'] = dt_series.reindex(filtered_frame.index)
             if len(filtered_frame) > 0:

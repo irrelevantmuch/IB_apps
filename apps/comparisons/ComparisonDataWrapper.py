@@ -29,6 +29,13 @@ class ComparisonDataWrapper(QObject):
 
     _data_frame = None
 
+    def __init__(self, uids):
+        super().__init__()
+        self.all_uids = uids
+
+
+    def setUIDs(self, uids):
+        self.all_uids = uids
     # def setDataFrame(self, data_frame):
     #     self.processing_updater.emit(Constants.DATA_WILL_CHANGE, dict())
     #     self._lock.lockForWrite()
@@ -107,6 +114,11 @@ class ComparisonDataWrapper(QObject):
             return data_keys.issubset(self.primary_uids)
 
 
+    @property
+    def has_data(self):
+        return len(self.primary_graph_dict) > 0
+    
+
     def getLines(self, for_type):
         if for_type == 'comparison_plot':
             return self.primary_graph_dict
@@ -120,8 +132,8 @@ class ComparisonDataWrapper(QObject):
 
     def getPlotParameters(self, for_type):
         if for_type == 'comparison_plot':
-            return list(self.primary_graph_dict.keys()), len(self.primary_graph_dict)
-        return list(self.primary_graph_dict.keys()), len(self.primary_graph_dict)
+            return set(self.primary_graph_dict.keys()), len(self.primary_graph_dict), self.all_uids
+        return set(self.primary_graph_dict.keys()), len(self.primary_graph_dict), self.all_uids
         #return dict(), 0
 
     def needsDayBreak(self):

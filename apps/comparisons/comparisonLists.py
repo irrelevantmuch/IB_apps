@@ -24,7 +24,6 @@
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import QThread, pyqtSignal, Qt, pyqtSlot
-from PyQt5.QtWidgets import QMainWindow
 from dataHandling.Constants import Constants, MAIN_BAR_TYPES
 from .ComparisonWindow import ComparisonWindow
 
@@ -60,11 +59,11 @@ class ComparisonList(ComparisonWindow):
     data_processor = None
     tops_and_bottoms = True
 
-    def __init__(self, history_manager, processor_thread):
+    def __init__(self, buffered_manager, processor_thread):
         super().__init__(self.bar_types)
 
         self.listSetup()    
-        self.setupProcessor(history_manager, processor_thread)
+        self.setupProcessor(buffered_manager, processor_thread)
         self.fillTickerLists()
         self.resetProcessor()
         sys.setrecursionlimit(20_000)
@@ -81,11 +80,11 @@ class ComparisonList(ComparisonWindow):
         # self.comp_list = self.generateCheckList(self.comparison_list) 
 
 
-    def setupProcessor(self, history_manager, processor_thread):
-        self.data_processor = ComparisonProcessor(history_manager, MAIN_BAR_TYPES, self.stock_list)
+    def setupProcessor(self, buffered_manager, processor_thread):
+        self.data_processor = ComparisonProcessor(buffered_manager, MAIN_BAR_TYPES, self.stock_list)
         self.data_container = self.data_processor.getDataObject()
-        self.compare_plot.setData(self.data_container)
-        # self.focus_plot.setData(self.data_container)
+        self.compare_plot.setDataObject(self.data_container)
+        # self.focus_plot.setDataObject(self.data_container)
         self.plot_tf_selector.setCurrentText(self.data_processor.selected_bar_type)
         self.processor_thread = processor_thread
 
@@ -251,7 +250,7 @@ class ComparisonList(ComparisonWindow):
         # self.focus_list = self.generateCheckList(filtered_list)
         # addCheckableTickersTo(self.focus_box, filtered_list, self.focus_list)
 
-        print(self.check_list)
+
         self.check_list_signal.emit(self.check_list) #, self.comp_list, self.focus_list)
 
         if self.visible_ticker_box.noItemsSelected():
