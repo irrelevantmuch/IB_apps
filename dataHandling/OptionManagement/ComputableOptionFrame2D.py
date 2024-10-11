@@ -13,14 +13,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, QReadWriteLock, Qt, QThread
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, QReadWriteLock, Qt, QThread, QTimer
 from dataHandling.Constants import Constants, OptionConstrType
+from generalFunctionality.GenFunctions import getExpirationString, getDaysTillExpiration
 
 import numpy as np
 import pandas as pd
 
+import time
+
 
 class Computable2DDataFrame(QObject):
+
+    update_delay = 5
 
     _underlying_price = 0.0
     _unique_expirations = dict()
@@ -28,11 +33,9 @@ class Computable2DDataFrame(QObject):
     _price_type = "price"
     frame_updater = pyqtSignal(str, dict)
 
-    _price_frames = dict()
     _option_type = Constants.CALL
     _order_type = Constants.BUY
     _constr_type = OptionConstrType.single
-
 
     selected_strike = None
     selected_exp = None
@@ -40,19 +43,35 @@ class Computable2DDataFrame(QObject):
 
     minimum_strike = None
     maximum_strike = None
-    minimum_expiration = None
-    maximum_expiration = None
+    minimum_dte = None
+    maximum_dte = None
 
     offsets = []
     ratios = [1]
 
-    def __init__(self, dfs, option_type):
+    def __init__(self, option_type):
         super().__init__()
 
         self._lock = QReadWriteLock()
-        self.setData(dfs)
+        self.resetDataFrame()
+        self.setupUpdateTimer()
         self._option_type = option_type
        
+
+    def resetDataFrame(self):
+        self._price_frames = dict()
+        multi_index = pd.MultiIndex.from_tuples([], names=['expiration', 'strike'])
+        self._price_frames[Constants.PUT] = pd.DataFrame({Constants.BID: pd.Series(dtype='float'), Constants.ASK: pd.Series(dtype='float'), Constants.CLOSE: pd.Series(dtype='float')}, index=multi_index)
+        self._price_frames[Constants.CALL] = pd.DataFrame({Constants.BID: pd.Series(dtype='float'), Constants.ASK: pd.Series(dtype='float'), Constants.CLOSE: pd.Series(dtype='float')}, index=multi_index)
+
+
+    def setupUpdateTimer(self):
+        self.last_update_time = int(time.time())
+
+        self.update_timer = QTimer(self)
+        self.update_timer.setSingleShot(True)
+        self.update_timer.timeout.connect(self.recalculateData)
+
 
     def changeConstrType(self, option_type, order_type, constr_type, offsets, ratios):
         self._lock.lockForWrite()
@@ -67,50 +86,67 @@ class Computable2DDataFrame(QObject):
             self._constr_type = constr_type
             self.ratios = ratios
             self.offsets = offsets
-            self.recalculateData()
+            self.recalculateData(structural_change=True)
         finally:
             self._lock.unlock()
 
         
     @property
     def has_data(self):
-        if self._price_frames is not None:
-            return self._price_frames[self._option_type].notna().any().any()
-        return False
+        return self._price_frames[self._option_type].notna().any().any()
         
 
     def setPriceType(self, value):
         self._lock.lockForWrite()
         try:
-            self._price_type = value
+            self.c = value
             self.recalculateData()
         finally:
             self._lock.unlock()
 
 
-    def setData(self, new_frames):
+    def timeForUpdate(self):
+        current_time = int(time.time())
+        return current_time > (self.last_update_time + self.update_delay)
+        
+
+    def setValueFor(self, opt_type, index_2D, tick_type, option_price):
+        # types = [tick_type, Constants.DAYS_TILL_EXP, Constants.NAMES]
+        # values = [option_price, getDaysTillExpiration(index_2D[0]), getExpirationString(index_2D[0])]
         self._lock.lockForWrite()
         try:
-            self._price_frames = new_frames
-            if new_frames is not None:
-                self.recalculateData()
-            else:
-                self.frame_updater.emit(Constants.DATA_DID_CHANGE, {'key': '2D_frame'})
+            # self._price_frames[opt_type].loc[index_2D, types] = values
+            self._price_frames[opt_type].at[index_2D, tick_type] = option_price
+            self.recalculateDataIfNeeded()
         finally:
             self._lock.unlock()
-
-
-    def recalculateData(self):
-        print(f"Computable2DDataFrame.recalculateData {int(QThread.currentThreadId())}")
-        for option_type in [Constants.CALL, Constants.PUT]:
-            self._unique_expirations[option_type] = self._price_frames[option_type].index.get_level_values('days_till_exp').unique().sort_values()
-            self._unique_strikes[option_type] = self._price_frames[option_type].index.get_level_values('strike').unique().sort_values()
-            self.addPriceColumn()
-        self.calculateDataPoints()
     
+
+    def recalculateDataIfNeeded(self):        
+        time_for_update = self.timeForUpdate()
+
+        if time_for_update:
+            self.recalculateData()
+        elif not(self.update_timer.isActive()):
+            remaining_time = max(0, 5 - (time.time() - self.last_update_time))
+            print(f"We schedule an update for {remaining_time} seconds from now")
+            print("THREAD ISSUE FROM HERE")
+            self.update_timer.start(int(remaining_time * 1000))
+
+
+    def recalculateData(self, structural_change=False):
+            print(f"Computable2DDataFrame.recalculateData {int(QThread.currentThreadId())}")
+            for option_type in [Constants.CALL, Constants.PUT]:
+                self._unique_expirations[option_type] = self._price_frames[option_type].index.get_level_values('expiration').unique().dropna().sort_values()
+                self._unique_strikes[option_type] = self._price_frames[option_type].index.get_level_values('strike').unique().dropna().sort_values()
+                self.estimatePrices()
+            
+            self.calculateDataPoints()
+    
+            self.frame_updater.emit(Constants.DATA_DID_CHANGE, {'key': '2D_frame', 'structural_change': structural_change})
+            self.last_update_time = int(time.time())
+
         #self._unique_expiration_conj = np.intersect1d(self._unique_expirations[Constants.CALL], self._unique_expirations[Constants.PUT])
-        print("This be confusing....")
-        self.frame_updater.emit(Constants.DATA_DID_CHANGE, {'key': '2D_frame'})
 
 
     def calculateDataPoints(self):
@@ -136,7 +172,7 @@ class Computable2DDataFrame(QObject):
 
             for index, offset in enumerate(offsets):
 
-                y_coords[index] = self.getEndPriceForStrike(self._constr_type, self.selected_strike, offset)
+                y_coords[index] = self.getExpirationPriceForStrike(self._constr_type, self.selected_strike, offset)
                 y_details[index] = f"{y_coords[index]:.2f}"
                 if self._order_type == Constants.SELL:
                     y_coords[index] = 0 - y_coords[index]
@@ -163,8 +199,8 @@ class Computable2DDataFrame(QObject):
             data_selection = result_frame.xs(strike, level='strike')
             data_selection = data_selection.sort_index()
 
-            x_coords = np.insert(data_selection.index, 0, -1)
-            expiration_price = self.getEndPriceForStrike(self._constr_type, strike)
+            x_coords = np.insert(data_selection[Constants.DAYS_TILL_EXP].values, 0, -1)
+            expiration_price = self.getExpirationPriceForStrike(self._constr_type, strike)
             y_coords = np.insert(data_selection['combo_price'].values, 0, expiration_price)
             if self._order_type == Constants.SELL:
                 y_coords = 0 - y_coords
@@ -187,12 +223,12 @@ class Computable2DDataFrame(QObject):
         y_coords = np.empty((len(for_strikes)))
         y_details = np.empty((len(for_strikes)))
         for index, strike in enumerate(for_strikes):
-            y_coords[index] = self.getEndPriceForStrike(self._constr_type, strike)
+            y_coords[index] = self.getExpirationPriceForStrike(self._constr_type, strike)
             if self._order_type == Constants.SELL: y_coords[index] = 0 - y_coords[index]
             y_details[index] = f"{y_coords[index]:.2f}"
         self.data_points['expiration_grouped'][-1] = {'display_name': f"-1 dte", 'x': x_coords, 'y': y_coords, 'y_detail': y_details}
 
-        exp_gen = (exp for exp in for_expirations if self.withinExpirationRange(exp))
+        exp_gen = [exp for exp in for_expirations if self.withinExpirationRange(exp)]
         for expiration in exp_gen:
             data_selection = result_frame.xs(expiration, level='days_till_exp')
             data_selection = data_selection.sort_index()
@@ -200,18 +236,22 @@ class Computable2DDataFrame(QObject):
             y_coords = data_selection['combo_price'].values
             if self._order_type == Constants.SELL:
                 y_coords = 0 - y_coords
+
             self.data_points['expiration_grouped'][expiration] = {'display_name': f"{expiration} dte", 'x': data_selection.index, 'y': y_coords, 'y_detail': data_selection['price_detail'].values}
         
 
     def withinExpirationRange(self, expiration):
-        if (self.minimum_expiration is not None) and expiration < self.minimum_expiration:
+        # print(f"Computable2DDataFrame.withinExpirationRange {expiration}")
+        # print(f"Does it lie between {self.minimum_dte} {self.maximum_dte}")
+        # # dte = getDaysTillExpiration(expiration)
+        if (self.minimum_dte is not None) and expiration < self.minimum_dte:
             return False
-        if (self.maximum_expiration is not None) and expiration > self.maximum_expiration:
+        if (self.maximum_dte is not None) and expiration > self.maximum_dte:
             return False
         return True
     
 
-    def getEndPriceForStrike(self, constr_type, strike, offset=None):
+    def getExpirationPriceForStrike(self, constr_type, strike, offset=None):
         underlying_price = self._underlying_price
 
         if offset is not None:
@@ -250,20 +290,23 @@ class Computable2DDataFrame(QObject):
             strikes, prices, price_split = self.priceForConstructionType(strikes, prices)
             y_values = self.priceForPriceType(strikes, prices)
 
+            expirations = getDaysTillExpiration(expiration)*len(y_values)
+
             if price_split is not None:
                 price_details_str = [(', '.join(['{:.2f}'.format(flt).rstrip('0').rstrip('.') for flt in tpl])) for tpl in price_split]
             else:
                 price_details_str = [f'{t:.2f}' for t in y_values]
 
                 # Concatenate to make bigger frame
-            multi_index = pd.MultiIndex.from_product([[expiration], strikes], names=['days_till_exp', 'strike'])
-            df_new = pd.DataFrame({'combo_price': y_values, 'price_detail': price_details_str}, index=multi_index)
+            multi_index = pd.MultiIndex.from_product([[getDaysTillExpiration(expiration)], strikes], names=['days_till_exp', 'strike'])
+            df_new = pd.DataFrame({'combo_price': y_values, 'price_detail': price_details_str, Constants.DAYS_TILL_EXP: expirations}, index=multi_index)
             result_frame = pd.concat([result_frame, df_new])
 
         return result_frame
 
 
-    def addPriceColumn(self):
+    def estimatePrices(self):
+        
         # Calculate the average for non-NaN bid and ask values
         for option_type in self._price_frames.keys():
             ask_prices = self._price_frames[option_type][Constants.ASK]
@@ -396,14 +439,20 @@ class Computable2DDataFrame(QObject):
     def isCallPutConstr(self):
         return (self._constr_type == OptionConstrType.iron_condor)
 
+    
+    def hasDataForExp(self, opt_type, expiration):
+        if opt_type in self._price_frames:
+            return self._price_frames[opt_type].index.get_level_values('expiration').isin([expiration]).any()
+        return False
+
     def getPricesByExpiration(self, exp_value):
         
         if self.isCallPutConstr():
             
-            call_selection = self._price_frames[Constants.CALL].xs(exp_value, level='days_till_exp')
+            call_selection = self._price_frames[Constants.CALL].xs(exp_value, level='expiration')
             call_selection = call_selection.sort_index()
             
-            put_selection = self._price_frames[Constants.PUT].xs(exp_value, level='days_till_exp')
+            put_selection = self._price_frames[Constants.PUT].xs(exp_value, level='expiration')
             put_selection = put_selection.sort_index()
             
             strikes = np.intersect1d(call_selection.index.values, put_selection.index.values)
@@ -412,7 +461,7 @@ class Computable2DDataFrame(QObject):
             prices = np.column_stack((call_prices, put_prices))
             return strikes, prices, exp_value
         else:
-            data_selection = self._price_frames[self._option_type].xs(exp_value, level='days_till_exp')
+            data_selection = self._price_frames[self._option_type].xs(exp_value, level='expiration')
             data_selection = data_selection.sort_index()
 
             strikes = data_selection.index.values
@@ -421,29 +470,41 @@ class Computable2DDataFrame(QObject):
             return strikes, y_values, exp_value
 
 
-    def getPricesByExpiration(self, exp_value):
+    def getValuesByExpiration(self, option_type, exp_value, column):
+        print(f"Computable2DDataFrame.getValuesByExpiration {exp_value}")
+        print(self._price_frames[option_type])
+        data_selection = self._price_frames[option_type].xs(exp_value, level='expiration')
+        data_selection = data_selection.sort_index()
 
-        if self.isCallPutConstr():
+        strikes = data_selection.index.values
+        y_values = data_selection[column].values
             
-            call_selection = self._price_frames[Constants.CALL].xs(exp_value, level='days_till_exp')
-            call_selection = call_selection.sort_index()
-            
-            put_selection = self._price_frames[Constants.PUT].xs(exp_value, level='days_till_exp')
-            put_selection = put_selection.sort_index()
-            
-            strikes = np.intersect1d(call_selection.index.values, put_selection.index.values)
-            call_prices = call_selection.loc[strikes, 'price_est'].values
-            put_prices = put_selection.loc[strikes, 'price_est'].values
-            prices = np.column_stack((call_prices, put_prices))
-            return strikes, prices, exp_value
-        else:
-            data_selection = self._price_frames[self._option_type].xs(exp_value, level='days_till_exp')
-            data_selection = data_selection.sort_index()
+        return strikes, y_values
 
-            strikes = data_selection.index.values
-            y_values = data_selection['price_est'].values
+
+    # def getPricesByExpiration(self, exp_value):
+
+    #     if self.isCallPutConstr():
             
-            return strikes, y_values, exp_value
+    #         call_selection = self._price_frames[Constants.CALL].xs(exp_value, level='expiration')
+    #         call_selection = call_selection.sort_index()
+            
+    #         put_selection = self._price_frames[Constants.PUT].xs(exp_value, level='expiration')
+    #         put_selection = put_selection.sort_index()
+            
+    #         strikes = np.intersect1d(call_selection.index.values, put_selection.index.values)
+    #         call_prices = call_selection.loc[strikes, 'price_est'].values
+    #         put_prices = put_selection.loc[strikes, 'price_est'].values
+    #         prices = np.column_stack((call_prices, put_prices))
+    #         return strikes, prices, exp_value
+    #     else:
+    #         data_selection = self._price_frames[self._option_type].xs(exp_value, level='expiration')
+    #         data_selection = data_selection.sort_index()
+
+    #         strikes = data_selection.index.values
+    #         y_values = data_selection['price_est'].values
+            
+    #         return strikes, y_values, exp_value
 
 
 
@@ -463,10 +524,21 @@ class Computable2DDataFrame(QObject):
 
 
     def getBoundaries(self):
-        min_exp = self._unique_expirations[self._option_type].min()
-        max_exp = self._unique_expirations[self._option_type].max()
-        min_strike = self._unique_strikes[self._option_type].min()
-        max_strike = self._unique_strikes[self._option_type].max()
+
+        if (self._option_type in self._unique_expirations) and len(self._unique_expirations[self._option_type]) > 0:
+            min_exp = self._unique_expirations[self._option_type].min()
+            max_exp = self._unique_expirations[self._option_type].max()
+        else:
+            min_exp = None
+            max_exp = None
+
+        if (self._option_type in self._unique_strikes) and len(self._unique_strikes[self._option_type]) > 0:
+            min_strike = self._unique_strikes[self._option_type].min()
+            max_strike = self._unique_strikes[self._option_type].max()
+        else:
+            min_strike = None
+            max_strike = None
+
 
         return min_exp, max_exp, min_strike, max_strike
 
@@ -477,57 +549,28 @@ class Computable2DDataFrame(QObject):
 
     @pyqtSlot(float)
     def setMinimumStrike(self, minimum_strike):
+        print(f"Computable2DDataFrame.setMinimumStrike {minimum_strike}")
         self.minimum_strike = minimum_strike
-        self.recalculateData()
+        self.recalculateData(structural_change=True)
 
 
     @pyqtSlot(float)
     def setMaximumStrike(self, maximum_strike):
+        print(f"Computable2DDataFrame.setMaximumStrike {maximum_strike}")
         self.maximum_strike = maximum_strike
-        self.recalculateData()
+        self.recalculateData(structural_change=True)
 
     
     @pyqtSlot(int)
-    def setMinimumExpiration(self, minimum_expiration):
-        self.minimum_expiration = minimum_expiration
-        self.recalculateData()
+    def setMinimumExpiration(self, minimum_dte):
+        print(f"Computable2DDataFrame.setMinimumExpiration {minimum_dte}")
+        self.minimum_dte = minimum_dte
+        self.recalculateData(structural_change=True)
 
     
     @pyqtSlot(int)
-    def setMaximumExpiration(self, maximum_expiration):
-        self.maximum_expiration = maximum_expiration
-        self.recalculateData()
-
-
-# class ReadOnlyFrameWrapper:
-
-#     def __init__(self, computable_frame):
-#         self._computable_frame = computable_frame
-
-#     def connectCallback(self, callback_function):
-#         self._computable_frame.frame_updater.connect(callback_function, Qt.QueuedConnection)
-
-#     @property
-#     def has_data(self):
-#         return self._computable_frame.has_data
-        
-#     def getLinesFor(self, for_type):
-#         return self._computable_frame.getLinesFor(for_type)
-
-
-#     def getBoundaries(self):
-#         return self._computable_frame.getBoundaries()
-
-#     def getAvailableStrikes(self):
-#         return self._computable_frame.getAvailableStrikes()
-
-#     def setSelectedStrike(self, strike, expiration, cost):
-#         self._computable_frame.selected_strike = strike
-#         self._computable_frame.selected_exp = expiration
-#         self._computable_frame.selected_cost = cost
-#         self._computable_frame.recalculateData()
-
-#     def getUnderlyingPrice(self):
-#         return self._computable_frame._underlying_price
-
+    def setMaximumExpiration(self, maximum_dte):
+        print(f"Computable2DDataFrame.setMaximumExpiration in days {maximum_dte}")
+        self.maximum_dte = maximum_dte
+        self.recalculateData(structural_change=True)
 

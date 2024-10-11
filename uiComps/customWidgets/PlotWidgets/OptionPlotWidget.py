@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSlot
 import pyqtgraph as pg
 import numpy as np
 from generalFunctionality.GenFunctions import findNearest
@@ -26,7 +26,8 @@ pg.setConfigOption("background", "w")
 class OptionPlotWidget(pg.PlotWidget):
 
     range_multiplier = 1.4
-    data_frame = None
+    comp_frame = None
+    data_x = None
 
 
     def __init__(self, delegate, labels=['Price'], x_label="Strike", inverted=False):
@@ -80,36 +81,41 @@ class OptionPlotWidget(pg.PlotWidget):
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
 
-        if self.data_frame is not None and self.data_frame.has_data:
+        if self.data_x is not None:
             pos = evt[0] 
             if self.sceneBoundingRect().contains(pos):
                 mousePoint = self.plotItem.vb.mapSceneToView(pos)
-                index, value = findNearest(self.data_frame.data_x, mousePoint.x())
-                if len(self.data_frame.data_y) == 1:
+                index, value = findNearest(self.data_x, mousePoint.x())
+                if len(self.data_y) == 1:
                     self.curvePoints.setPos(0)
                 else:
-                    self.curvePoints.setPos(float(index)/float(len(self.data_frame.data_y)-1))
-                self.text_mid.setText(self.data_frame.data_x_names[index])
+                    self.curvePoints.setPos(float(index)/float(len(self.data_y)-1))
+                self.text_mid.setText(self.data_x_names[index])
 
 
-    def setDataObject(self, strike_comp_frame):
-        self.data_frame = strike_comp_frame
-        self.data_frame.frame_updater.connect(self.updatePlot, Qt.QueuedConnection)
-        self.updatePlot()
+    def setDataObject(self, comp_frame):
+        self.comp_frame = comp_frame
+        self.comp_frame.frame_updater.connect(self.updatePlot, Qt.QueuedConnection)
+        self.updatePlot("", dict())
 
 
-    def updatePlot(self):
-        if self.data_frame.has_data:
-            pen = pg.mkPen(color=(80,80,80),width=5)
-            print(f"{self.data_frame.data_x} {len(self.data_frame.data_x)}")
-            print(f"{self.data_frame.data_y} {len(self.data_frame.data_y)}")
-            self.curve_mid.setData(self.data_frame.data_x, self.data_frame.data_y, pen=pen, clickable=True)
+    @pyqtSlot(str, dict)
+    def updatePlot(self, signal, details):
+        if self.comp_frame.has_data:
 
-            if len(self.data_frame.data_y_lower) > 0 and len(self.data_frame.data_y_upper) > 0:
-                self.curve_ask.setData(self.data_frame.data_x, self.data_frame.data_y_lower)
-                self.curve_bid.setData(self.data_frame.data_x, self.data_frame.data_y_upper)
+            self.data_x, self.data_y, self.data_y_lower, self.data_y_upper, self.data_x_names = self.comp_frame.getLineData()
 
-            self.setYRange(0, self.data_frame.data_y.max()*self.range_multiplier)
+            if len(self.data_x) > 1:
+                pen = pg.mkPen(color=(80,80,80),width=5)
+
+                self.curve_mid.setData(self.data_x, self.data_y, pen=pen, clickable=True)
+
+                if len(self.data_y_lower) > 0 and len(self.data_y_upper) > 0:
+                    self.curve_ask.setData(self.data_x, self.data_y_upper)
+                    self.curve_bid.setData(self.data_x, self.data_y_lower)
+
+                self.setXRange(self.data_x.min()/self.range_multiplier, self.data_x.max()*self.range_multiplier)
+                self.setYRange(0, self.data_y.max()*self.range_multiplier)
             
 
 class PremiumPlotWidget(OptionPlotWidget):
@@ -170,17 +176,18 @@ class PremiumPlotWidget(OptionPlotWidget):
             self.changePlot.linkedViewChanged(self.plotItem.vb, self.changePlot.XAxis)
 
 
-    def setStrikeLine(self, to_price):
-        if self.no_strike_set:
-            self.no_strike_set = False
+    # def setStrikeLine(self, to_price):
+    #     if self.no_strike_set:
+    #         self.no_strike_set = False
 
-            self.strike_object = StrikeLineObject(self, self.delegate)
+    #         self.strike_object = StrikeLineObject(self, self.delegate)
             
-        if (self.data_frame is not None) and self.data_frame.has_data:
-            index = findNearest(self.data_frame.data_x, to_price)
-            self.selected_strike = self.data_frame.data_x[index]
-            self.strike_object.updatePosition(self.data_frame.data_x[index])
-            self.delegate.updateStrikeSelection(self.selected_strike)
+    #     if (self.comp_frame is not None) and self.comp_frame.has_data:
+    #         data_x, data_y, _, _, _ = self.comp_frame.getLineData()
+    #         index = findNearest(data_x, to_price)
+    #         self.selected_strike = data_x[index]
+    #         self.strike_object.updatePosition(data_x[index])
+    #         self.delegate.updateStrikeSelection(self.selected_strike)
 
 
     def updatePrice(self, price):

@@ -27,14 +27,8 @@ import numpy as np
 from dataHandling.Constants import Constants, OptionConstrType
 from dataHandling.DataStructures import DetailObject
 from .VisualizationWindow import VisualizationWindow
+from generalFunctionality.GenFunctions import floatFromString
 import pandas as pd
-
-
-def floatFromString(str_flt, default=0.0):
-    try:
-        return float(str_flt)
-    except ValueError:
-        return default
 
 
 class OptionVisualization(VisualizationWindow):
@@ -98,10 +92,10 @@ class OptionVisualization(VisualizationWindow):
     def connectSignals(self):
         self.stock_selection_signal.connect(self.option_data_manager.makeStockSelection, type=Qt.QueuedConnection)
         self.req_all_strikes.connect(self.option_data_manager.requestForAllStrikesAndExpirations, type=Qt.QueuedConnection)
-        self.req_by_strike_execute.connect(self.option_data_manager.requestOptionDataForStrike, type=Qt.QueuedConnection)
+        self.req_by_strike_execute.connect(self.option_data_manager.requestOptionPricesForStrike, type=Qt.QueuedConnection)
 
-        self.req_by_exp.connect(self.option_data_manager.requestOptionDataForExpiration, type=Qt.QueuedConnection)
-        self.req_by_exp_execute.connect(self.option_data_manager.requestOptionDataForExpiration, type=Qt.QueuedConnection)
+        self.req_by_exp.connect(self.option_data_manager.requestOptionPricesForExpiration, type=Qt.QueuedConnection)
+        self.req_by_exp_execute.connect(self.option_data_manager.requestOptionPricesForExpiration, type=Qt.QueuedConnection)
 
         self.flush_button.clicked.connect(self.option_data_manager.flushData, type=Qt.QueuedConnection)
         self.reset_button.clicked.connect(self.option_data_manager.resetWholeChain, type=Qt.QueuedConnection)
@@ -248,7 +242,11 @@ class OptionVisualization(VisualizationWindow):
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
+        print(f"OptionVisualization.apiUpdate {signal}")
         if signal == Constants.OPTION_INFO_LOADED:
+            print(sub_signal['expirations'])
+            print(sub_signal['strikes'])
+
             self.updateOptionGUI(sub_signal['expirations'], sub_signal['strikes'])
             self.fetch_all_button.setEnabled(sub_signal['is_verified'])
             
@@ -275,6 +273,7 @@ class OptionVisualization(VisualizationWindow):
         self.updatePrice(price)
     
         
+    ##### this is a callback from the plot.
     def requestLiveUpdates(self, current_selection):
         dates_by_days = {item[0]: item[2] for item in self.expiration_pairs}
         if current_selection['plot_type'] == 'expiration_grouped':
@@ -305,11 +304,13 @@ class OptionVisualization(VisualizationWindow):
 
 
     def expirationSelectionChange(self, index_value):
+        print(f"OptionVisualization.expirationSelectionChange {index_value}")
         expirations = [item[2] for item in self.expiration_pairs]
         self.req_by_exp_execute.emit(expirations[index_value])
 
 
     def strikeSelectionChange(self, index_value):
+        print(f"OptionVisualization.strikeSelectionChange {index_value}")
         strike_values = [item[0] for item in self.strike_pairs]
         self.req_by_strike_execute.emit(strike_values[index_value])
 

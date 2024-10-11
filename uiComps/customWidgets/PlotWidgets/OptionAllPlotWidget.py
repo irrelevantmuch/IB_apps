@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSlot
 from PyQt5.QtWidgets import QMenu, QAction
 
 import pyqtgraph as pg
@@ -66,7 +66,9 @@ class OptionAllPlotWidget(pg.PlotWidget):
         self.setLabels(left='Option Price', bottom=bottom_label)
 
 
-    def updatePlot(self):
+    
+    def initialPlot(self):
+        print("OptionAllPlotWidget.initialPlot")
         self.clear()
         self.plotItem.legend.setColumnCount(7)
         self.plotItem.legend.setOffset((30,5))
@@ -80,9 +82,11 @@ class OptionAllPlotWidget(pg.PlotWidget):
         self.curve_hooks = dict()
 
         if self.option_frame.has_data:
+            print("\t Goes in level 1")
             self.curve_data = self.option_frame.getLinesFor(self.plot_type)
 
             if self.curve_data is not None:
+                print("\t Goes in level 2")
                 
                 self.curve_data = self.filterCurves(self.curve_data)
                 
@@ -94,7 +98,7 @@ class OptionAllPlotWidget(pg.PlotWidget):
                 for index, (data_name, data_line) in enumerate(self.curve_data.items()):
 
                     pen = pg.mkPen(color=color_list[index],width=2)
-                    if len(data_line['x']) > 0:
+                    if len(data_line['x']) > 1:
                         self.curve_mid[data_name] = self.plot(data_line['x'], data_line['y'], pen=pen, symbol='o', symbolPen=pen, name=data_line['display_name'])
                         self.curve_mid[data_name].setSymbolSize(1)
                         self.curve_hooks[data_name] = pg.CurvePoint(self.curve_mid[data_name])
@@ -107,30 +111,38 @@ class OptionAllPlotWidget(pg.PlotWidget):
             self.updateBackground()
 
 
-        # print("OptionAllPlotWidget.updatePlot")
-        # if self.option_frame.has_data:
-        #     self.curve_data = self.option_frame.getLinesFor(self.plot_type)
+    @pyqtSlot(str, dict)
+    def dataChange(self, str, info_dict):
+        if info_dict['structural_change']:
+            self.initialPlot()
+        else:
+            self.updatePlot()
+
+    def updatePlot(self):
+        print("OptionAllPlotWidget.updatePlot")
+        if self.option_frame.has_data:
+            self.curve_data = self.option_frame.getLinesFor(self.plot_type)
+            print([self.curve_data.keys()])
+            if self.curve_data is not None:
                 
-        #     if self.curve_data is not None:
-                
-        #         self.curve_data = self.filterCurves(self.curve_data)
-        #         if -1 in self.curve_data:
-        #             color_list = [(200,200,200)] + self.generateColorList(len(self.curve_data)-1)
-        #         else:
-        #             color_list = self.generateColorList(len(self.curve_data))
+                self.curve_data = self.filterCurves(self.curve_data)
+                if -1 in self.curve_data:
+                    color_list = [(200,200,200)] + self.generateColorList(len(self.curve_data)-1)
+                else:
+                    color_list = self.generateColorList(len(self.curve_data))
                 
 
-        #         for index, (data_name, data_line) in enumerate(self.curve_data.items()):
-        #             if data_name in self.curve_mid:
-        #                 self.curve_mid[data_name].setData(data_line['x'], data_line['y'])
-        #                 self.curve_hooks[data_name] = pg.CurvePoint(self.curve_mid[data_name])
-        #             else:
-        #                 pen = pg.mkPen(color=color_list[index],width=2)
-        #                 if len(data_line['x']) > 0:
-        #                     self.curve_mid[data_name] = self.plot(data_line['x'], data_line['y'], pen=pen, symbol='o', symbolPen=pen, name=data_line['display_name'])
-        #                     self.curve_mid[data_name].setSymbolSize(1)
-        #                     self.curve_hooks[data_name] = pg.CurvePoint(self.curve_mid[data_name])
-        #                     self.addItem(self.curve_hooks[data_name])
+                for index, (data_name, data_line) in enumerate(self.curve_data.items()):
+                    if data_name in self.curve_mid:
+                        self.curve_mid[data_name].setData(data_line['x'], data_line['y'])
+                        self.curve_hooks[data_name] = pg.CurvePoint(self.curve_mid[data_name])
+                    else:
+                        pen = pg.mkPen(color=color_list[index],width=2)
+                        if len(data_line['x']) > 1:
+                            self.curve_mid[data_name] = self.plot(data_line['x'], data_line['y'], pen=pen, symbol='o', symbolPen=pen, name=data_line['display_name'])
+                            self.curve_mid[data_name].setSymbolSize(1)
+                            self.curve_hooks[data_name] = pg.CurvePoint(self.curve_mid[data_name])
+                            self.addItem(self.curve_hooks[data_name])
                         
 
     def updateBackground(self, y=0.0):
@@ -152,7 +164,6 @@ class OptionAllPlotWidget(pg.PlotWidget):
         
     
     def filterCurves(self, curve_data):
-        
         keys_out_of_range = []
         for key in curve_data.keys():
             if (self.max_key is not None) and (key > self.max_key):
@@ -207,8 +218,8 @@ class OptionAllPlotWidget(pg.PlotWidget):
         self.addCrossHair()
         self.setPriceLine(option_frame.getUnderlyingPrice())
         self.option_frame = option_frame
-        self.option_frame.frame_updater.connect(self.updatePlot, Qt.QueuedConnection)
-        self.updatePlot()
+        self.option_frame.frame_updater.connect(self.dataChange, Qt.QueuedConnection)
+        self.initialPlot()
 
 
     def findNearestDataPoint(self, mouse_x, mouse_y):

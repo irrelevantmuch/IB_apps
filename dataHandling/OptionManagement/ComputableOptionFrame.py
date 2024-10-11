@@ -15,101 +15,56 @@
 
 from PyQt5.QtCore import pyqtSignal, QObject, QReadWriteLock, QThread
 from dataHandling.Constants import Constants
+from generalFunctionality.GenFunctions import getExpirationString
 import numpy as np
+import pandas as pd
+import time
+from datetime import datetime
 
 
 class ComputableDataFrame(QObject):
 
+    prices_bid = None
+    prices_ask = None
+    prices_mid = None
+
+    _data_frame = None
+
+    last_update_time = None
+    update_delay = 5
+
     x_values = None
     frame_updater = pyqtSignal(str, dict)
-    change_counter = 0
 
-    def __init__(self, df, option_type, underlying_price=None):
-        super(ComputableDataFrame, self).__init__()
+    _premium_prices = True
 
+    def __init__(self, option_type, underlying_price=None):
+        super().__init__()
+
+        self.resetDataFrame()
         self._lock = QReadWriteLock()
         self._option_type = option_type
         self._underlying_price = underlying_price
-        self.setData(df)
+
         
     @property
     def has_data(self):
-        if self._price_frame is not None:
-            return self._price_frame.notna().any().any()
+        if self.prices_mid is not None:
+            return (len(self.prices_mid) > 1)
         return False
-        
-
-    def setData(self, new_frame):
-        self._lock.lockForWrite()
-        try:
-            self._price_frame = new_frame
-            if new_frame is not None:
-                if self._price_frame is not None:
-                    self.recalculatePrices()
-        finally:
-            self._lock.unlock()
-            self.change_counter += 1
-            self.frame_updater.emit(Constants.DATA_DID_CHANGE, {'key': '1D_frame'})
-
-    @property
-    def data_x(self):
-        self._lock.lockForRead()
-        try:
-            return self.x_values
-        finally:
-            self._lock.unlock()
-        
-    @property
-    def data_y(self):
-        self._lock.lockForRead()
-        try:
-            return self.prices_mid
-        finally:
-            self._lock.unlock()
-
-
-    @property
-    def data_y_lower(self):
-        self._lock.lockForRead()
-        try:
-            return self.prices_bid
-        finally:
-            self._lock.unlock()
-        
-
     
-    @property
-    def data_y_upper(self):
+    
+    def getLineData(self):
         self._lock.lockForRead()
         try:
-            return self.prices_ask
+            return self.x_values, self.prices_mid, self.prices_bid, self.prices_ask, self.value_names
         finally:
             self._lock.unlock()
     
 
-    def getBidPrices(self):
-        if (Constants.BID in self._price_frame) and not self._price_frame[Constants.BID].isnull().all():
-            return self._price_frame[Constants.BID].values
-        else:
-            if Constants.CLOSE in self._price_frame:
-                return self._price_frame[Constants.CLOSE].values
-            else:
-                return self._price_frame[Constants.ASK].values
-
-
-    def getAskPrices(self):
-        if (Constants.ASK in self._price_frame) and not self._price_frame[Constants.ASK].isnull().all():
-            return self._price_frame[Constants.ASK].values
-        else:
-            if Constants.CLOSE in self._price_frame:
-                return self._price_frame[Constants.CLOSE].values
-            else:
-                return self._price_frame[Constants.BID].values
-   
-
-
-    def getMidPrices(self):
-        return (self.getBidPrices() + self.getAskPrices())/2
+    def setPremium(self, value):
+        self._premium_prices = value
+        self.recalculatePrices()
 
 
     def getUnderlyingPrice(self):
@@ -119,13 +74,13 @@ class ComputableDataFrame(QObject):
         self._underlying_price = new_price
 
 
-    def recalculatePrices(self):
-        # print(f"ComputableDataFrame recalculatePrices {int(QThread.currentThreadId())}")
-        if self._price_frame is not None:
-            ask_prices = self._price_frame[Constants.ASK]
-            bid_prices = self._price_frame[Constants.BID]
+    def applyPostProcessing(self):
+        if self._data_frame is not None:
+            self._data_frame.sort_index(inplace=True)
+            ask_prices = self._data_frame[Constants.ASK]
+            bid_prices = self._data_frame[Constants.BID]
             avg_prices = (ask_prices + bid_prices)/2
-            close_prices = self._price_frame[Constants.CLOSE]
+            close_prices = self._data_frame[Constants.CLOSE]
             
             # Where either bid or ask is NaN, replace the average with the close value
             result = np.where(avg_prices.isna(), close_prices, avg_prices)
@@ -134,53 +89,66 @@ class ComputableDataFrame(QObject):
             self.prices_mid = np.where(np.isnan(result) & close_prices.isna() & (~bid_prices.isna()), bid_prices, result)
             self.prices_ask = ask_prices.values
             self.prices_bid = bid_prices.values
-            self.x_values = self._price_frame.index.values
-
+            self.x_values = self._data_frame.index.values
+            self.value_names = self.getDataNames(self.x_values, self.prices_mid)
 
  
+    def timeForUpdate(self):
+        if self.last_update_time is not None:
+            current_time = int(time.time())
+            return current_time > (self.last_update_time + self.update_delay)
+        else:
+            return True
+
+
 
 class ComputableStrikeFrame(ComputableDataFrame):
     
-    prices_bid = None
-    prices_ask = None
-    prices_mid = None
-    _premium_prices = True
 
+    def resetDataFrame(self):
+        self._data_frame = pd.DataFrame({Constants.BID: pd.Series(dtype='float'), Constants.ASK: pd.Series(dtype='float'), Constants.CLOSE: pd.Series(dtype='float')})
+        
 
-    def setPremium(self, value):
-        self._premium_prices = value
-        self.recalculatePrices()
-
-
-    @property
-    def data_x_names(self):
-        self._lock.lockForRead()
+    def setValueFor(self, strike, tick_type, option_price):
+        time_for_update = self.timeForUpdate()
+        self._lock.lockForWrite()
         try:
-            names_list = [f"[%0.2f,%0.2f]:"%(self.data_x[index], self.prices_mid[index])+"MID" for index in range(len(self.data_x))]
-            return names_list
+            self._data_frame.at[strike, tick_type] = option_price
+            if time_for_update:
+                self.applyPostProcessing()
         finally:
             self._lock.unlock()
+            
+            if time_for_update:
+                self.frame_updater.emit(Constants.DATA_DID_CHANGE, {'key': '1D_frame', 'x_value': strike})
+                self.last_update_time = int(time.time())
+        
+
+    def getDataNames(self, x_values, prices_mid):
+        names_list = [f"[%0.2f,%0.2f]:"%(x_values[index], prices_mid[index])+"MID" for index in range(len(x_values))]
+        return names_list
 
 
 class ComputableExpirationFrame(ComputableDataFrame):
-    
-    prices_mid = None
-    prices_bid = None
-    prices_ask = None
-    
-
-    def setPremium(self, value):
-        self._premium_prices = value
-        self.recalculatePrices()
 
 
-    @property
-    def data_x_names(self):
-        self._lock.lockForRead()
+    def resetDataFrame(self):
+        self._data_frame = pd.DataFrame( {Constants.BID: pd.Series(dtype='float'), Constants.ASK: pd.Series(dtype='float'), Constants.CLOSE: pd.Series(dtype='float'), Constants.NAMES: pd.Series(dtype="string"), Constants.EXPIRATIONS: pd.Series(dtype='datetime64[ns]')})
+
+    def setValueFor(self, days_till_exp, tick_type, option_price, expiration):
+        self._lock.lockForWrite()
         try:
-            if self._price_frame is not None:
-                names_list = [self._price_frame[Constants.NAMES].iloc[index]  + ": %0.2f"%(self.prices_mid[index]) for index in range(len(self.data_x))]
-                return names_list
+            self._data_frame.at[days_till_exp, tick_type] = option_price
+            self._data_frame.at[days_till_exp, Constants.EXPIRATIONS] = expiration
+            self._data_frame.at[days_till_exp, Constants.NAMES] = getExpirationString(expiration)
+            self.applyPostProcessing()
+
         finally:
             self._lock.unlock()
-   
+            self.frame_updater.emit(Constants.DATA_DID_CHANGE, {'key': '1D_frame', 'x_value': days_till_exp})
+                
+
+    def getDataNames(self, x_values, prices_mid):
+        names_list = [self._data_frame[Constants.NAMES].iloc[index]  + ": %0.2f"%(prices_mid[index]) for index in range(len(x_values))]
+        return names_list
+    
