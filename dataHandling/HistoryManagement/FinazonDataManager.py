@@ -147,7 +147,7 @@ class FinazonDataManager(QObject):
 
 
     def run(self):
-        print("We start running")
+        pass
         
 
     @pyqtSlot(dict)
@@ -183,13 +183,10 @@ class FinazonDataManager(QObject):
 
 
     def createWebSocketForTickers(self, tickers):
-        print("FinazonDataManager.createWebSocketForTickers")
-        print(tickers)
         socket_count = min(math.ceil(len(tickers)/self.socket_load),5)
         tickers_per_socket = math.ceil(len(tickers)/socket_count)
         self.ws_managers = []
         self.ws_threads = []
-        print(f"How many socket counts {socket_count}")
         for socket_index in range(socket_count):
             start_index = socket_index*tickers_per_socket
             end_index = (1+socket_index)*tickers_per_socket
@@ -226,14 +223,13 @@ class FinazonDataManager(QObject):
 
     @pyqtSlot(str)
     def groupCurrentRequests(self, for_uid):
-        print(f"groupCurrentRequests {for_uid}")
+        print(f"NOT Implemented {for_uid}")
 
 
     @pyqtSlot(dict, dict, str, bool, bool)
     @pyqtSlot(dict, dict, str, bool, bool, bool)
     def requestUpdates(self, stock_list, begin_dates, bar_type, keep_up_to_date, propagate_updates=False, prioritize_uids=False):
-        print(f"FinazonDataManager.requestUpdates {keep_up_to_date}")
-
+        
         if keep_up_to_date:
             self.realtime_tickers = dict()
             tickers_to_fetch = []
@@ -390,7 +386,6 @@ class FinazonDataManager(QObject):
 
 
     def iterateHistoryRequests(self):
-        print("FinazonDataManager.iterateHistoryRequests")
             #only bars smaller than 5 mins give us outside regular hours data, so we need some of those for supplementing!
         one_min_bars, start_date = self.getOneMinForOutsideHours()
         while len(self.request_buffer) > 0:
@@ -517,6 +512,6 @@ class HistoryRequest():
             return ""
         else:
             datetime_string = dateToString(self.end_date)
-            return datetime_string[:-5] + " US/Eastern" 
+            return datetime_string[:-5] + " " + Constants.NYC_TIMEZONE
 
 

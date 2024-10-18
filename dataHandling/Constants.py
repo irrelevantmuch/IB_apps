@@ -207,7 +207,6 @@ class Constants:
     DAY_HIGH_DIFF: Final = "Day_HIGH_DIFF"          
 
     NYC_TIMEZONE: Final = 'US/Eastern'
-    UTC_TIMEZONE: Final = 'US/Eastern'
 
     DATA_STRUCTURE_CHANGED: Final = "Data structure change"
     DATA_WILL_CHANGE: Final = "Data about to change"

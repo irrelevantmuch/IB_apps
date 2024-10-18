@@ -66,9 +66,9 @@ class MoversProcessor(DataProcessor):
                     "1 Year": subtract_months(12)}
 
 
-    def __init__(self, buffered_manager, bar_types, stock_list, index_list=None):
+    def __init__(self, history_manager, bar_types, stock_list, index_list=None):
         self.data_wrapper = MoversFrame()
-        self.buffered_manager = buffered_manager
+        self.buffered_manager = BufferedDataManager(history_manager)
         super().__init__(stock_list, index_list)
         self.bar_types = bar_types
         
@@ -86,7 +86,6 @@ class MoversProcessor(DataProcessor):
 
 
     def setStockList(self, stock_list):
-        print(f"MoversProcessor.setStockList is running on {int(QThread.currentThreadId())}")
         self.stock_df = None
         self.relative_frame_buffer = dict()
         super().setStockList(stock_list)
@@ -253,13 +252,12 @@ class MoversProcessor(DataProcessor):
 
                     self.data_wrapper.updateValueFor(uid, bar_type + "_InnerCount", inner_bar_specs['count'])
                 except Exception as e:
-                    print(e)
                     print(f"We don't have for the combo {uid} {bar_type}")
+                    print(e)
 
 
     def computeRSIs(self, updated_pairs=None, from_indices=None):
-        # print(f"MoversProcessor.computeRSIs is running on {int(QThread.currentThreadId())}")
-
+        
         if updated_pairs is None:
             updated_pairs = itertools.product(self.stock_df.index.values, self.bar_types)        
 
@@ -277,8 +275,6 @@ class MoversProcessor(DataProcessor):
                 self.data_buffers.setBufferFor(uid, bar_type, rsi_padded_frame)
                 latest_rsi = rsi_padded_frame.iloc[-1]['rsi']
                 self.data_wrapper.updateValueFor(uid, bar_type + "_RSI", latest_rsi)
-        
-            # print(f"\tRSI for {bar_type}: {time.time() - start} seconds")
 
         difference_rsi = self.stock_df.loc[uid, "1 day_RSI"] - (self.stock_df.loc[uid, "5 mins_RSI"] + self.stock_df.loc[uid, "15 mins_RSI"])/2
         self.data_wrapper.updateValueFor(uid, "Difference_RSI", difference_rsi)
@@ -286,7 +282,6 @@ class MoversProcessor(DataProcessor):
 
     def computeRelRSIs(self, updated_pairs=None, from_index=None):
         pass
-        # print("Nope")
         # if updated_pairs is None:
         #     updated_pairs = itertools.product(self.stock_df.index.values, self.bar_types)
     
@@ -372,22 +367,17 @@ class MoversProcessor(DataProcessor):
 
         
     def calculateDayMove(self, updated_list=None):
-        # print("MoversProcessor.calculateDayMove")
         if updated_list is None:
             updated_list = self.stock_df.index.values
         
         for uid in updated_list:
-            # print(f"For: {self._stock_list[uid][Constants.SYMBOL]}")
             if self.data_buffers.bufferExists(uid, Constants.DAY_BAR):
 
                 last_known_price = self.data_wrapper.getValueFor(uid, Constants.PRICE)
                 
                 day_buffer = self.data_buffers.getBufferFor(uid, Constants.DAY_BAR)
-                # print(f"Length {len(day_buffer)}")
                 if len(day_buffer) > 1:
                     last_day_close = day_buffer[Constants.CLOSE].iloc[-2]
-                    # print(day_buffer[Constants.CLOSE].tail())
-                    # print(f"Previous day vs today: {last_day_close}, {last_known_price}")
                     price_move_perc = ((last_known_price-last_day_close)/last_day_close)*100
 
                     self.data_wrapper.updateValueFor(uid, Constants.DAY_MOVE, price_move_perc)

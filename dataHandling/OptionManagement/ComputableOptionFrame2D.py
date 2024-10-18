@@ -111,11 +111,8 @@ class Computable2DDataFrame(QObject):
         
 
     def setValueFor(self, opt_type, index_2D, tick_type, option_price):
-        # types = [tick_type, Constants.DAYS_TILL_EXP, Constants.NAMES]
-        # values = [option_price, getDaysTillExpiration(index_2D[0]), getExpirationString(index_2D[0])]
         self._lock.lockForWrite()
         try:
-            # self._price_frames[opt_type].loc[index_2D, types] = values
             self._price_frames[opt_type].at[index_2D, tick_type] = option_price
             self.recalculateDataIfNeeded()
         finally:
@@ -129,13 +126,11 @@ class Computable2DDataFrame(QObject):
             self.recalculateData()
         elif not(self.update_timer.isActive()):
             remaining_time = max(0, 5 - (time.time() - self.last_update_time))
-            print(f"We schedule an update for {remaining_time} seconds from now")
             print("THREAD ISSUE FROM HERE")
             self.update_timer.start(int(remaining_time * 1000))
 
 
     def recalculateData(self, structural_change=False):
-            print(f"Computable2DDataFrame.recalculateData {int(QThread.currentThreadId())}")
             for option_type in [Constants.CALL, Constants.PUT]:
                 self._unique_expirations[option_type] = self._price_frames[option_type].index.get_level_values('expiration').unique().dropna().sort_values()
                 self._unique_strikes[option_type] = self._price_frames[option_type].index.get_level_values('strike').unique().dropna().sort_values()
@@ -150,7 +145,6 @@ class Computable2DDataFrame(QObject):
 
 
     def calculateDataPoints(self):
-        print(f"Computable2DDataFrame.calculateDataPoints {int(QThread.currentThreadId())}")
         result_frame = self.calculatePricesForCurrentConstruction()
         
         self.data_points = {'expiration_grouped': dict(), 'strike_grouped': dict(), 'price_est': dict()}
@@ -163,7 +157,6 @@ class Computable2DDataFrame(QObject):
 
 
     def calulcateHypotheticalReturns(self, result_frame, for_strikes, for_expirations):
-        print(f"Computable2DDataFrame.calulcateHypotheticalReturns {int(QThread.currentThreadId())}")
         if (self.selected_strike is not None) and (self.selected_cost is not None):
             offsets = self.selected_strike - for_strikes
             offsets = np.linspace(offsets.min(), offsets.max(), 200)
@@ -193,7 +186,6 @@ class Computable2DDataFrame(QObject):
 
 
     def calculateStrikeGrouped(self, result_frame, for_strikes):
-        print("Computable2DDataFrame.calculateStrikeGrouped  {int(QThread.currentThreadId())}")
         strike_gen = (strike for strike in for_strikes if self.withinStrikeRange(strike))
         for strike in strike_gen:
             data_selection = result_frame.xs(strike, level='strike')
@@ -218,7 +210,6 @@ class Computable2DDataFrame(QObject):
 
 
     def calculateExpirationGrouped(self, result_frame, for_strikes, for_expirations):
-        print(f"Computable2DDataFrame.calculateExpirationGrouped {int(QThread.currentThreadId())}")
         x_coords = for_strikes
         y_coords = np.empty((len(for_strikes)))
         y_details = np.empty((len(for_strikes)))
@@ -241,9 +232,6 @@ class Computable2DDataFrame(QObject):
         
 
     def withinExpirationRange(self, expiration):
-        # print(f"Computable2DDataFrame.withinExpirationRange {expiration}")
-        # print(f"Does it lie between {self.minimum_dte} {self.maximum_dte}")
-        # # dte = getDaysTillExpiration(expiration)
         if (self.minimum_dte is not None) and expiration < self.minimum_dte:
             return False
         if (self.maximum_dte is not None) and expiration > self.maximum_dte:
@@ -471,8 +459,6 @@ class Computable2DDataFrame(QObject):
 
 
     def getValuesByExpiration(self, option_type, exp_value, column):
-        print(f"Computable2DDataFrame.getValuesByExpiration {exp_value}")
-        print(self._price_frames[option_type])
         data_selection = self._price_frames[option_type].xs(exp_value, level='expiration')
         data_selection = data_selection.sort_index()
 
@@ -549,28 +535,24 @@ class Computable2DDataFrame(QObject):
 
     @pyqtSlot(float)
     def setMinimumStrike(self, minimum_strike):
-        print(f"Computable2DDataFrame.setMinimumStrike {minimum_strike}")
         self.minimum_strike = minimum_strike
         self.recalculateData(structural_change=True)
 
 
     @pyqtSlot(float)
     def setMaximumStrike(self, maximum_strike):
-        print(f"Computable2DDataFrame.setMaximumStrike {maximum_strike}")
         self.maximum_strike = maximum_strike
         self.recalculateData(structural_change=True)
 
     
     @pyqtSlot(int)
     def setMinimumExpiration(self, minimum_dte):
-        print(f"Computable2DDataFrame.setMinimumExpiration {minimum_dte}")
         self.minimum_dte = minimum_dte
         self.recalculateData(structural_change=True)
 
     
     @pyqtSlot(int)
     def setMaximumExpiration(self, maximum_dte):
-        print(f"Computable2DDataFrame.setMaximumExpiration in days {maximum_dte}")
         self.maximum_dte = maximum_dte
         self.recalculateData(structural_change=True)
 

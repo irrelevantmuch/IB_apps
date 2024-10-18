@@ -45,7 +45,6 @@ class AlertWindow(ProcessorWindow, Alert_UI):
 
     def setupUi(self):
         super().setupUi(self) #TODO this seems wrong....
-        print("So we aint getting here first?")
         self.comp_checkable_lists = CheckableComboBox()
         self.processing_props_layout.layout().addWidget(self.comp_checkable_lists, 0, 2, 1, 1)
 

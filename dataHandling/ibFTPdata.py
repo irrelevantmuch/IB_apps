@@ -19,11 +19,9 @@ import urllib.request as request
 from contextlib import closing
 
 def downloadShortData(folder):
-    print("We attempt to download US short data")
     with closing(request.urlopen('ftp://shortstock: @ftp3.interactivebrokers.com/usa.txt')) as r:
         with open(folder + 'usa.txt', 'wb') as f:
             shutil.copyfileobj(r, f)
-            print("We succeeded")
 
 
 

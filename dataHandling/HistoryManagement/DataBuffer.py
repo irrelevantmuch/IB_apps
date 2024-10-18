@@ -326,7 +326,6 @@ class DataBuffers(QObject):
             self.setBufferFor(uid, bar_type, existing_buffer, req_ranges_list=existing_buffer.attrs['requested_ranges'])
         except Exception as inst:
             pass
-            #print(f"Cannot load {uid} due to: {inst}")
 
 
     def saveBuffer(self, uid, bar_type):

@@ -53,7 +53,6 @@ class MyAppWindow(QMainWindow):
 class ProcessorWindow(MyAppWindow):
 
     def closeEvent(self, *args, **kwargs):
-        print("ProcessorWindow.closeEvent")
         
         self.data_processor.stop()
         self.data_processor.deleteLater()

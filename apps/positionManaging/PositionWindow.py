@@ -32,7 +32,6 @@ from dataHandling.Constants import Constants
 class PositionWindow(MyAppWindow, PositionWindow_UI):
 
     def __init__(self):
-        print("TradingWindow.__init__ What's going on???")
         MyAppWindow.__init__(self)
         PositionWindow_UI.__init__(self)
 
@@ -41,6 +40,5 @@ class PositionWindow(MyAppWindow, PositionWindow_UI):
 
 
     def connectActions(self):
-        print("PositionWindow.connectActions")
         self.cancel_all_button.clicked.connect(self.cancelAllTrades)
     

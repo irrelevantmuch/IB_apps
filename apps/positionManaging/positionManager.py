@@ -43,7 +43,10 @@ class PositionApp(PositionWindow):
         super().__init__()
 
         self.position_manager = position_manager
+        self.pos_id = self.position_manager.registerOwner()
+
         self.order_manager = order_manager
+        self.ord_id = self.order_manager.registerOwner()
 
         self.order_buffer = self.order_manager.getOrderBuffer()
         self.setupOrderTable(self.order_buffer)
@@ -85,8 +88,6 @@ class PositionApp(PositionWindow):
     def connectSignalSlots(self):
         self.cancel_all_signal.connect(self.order_manager.cancelAllOrders, Qt.QueuedConnection)
         self.cancel_order_by_row.connect(self.order_manager.cancelOrderByRow, Qt.QueuedConnection)
-        # self.cancel_stair_by_row.connect(self.order_manager.cancelStairByRow, Qt.QueuedConnection)
-        # self.kill_stair_order.connect(self.order_manager.killStairTrade, Qt.QueuedConnection)
         
 
     # @pyqtSlot(str, dict)
@@ -130,8 +131,6 @@ class PositionApp(PositionWindow):
         price_margin = 0.1
         tab_name = self.tab_widget.tabText(self.tab_widget.currentIndex())
 
-        print(f"TradeMaker.setLevels for {tab_name}")
-
         if tab_name == "General Order":
             if self.action_type == Constants.BUY and high_low == Constants.HIGH:
                 self.profit_limit_field.setValue(price_level)
@@ -166,7 +165,6 @@ class PositionApp(PositionWindow):
 
 
     def fillOutPriceFields(self, button=None, include_profit_loss=False):
-        print("TradeMaker.fillOutPriceFields")
         if button == self.ask_price_button:
             limit_price = self.latest_ask
         elif button == self.bid_price_button:
@@ -193,7 +191,6 @@ class PositionApp(PositionWindow):
 
     @pyqtSlot(QAbstractButton, bool)
     def buySellSelection(self, button, value):
-        print("TradeMaker.buySellSelection")
         if button == self.buy_radio and value:
             self.action_type = Constants.BUY
             self.combo_sell_radio.setChecked(True)
@@ -237,11 +234,9 @@ class PositionApp(PositionWindow):
             self.step_profit_type = 'Price'
 
         self.step_prop_update_signal.emit({'profit_type': self.step_profit_type})
-        print(f"We set it to: {self.step_profit_type}")
         
 
     def stopLimitCheck(self, value):
-        print(f"TradeMaker.stopLimitCheck {value} {Qt.Checked}")
         self.stop_limit_on = (value == Qt.Checked)
         
         if self.stop_limit_on:
@@ -249,7 +244,6 @@ class PositionApp(PositionWindow):
             self.stop_loss_check.setChecked(self.stop_loss_on)
 
     def stoplossCheck(self, value):
-        print("TradeMaker.stoplossCheck")
         self.stop_loss_on = value
 
         # if not self.stop_loss_on:
@@ -292,7 +286,17 @@ class PositionApp(PositionWindow):
     
 
     def closeEvent(self, *args, **kwargs):
-        pass
+        self.order_manager.deregisterOwner(self.ord_id)
+        if self.order_manager.owner_count == 0:
+            self.order_manager.finished.emit()
+        
+
+        self.position_manager.deregisterOwner(self.pos_id)
+        if self.position_manager.owner_count == 0:
+            self.position_manager.finished.emit()
+        
+        super().closeEvent(*args, **kwargs)
+
         
         
 

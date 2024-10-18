@@ -32,11 +32,8 @@ class FinazonBufferedDataManager(BufferedDataManager):
 
     execute_request_signal = pyqtSignal()
 
-        # print("BufferedManager.connectSignalsToSlots finished")
-
 
     def fetchNextStock(self, bar_types=None, full_fetch=False):
-        print("BufferedManager.fetchNextStock")
         if bar_types is None:
             bar_types = MAIN_BAR_TYPES
 
@@ -52,18 +49,15 @@ class FinazonBufferedDataManager(BufferedDataManager):
             if len(self.stocks_to_fetch) > 0:
                 self.fetchNextStock(bar_types=bar_types, full_fetch=full_fetch)
             else:
-                # print("Or here")
                 self.execute_request_signal.emit()
         else:
-            # print("Via here")
             self.group_request_signal.emit('stock_group')
             self.execute_request_signal.emit()
 
 
     @pyqtSlot(str, bool, bool)
     def requestUpdates(self, update_bar=Constants.ONE_MIN_BAR, keep_up_to_date=False, propagate_updates=False, update_list=None, needs_disconnect=False, allow_splitting=True):
-        print(f"BufferedManager.requestUpdates {update_bar} {keep_up_to_date} {propagate_updates}")
-
+        
         if needs_disconnect: self.history_manager.cleanup_done_signal.disconnect()
         
         if update_list is None:
@@ -80,7 +74,6 @@ class FinazonBufferedDataManager(BufferedDataManager):
 
 
     def requestSmallUpdates(self, update_bar, keep_up_to_date, propagate_updates, update_list):
-        print(f"BufferedManager.requestSmallUpdates")
         now_time = datetime.now(timezone(Constants.NYC_TIMEZONE))
         five_min_update_list = dict()
 

@@ -158,9 +158,7 @@ class VisualizationWindow(MyAppWindow, Visualization_UI, SymbolFinderImplementat
 
     def setGUIValues(self, boundaries):
         min_exp, max_exp, min_strike, max_strike = boundaries
-        print('Visualization_UI.setGUIValue')
-        print(boundaries)
-
+        
         self.min_exp = min_exp
         self.max_exp = max_exp
         self.min_strike = min_strike
@@ -200,7 +198,6 @@ class VisualizationWindow(MyAppWindow, Visualization_UI, SymbolFinderImplementat
 
 
     def populateStrikeBoxes(self, strikes):
-        print(f"VisualizationWindow.populateStrikeBoxes {strikes}")
         strike_strings = list(map(str, strikes))
         self.strike_pairs = list(sorted(zip(strikes, strike_strings)))
         sorted_strike_strings = [item[1] for item in self.strike_pairs]

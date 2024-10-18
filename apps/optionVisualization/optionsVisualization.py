@@ -242,11 +242,8 @@ class OptionVisualization(VisualizationWindow):
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
-        print(f"OptionVisualization.apiUpdate {signal}")
         if signal == Constants.OPTION_INFO_LOADED:
-            print(sub_signal['expirations'])
-            print(sub_signal['strikes'])
-
+            
             self.updateOptionGUI(sub_signal['expirations'], sub_signal['strikes'])
             self.fetch_all_button.setEnabled(sub_signal['is_verified'])
             
@@ -304,13 +301,11 @@ class OptionVisualization(VisualizationWindow):
 
 
     def expirationSelectionChange(self, index_value):
-        print(f"OptionVisualization.expirationSelectionChange {index_value}")
         expirations = [item[2] for item in self.expiration_pairs]
         self.req_by_exp_execute.emit(expirations[index_value])
 
 
     def strikeSelectionChange(self, index_value):
-        print(f"OptionVisualization.strikeSelectionChange {index_value}")
         strike_values = [item[0] for item in self.strike_pairs]
         self.req_by_strike_execute.emit(strike_values[index_value])
 

@@ -31,7 +31,7 @@ class PolygonDownloader(QObject):
     ib_eq_bars = {'1 minute': Constants.ONE_MIN_BAR,'2 minute': Constants.TWO_MIN_BAR,'3 minute': Constants.THREE_MIN_BAR,'5 minute': Constants.FIVE_MIN_BAR, '15 minute': Constants.FIFTEEN_MIN_BAR, '1 hour': Constants.HOUR_BAR, '4 hour': Constants.FOUR_HOUR_BAR, '12 hour': Constants.TWELVE_HOUR_BAR, '1 day': Constants.DAY_BAR, '3 day': Constants.THREE_DAY_BAR}
 
     def run(self):
-        print("We start the thread")
+        pass
 
 
     def getTimeRange(self, time_range):
@@ -55,14 +55,12 @@ class PolygonDownloader(QObject):
 
     @pyqtSlot(list, list, tuple)
     def downloadForSymbols(self, symbols, bar_types, time_range):
-        print(f"Polygon.downloadForSymbols {symbols}")
         self.total_count = len(symbols) * len(bar_types)
         self.symbol_count = len(symbols)
 
         data_dict = dict()
         for symbol in symbols:
             data_dict[symbol] = self.downloadForSymbol(symbol, bar_types, time_range)
-        print("Dont we come here?")
         self.api_updater.emit(Constants.POLYGON_REQUESTS_COMPLETED, dict())
 
 
@@ -74,13 +72,10 @@ class PolygonDownloader(QObject):
 
 
     def downloadForSymbol(self, symbol, bar_types, time_range):
-        print("PolygonDownloader.downloadForSymbol")
-        print(f"We attempt to download {symbol} for {bar_types} between {time_range[0]} to {time_range[1]}")
         # Specify the columns you're interested in
         columns = ['o', 'h', 'l', 'c', 'v', 't']
 
         for bar_type in bar_types:
-            print(f"We go for {bar_type}")
             symbol_df = pd.DataFrame(columns=columns)
             counter = 0
 
@@ -90,15 +85,11 @@ class PolygonDownloader(QObject):
             while url:
                 # Make the HTTP request
                 url += '&apiKey=' + api_keys[Constants.POLYGON_SOURCE] + '&limit=50000'
-                print(url)
                 response = requests.get(url)
-                print(f"We get back: {response.status_code}")
                 # Check for successful request
                 if response.status_code == 200:
                     # Parse the JSON response
                     data = response.json()
-                    # print(len(data['results']))
-                    # print(data['results'])
                     if 'results' in data:
                         symbol_df = pd.concat([symbol_df, pd.DataFrame(data['results'], columns=columns)])
                     
@@ -106,7 +97,6 @@ class PolygonDownloader(QObject):
                     url = data.get('next_url')
                     counter += 1
                 else:
-
                     print(f'Request failed with status code {response.status_code}')
                     break
 

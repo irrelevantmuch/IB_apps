@@ -374,7 +374,6 @@ class ComparisonPlotWidget(pg.PlotWidget):
 
 
     def capturePlotAsImage(self):
-        print("ComparisonPlotWidget.capturePlotAsImage")
         # create an exporter instance, as an argument give it
         # the item you wish to export
         exporter = exporters.ImageExporter(self.plotItem)

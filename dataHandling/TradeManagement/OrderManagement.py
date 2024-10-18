@@ -162,18 +162,15 @@ class OpenOrderBuffer(QObject):
 
     @pyqtSlot(int, dict)
     def orderUpdate(self, order_id, detail_object):
-        print(f"OpenOrderBuffer.orderUpdate {order_id} {detail_object}")
         if detail_object['status'] == 'Cancelled':
             self.removeOrder(order_id)
         elif detail_object['status'] == 'Filled' and ('remaining' in detail_object) and (detail_object['remaining'] == 0):
             self.removeOrder(order_id)
         elif 'order' in detail_object and 'contract' in detail_object:
-            print(f"We do set it no?")
             self.setOrder(order_id, detail_object['order'], detail_object['contract'])
 
 
     def removeOrder(self, order_id):
-        # print(f"OpenOrderBuffer.removeOrder {order_id}")
         if order_id in self._orders:
             self.order_buffer_signal.emit(Constants.DATA_WILL_CHANGE, order_id)
 
@@ -197,7 +194,6 @@ class OrderManager(IBConnectivity):
     order_update_signal = pyqtSignal(int, dict)
 
     def __init__(self, *args, name="OrderManager", stair_manager_on=True):
-        print("OrderManager.__init__")
         super().__init__(*args, name=name)        
 
         self.open_orders = OpenOrderBuffer()
@@ -224,7 +220,6 @@ class OrderManager(IBConnectivity):
         
 
     def trackAndBindOpenOrders(self):
-        print(f"IBConnectivity.trackAndBindOpenOrders {self.client_id}")
         self.makeRequest({'type': 'reqOpenOrders'})
         self.makeRequest({'type': 'reqAutoOpenOrders', 'reqAutoOpenOrders': True})
     
@@ -269,14 +264,11 @@ class OrderManager(IBConnectivity):
 
     def getNextOrderIDs(self, count=1):
         next_order_id = self.next_order_ID
-        # print("OrderManager.getNextOrderIDs")
         
-        # print("OrderManager.getNextOrderIDs 1")
         if next_order_id < Constants.BASE_ORDER_REQID:
             next_order_id = Constants.BASE_ORDER_REQID
         order_id_list = [x + next_order_id for x in range(0, count)]
-        # print("OrderManager.getNextOrderIDs 4")
-
+        
         return order_id_list
 
 
@@ -322,7 +314,6 @@ class OrderManager(IBConnectivity):
 
 
     def cancelAllOrders(self):
-        # print("OrderManager.cancelAllOrders")
         self.makeRequest({'type': 'reqGlobalCancel'})
 
 
@@ -331,7 +322,6 @@ class OrderManager(IBConnectivity):
 
     @pyqtSlot(Contract, str, int, float, dict)
     def placeComboOrder(self, contract, action, count, limit_price, exit_dict):
-        print("OrderManager.placeComboOrder")
         
         id_count = 1
         if 'profit_limit' in exit_dict: id_count += 1
@@ -363,9 +353,6 @@ class OrderManager(IBConnectivity):
             new_order_ids.append(stop_id)
         
         order_set[-1].transmit = True
-            
-        print("Which ones are in here?")
-        print([order.orderId for order in order_set])
 
         self.placeBracketOrder(order_set, contract)
 
@@ -431,7 +418,6 @@ class OrderManager(IBConnectivity):
         if self.stair_tracker is not None:
             current_uid = self.stair_tracker.getCurrentKey()
             current_ids = self.stair_tracker.getOrderIdsFor(current_uid)
-            # print(f"OrderManager.killStairTrade {current_ids}")
             if len(current_ids) > 0:
                 for order_id in current_ids:
                     self.makeRequest({'type': 'cancelOrder', 'order_id': order_id})
@@ -439,8 +425,6 @@ class OrderManager(IBConnectivity):
 
     @pyqtSlot(int, dict)
     def orderEdit(self, order_id, properties):
-        # print(f"OrderManager.orderEdit {order_id} {properties}")
-        # print(properties)
         if self.open_orders.isOpenOrder(order_id):
             order, contract = self.open_orders.getOrderContract(order_id)
 
@@ -462,13 +446,11 @@ class OrderManager(IBConnectivity):
 
 
     def orderStatus(self, orderId: int, status: str, filled: float, remaining: float, avgFillPrice: float, permId: int, parentId: int, lastFillPrice: float, clientId: int, whyHeld: str, mktCapPrice: float):
-        print("OrderManager.orderStatus")
         super().orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice) 
         self.order_update_signal.emit(orderId, {'status': status, 'filled': filled, 'remaining': remaining})
         
 
     def openOrder(self, orderId: int, contract: Contract, order: Order, orderState):
-        print("OrderManager.openOrder")
         super().openOrder(orderId, contract, order, orderState)
         self.order_update_signal.emit(orderId, {'order': order, 'contract': contract, 'status': orderState.status})
 
@@ -490,7 +472,6 @@ class StairManager(QObject):
 
 
     def createNewStairstep(self, uid, bar_type, entry_action, contract):
-        print("StairManager.createNewStairstep")
         if self.data_buffers.bufferExists(uid, bar_type):
             
             latest_bars = self.data_buffers.getBarsFromIntIndex(uid, bar_type, -self.step_hist_count)
@@ -536,8 +517,6 @@ class StairManager(QObject):
             self.tracking_updater.emit("Stair Opened", {'uid': uid, 'bar_type': bar_type})
             return self._active_stairsteps[key]
             
-            
-        print("DO WE END UP HERE?")
         return None
             
 
@@ -557,9 +536,9 @@ class StairManager(QObject):
         to_cancel = list(self._active_stairsteps.keys())[row_index]
 
         if self._active_stairsteps[key]['status'] == 'Tracking':
-            print("We cancel everything")
+            print("We need to cancel everything")
         else:
-            print("We stop tracking")
+            print("We should stop tracking")
 
 
     def getCurrentKey(self):
@@ -610,8 +589,6 @@ class StairManager(QObject):
 
 
     def getOrderCount(self, row):
-        print('OrderManager.getOrderCount')
-        print("This should be fixed")
         key, order_type = self.getKeyAndTypeForRow(row)
 
         self._locks[key].lockForRead()
@@ -710,7 +687,6 @@ class StairManager(QObject):
 
 
     def adjustStairTradeIfNeeded(self, key):
-        # print("OrderManager.adjustStairTradeIfNeeded")
         if key in self._active_stairsteps:
 
             self._locks[key].lockForRead()
@@ -730,7 +706,6 @@ class StairManager(QObject):
                     updated_orders.update(self.getUpdatedProfitOrder(key))
 
             for order_id, new_props in updated_orders.items():
-                print(f"So we should be updatingg {order_id} with {new_props}")
                 self.update_order_signal.emit(order_id, new_props)
 
             self._locks[key].unlock()
@@ -831,7 +806,6 @@ class StairManager(QObject):
 
     @lockForRead
     def getProfitProps(self, key):
-        # print("OrderManager.getProfitProps")
         entry_action = self._active_stairsteps[key]['entry_action']
         level = self._active_stairsteps[key]['entry_level']
         stop_level = self._active_stairsteps[key]['stop_level']
@@ -865,7 +839,6 @@ class StairManager(QObject):
     def updateStepProperty(self, key, new_properties, trigger_adjustment=True):
         self._locks[key].lockForRead()
         self._active_stairsteps[key].update(new_properties)
-        print(self._active_stairsteps[key])
         self._locks[key].unlock()
         if trigger_adjustment:
             self.adjustStairTradeIfNeeded(key)
@@ -888,8 +861,7 @@ class StairManager(QObject):
 
     @pyqtSlot(int, dict)
     def orderUpdate(self, order_id, detail_object):
-        print(f"StairManager.orderUpdate {detail_object['status']} {detail_object.keys()}")
-
+        
         status = detail_object['status']
 
         stair_keys = list(self._active_stairsteps.keys())
@@ -908,8 +880,6 @@ class StairManager(QObject):
                     self.tracking_updater.emit("Stair Killed", {'uid': key[0], 'bar_type': key[1]})
 
                 elif 'order' in detail_object:
-                    # print("We have the MAIN order:")
-                    # print(detail_object['order'])
                     self._locks[key].lockForWrite()
                     self._active_stairsteps[key]['entry_trigger'] = detail_object['order'].auxPrice
                     self._active_stairsteps[key]['entry_limit'] = detail_object['order'].lmtPrice
@@ -917,9 +887,6 @@ class StairManager(QObject):
                     self._locks[key].unlock()
             elif ('stop_id' in self._active_stairsteps[key]) and (order_id == self._active_stairsteps[key]['stop_id']):
                 if 'order' in detail_object:
-
-                    # print("We have the STOPLOSS order:")
-                    # print(detail_object['order'])
                     self._locks[key].lockForWrite()
                     self._active_stairsteps[key]['stop_trigger'] = detail_object['order'].auxPrice
                     self._active_stairsteps[key]['stop_limit'] = detail_object['order'].lmtPrice
@@ -927,8 +894,6 @@ class StairManager(QObject):
                     self._locks[key].unlock()
             elif ('profit_id' in self._active_stairsteps[key]) and (order_id == self._active_stairsteps[key]['profit_id']):
                 if 'order' in detail_object:
-                    # print("We have the PROFIT order:")
-                    # print(detail_object['order'])
                     self._locks[key].lockForWrite()
                     self._active_stairsteps[key]['profit_limit'] = detail_object['order'].lmtPrice
                     self._active_stairsteps[key]['profit_count'] = detail_object['order'].totalQuantity

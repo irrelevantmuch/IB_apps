@@ -77,7 +77,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
     @pyqtSlot(DetailObject)
     def requestMarketData(self, contractDetails):
-        print(f"IBConnectivityNew.requestMarketData {contractDetails.symbol}")
         if self._price_req_is_active:
             self.makeRequest({'type': 'cancelMktData', 'req_id': Constants.STK_PRICE_REQID})
 
@@ -111,7 +110,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
         
     @pyqtSlot()
     def startConnection(self):
-        print(f"{self.name}.startConnection")
         self.setConnectionOptions("+PACEAPI")
         def target():
             self.connect(self.local_address, self.trading_socket, self.client_id)
@@ -136,7 +134,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
 
     def deregisterOwner(self, owner_id):
-        print(f"IBConnectivity.deregisterOwner {owner_id}")
         self.stopActiveRequests(owner_id)
         self.owners.remove(owner_id)
 
@@ -156,9 +153,8 @@ class IBConnectivity(EClient, EWrapper, QObject):
             pub.sendMessage('log', message=f"Error: {req_id}, code: {errorCode}, message: {errorString}, req_id: {req_id}")
         
         if errorCode == 200 or errorCode == 162:
-            if self.isOptionRequest(req_id):
-                self.option_error_signal.emit(req_id)
-            elif self.isPriceRequest(req_id):
+            self._active_requests.remove(req_id)
+            if self.isPriceRequest(req_id):
                 pass
                 #What was this for?
                 #self.delegate.mktDataError(req_id)
@@ -170,7 +166,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
         super().connectAck()
         self._connection_status = Constants.CONNECTION_OPEN
         self.api_updater.emit(Constants.CONNECTION_STATUS_CHANGED, {'connection_status': Constants.CONNECTION_OPEN})
-        print(f"IBConnectivity.connectAck {self.name}({self.client_id}) {int(QThread.currentThreadId())}")
  
 
     def connectionClosed(self):
@@ -178,7 +173,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
         self._connection_status = Constants.CONNECTION_CLOSED
         self.api_updater.emit(Constants.CONNECTION_STATUS_CHANGED, {'connection_status': Constants.CONNECTION_CLOSED})
         pub.sendMessage('log', message=f"Connection for {self.name} ({self.client_id}) closed")
-        print(f"####@@@@ ###  WE BE CLOSING, but is the thread still running? {self.thread().isRunning()}")
         
 
     def nextValidId(self, orderId):
@@ -246,7 +240,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
     def processRequest(self, request):
         req_type = request['type']
 
-        message = f"Process {request['req_id']}: {request['type']}"
+        message = f"Process ({request['req_id'] if 'req_id' in request else '-'}): {request['type']}"
 
         if req_type == 'reqHistoricalData':
             message += f"for {request['contract'].symbol} ({request['bar_type']}) for {request['duration']} with end date {request['end_date'] if request['end_date'] else 'now'} and keep up {request['keep_up_to_date']}"
@@ -264,7 +258,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
         elif req_type == 'reqAutoOpenOrders':
             self.reqAutoOpenOrders(request['reqAutoOpenOrders'])
         elif req_type == 'reqAccountSummary':
-            print("IBConnectivity.processRequest")
             self.reqAccountSummary(Constants.ACCOUNT_SUMMARY_REQID, "All", AccountSummaryTags.AccountType)
         elif req_type == 'reqIds':
             self.reqIds(request['num_ids'])
@@ -273,7 +266,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
             self.reqSecDefOptParams(request['req_id'], request['symbol'], "", request['equity_type'], request['numeric_id'])
             self._active_requests.add(request['req_id'])
         elif req_type == 'reqRealTimeBars':
-            print("IBConnectivtyNew.reqRealTimeBars")
             message += f"for {request['contract'].symbol}"
             self.reqRealTimeBars(request['req_id'], request['contract'], 5, "MIDPOINT", False, [])
             self._active_requests.add(request['req_id'])
@@ -287,6 +279,9 @@ class IBConnectivity(EClient, EWrapper, QObject):
         elif request['type'] == 'cancelOrder':
             self.cancelOrder(request['order_id'], "")
         elif req_type == 'reqMktData':
+            message += f" {request['contract'].symbol}"
+            if request['contract'].secType == "OPT":
+                message += f" at strike {request['contract'].strike} with expiration {request['contract'].lastTradeDateOrContractMonth}"
             self.reqMktData(request['req_id'], request['contract'], "", request['snapshot'], request['reg_snapshot'], [])
             self._active_requests.add(request['req_id'])
         elif req_type == 'reqContractDetails':
@@ -346,13 +341,11 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
 
     def stopActiveRequests(self, owner_id):
-        print(f"IBConnectivity.stopActiveRequests {self._price_req_is_active}")
         if self._price_req_is_active:
             self.makeRequest({'type': 'cancelMktData', 'req_id': Constants.STK_PRICE_REQID})
 
 
     def stop(self):
-        print("IBConnectivity.stop()")
         self.api_updater.disconnect()
         self.disconnect()
         if self.tws_thread.is_alive():

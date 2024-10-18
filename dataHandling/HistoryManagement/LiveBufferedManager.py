@@ -68,16 +68,13 @@ class LiveDataManager(QObject):
     ################ STOCK HANDLING
 
     def setStockTracker(self, uid, stock_inf, bar_selection, do_not_remove):
-        print(f"BufferedManager.setStockList is performed on {int(QThread.currentThreadId())}")
 
         to_remove = [uid for uid in self._tracking_stocks if uid not in do_not_remove]
-        print(f"We remove the previous? {to_remove}")
         if len(to_remove) != 0:
             self.removeStockFromList(to_remove)
 
         self.initial_fetch = True
         self._tracking_stocks.update({uid: stock_inf})
-        # self._current_stock = (uid, stock_inf)
         # self.fetchBasebars(uid, stock_inf, primary_bar=bar_selection)
         self.requestTrackingUpdates(uid, stock_inf)
 
@@ -92,7 +89,7 @@ class LiveDataManager(QObject):
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, data_dict):
-        print(f"LiveDataManager.apiUpdate {signal}")
+        pass
         # if signal == Constants.HISTORICAL_GROUP_COMPLETE:
         #     self.requestTrackingUpdates(self._current_stock[0], self._current_stock[1])
 
@@ -101,7 +98,6 @@ class LiveDataManager(QObject):
     ################ CREATING AND TRIGGERING HISTORIC REQUEST
 
     # def fetchBasebars(self, uid, stock_inf, bar_types=QUICK_BAR_TYPES, primary_bar=None):
-    #     print("LiveBufferedManager.fetchBasebars")
     #     details = DetailObject(numeric_id=uid, **stock_inf)
         
     #         #We'll fetch get the smallers one from the updating
@@ -123,7 +119,6 @@ class LiveDataManager(QObject):
 
 
     def requestTrackingUpdates(self, uid, stock_inf, update_bar=Constants.ONE_MIN_BAR, prioritize_uids=True):
-        print("BufferedManager.requestUpdates")
         
         end_date = datetime.now(timezone(Constants.NYC_TIMEZONE))
         begin_date = end_date.replace(hour=4, minute=0, second=0, microsecond=0)
@@ -136,9 +131,7 @@ class LiveDataManager(QObject):
 
     @pyqtSlot()
     def cancelUpdates(self):
-        print("We ask for cancelling")
         if self.history_manager.is_updating:
-            print("We trigger a reset in history_manager")
             self.reset_signal.emit()
 
 

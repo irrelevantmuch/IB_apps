@@ -42,7 +42,6 @@ class SpinBoxDelegate(QStyledItemDelegate):
     
     def setEditorData(self, editor, index):
         value = index.model().data(index, Qt.EditRole)
-        print(f"OrderDataModel.setEditorData {value} {type(value)}")
         editor.setValue(value)
 
 
@@ -115,17 +114,14 @@ class OrderDataModel(QAbstractTableModel):
 
 
     def rowCount(self, parent=QtCore.QModelIndex()):
-        # print(f"OrderDataModel.rowCount {int(QThread.currentThreadId())}")
         return self._order_data.getOrderCount()
 
 
     def columnCount(self, parent=QtCore.QModelIndex()):
-        # print(f"OrderDataModel.columnCount {int(QThread.currentThreadId())}")
         return len(self._header_labels) + 1
 
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
-        # print(f"OrderDataModel.headerData {int(QThread.currentThreadId())}")
         
         if (role == Qt.DisplayRole) and (orientation == Qt.Horizontal):
             if section < len(self._header_labels):

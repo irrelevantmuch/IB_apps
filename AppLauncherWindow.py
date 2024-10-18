@@ -46,7 +46,6 @@ class AppLauncherWindow(QMainWindow, AppLauncher_UI):
 
 
     def setupActions(self):
-        print("setupActions")
             #opening apps
         self.open_movers.clicked.connect(self.openMoversApp)
         self.open_option_pos.clicked.connect(self.openOptionPosApp)

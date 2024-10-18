@@ -16,8 +16,9 @@
 
 from PyQt5.QtCore import QThread, QMetaObject, Qt, pyqtSlot
 from dataHandling.HistoryManagement.HistoricalDataManagement import HistoricalDataManager
-from dataHandling.HistoryManagement.IndicatorProcessor import IndicatorProcessor
 from dataHandling.HistoryManagement.FinazonDataManager import FinazonDataManager
+from dataHandling.HistoryManagement.IndicatorProcessor import IndicatorProcessor
+
 from dataHandling.TradeManagement.OrderManagement import OrderManager
 from dataHandling.TradeManagement.PositionDataManagement import PositionDataManager
 from dataHandling.OptionManagement.OptionChainManager import OptionChainManager
@@ -123,7 +124,6 @@ class ConnectionThreadManager:
 
     @pyqtSlot(str)
     def cleanupWorkerThread(self, identifier):
-        print(f"ConnectionThreadManager.cleanupWorkerThread {identifier} {[self.running_workers.keys()]}")
         worker, thread = self.running_workers.pop(identifier)  # Retrieve and remove thread from dictionary
 
             # we don't want to clean her up if she is still in use
@@ -156,12 +156,10 @@ class ConnectionThreadManager:
             if identifier == 'general_order_manager':
                 self.order_manager = order_manager
 
-        print(f"OrderManager: {self.order_manager}")
         return order_manager
 
 
     def openConnection(self):
-        print("ConnectionThreadManager.openConnection")
         self.local_address = self.address_line.text()
         self.trading_socket = self.socket_line.text()
         app = IBConnectivity(self.local_address, int(self.trading_socket), self.next_id, name="Connectivity.TEST")

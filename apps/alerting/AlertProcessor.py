@@ -32,11 +32,10 @@ class AlertProcessor(QObject):
     step_bar_types = [Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR]
     
     
-    def __init__(self, buffered_manager, indicator_processor):
+    def __init__(self, history_manager, indicator_processor):
         super().__init__()
         
-        print("DataProcessor.init")
-        self.buffered_manager = buffered_manager
+        self.buffered_manager = BufferedDataManager(history_manager)
         self.buffered_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
 
         self.data_buffers = self.buffered_manager.data_buffers
@@ -82,9 +81,6 @@ class AlertProcessor(QObject):
 
     @pyqtSlot(str)
     def updateFrequencyChange(self, freq_type):
-        print("THIS IS ONLY IMPLEMENTED FOR FINAZON!!!!!!")
-        print("THIS IS ONLY IMPLEMENTED FOR FINAZON!!!!!!")
-        print("THIS IS ONLY IMPLEMENTED FOR FINAZON!!!!!!")
         print("THIS IS ONLY IMPLEMENTED FOR FINAZON!!!!!!")
 
 
@@ -231,7 +227,6 @@ class AlertProcessor(QObject):
         
         latest_price = self.data_buffers.getLatestPrice(uid)
         symbol = self.full_stock_list[uid][Constants.SYMBOL]
-        print(f"AlertProcessor.sendAlert {symbol}")
 
         message_props = {'symbol': symbol, 'latest_price': latest_price, 'alert_lines': self.alert_tracker[uid].copy()}
 
@@ -271,7 +266,6 @@ class AlertProcessorFinazon(AlertProcessor):
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
-        print(f"AlertProcessor.apiUpdate {signal}")
         if signal == Constants.ALL_DATA_LOADED:
             if self.initial_fetch:
                 self.buffered_manager.requestUpdates(keep_up_to_date=True, propagate_updates=True)
@@ -283,10 +277,11 @@ class AlertProcessorIB(AlertProcessor):
     rotating = False
     next_index = 0
 
-    def __init__(self, buffered_manager, indicator_processor):
-        super().__init__(buffered_manager, indicator_processor)
+
+    def __init__(self, history_manager, indicator_processor):
+        super().__init__(history_manager, indicator_processor)
         self.separate_stock_lists = list()
-        buffered_manager.history_manager.addNewListener(self, self.apiUpdate)
+        history_manager.addNewListener(self, self.apiUpdate)
     
 
     def updateStockList(self):
@@ -313,7 +308,6 @@ class AlertProcessorIB(AlertProcessor):
     def runRotatingUpdates(self):
             self.rotating = True
             #check voor de lengte van de full_stock_list om te zien of alles in 1 kan.
-            print("AlertProcessor.runRotatingUpdates")
             self.buffered_manager.setStockList(self.separate_stock_lists[self.next_index])
             self.buffered_manager.fetchLatestStockDataWithCancelation()
             self.next_index += 1
@@ -323,7 +317,6 @@ class AlertProcessorIB(AlertProcessor):
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
-        print(f"AlertProcessor.apiUpdate {signal}")
         if signal == Constants.ALL_DATA_LOADED:
             if self.rotating:
                 self.runRotatingUpdates()

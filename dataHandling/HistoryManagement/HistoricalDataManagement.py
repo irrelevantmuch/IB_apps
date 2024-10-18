@@ -102,7 +102,6 @@ class HistoricalDataManager(IBConnectivity):
     def registerOwner(self):
 
         owner_id = super().registerOwner()
-        print(f"HistoricalDataManager.registerOwner {owner_id}")
         self._req_by_owner[owner_id] = set()
         return owner_id
 
@@ -137,14 +136,12 @@ class HistoricalDataManager(IBConnectivity):
     def stopTracking(self, uid):
         relevant_requests = [req_id for req_id, track_uid in self._uid_by_req.items() if track_uid == uid]
         self._cancelling_req_ids.update(relevant_requests)
-        print(f"HistoricalDataManager.stopTracking {relevant_requests}")
         for req_id in relevant_requests:
             if req_id in self._keep_up_requests:
                 self._keep_up_requests.remove(req_id)
             if req_id in self._update_requests:
                 self._update_requests.remove(req_id)
             
-            print(f"We check for {req_id} in {self._all_req_ids}")
             if req_id in self._all_req_ids:
                 self._all_req_ids.remove(req_id)
                 self.makeRequest({'type': 'cancelHistoricalData', 'req_id': req_id})
@@ -153,7 +150,6 @@ class HistoricalDataManager(IBConnectivity):
         
 
     def performCleanupFor(self, uid, relevant_requests):
-        print("HistoricalDataManager.performUidCleanupFor")
         if uid in self._historical_dfs: del self._historical_dfs[uid]
         if uid in self._priority_uids: self._priority_uids.remove(uid)
 
@@ -183,7 +179,6 @@ class HistoricalDataManager(IBConnectivity):
 
 
     def stopActiveTimers(self, owner_id=None):
-        print(f"HistoryManagement.stopActiveTimers {owner_id}")
         if owner_id is not None:
             for req in reversed(self._request_queue):
                 self._request_queue.remove(req)
@@ -576,7 +571,6 @@ class HistoricalDataManager(IBConnectivity):
                 date_time = date_time.tz_localize(instrument_tz)
                 self._historical_dfs[req_id].loc[int(date_time.astimezone(utc).timestamp())] = new_row
             else:
-                # print(f"Ever not ending in zero? {bar_type} {bar.date}")
                 self._historical_dfs[req_id].loc[int(bar.date)] = new_row
 
             if (req_id in self._keep_up_requests) and self._initial_fetch_complete[req_id] and (req_id in self._last_update_time):
@@ -618,7 +612,6 @@ class HistoricalDataManager(IBConnectivity):
                     self.api_updater.emit(Constants.HISTORICAL_UPDATE_COMPLETE, {'completed_uid': uid})
 
             if not (req_id in self._keep_up_requests):
-                print(f"We try to remove {req_id} from the registers {self._uid_by_req}")
                 del self._uid_by_req[req_id]
                 del self._bar_type_by_req[req_id]
                 del self._date_ranges_by_req[req_id]
@@ -633,9 +626,7 @@ class HistoricalDataManager(IBConnectivity):
         completed_req['key'] = self._uid_by_req[req_id]
         completed_req['data'] = self._historical_dfs.pop(req_id)
 
-        if len(completed_req['data']) == 0:
-            print("Are we going through here?")
-            return None
+        if len(completed_req['data']) == 0: return None
         
         first_date_stamp = datetime.fromtimestamp(completed_req['data'].index.min(), tz=utc)
         last_date_stamp = datetime.fromtimestamp(completed_req['data'].index.max(), tz=utc)
@@ -664,7 +655,6 @@ class HistoricalDataManager(IBConnectivity):
     def realtimeBar(self, reqId: int, time:int, open_: float, high: float, low: float, close: float, volume: float, wap: float, count: int):
         super().realtimeBar(reqId, time, open_, high, low, close, volume, wap, count)
         date_time = datetime.fromtimestamp(time)
-        print("RealTimeBar. TickerId:", reqId, date_time, -1, open_, high, low, close, volume, wap, count)
 
     
     def error(self, req_id, errorCode, errorString, advancedOrderRejectJson=None):

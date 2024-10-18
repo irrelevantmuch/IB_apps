@@ -30,7 +30,6 @@ class DataProcessor(QObject):
 
     def __init__(self, stock_list=None, index_list=None):
         super().__init__()
-        print("DataProcessor.init")
         self.data_buffers = self.buffered_manager.data_buffers
         self.data_buffers.buffer_updater.connect(self.bufferUpdate, Qt.QueuedConnection)
         self.initial_stock_list = stock_list
@@ -44,7 +43,6 @@ class DataProcessor(QObject):
 
     @pyqtSlot()
     def run(self):
-        print(f"Dataprocessor is running on {int(QThread.currentThreadId())}")
         if self.initial_index_list is not None:
             self._index_list = self.initial_index_list
 

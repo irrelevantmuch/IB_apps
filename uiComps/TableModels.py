@@ -59,7 +59,6 @@ class PandasDataModel(QAbstractTableModel):
 
 
     def onVerticalHeaderClicked(self, section_index):
-        print(f"TableModels.onVerticalHeaderClicked {section_index}")
         self.layoutAboutToBeChanged.emit() 
         self._table_data.sortValuesForColumn(Constants.SYMBOL)
         
@@ -115,7 +114,6 @@ class PandasDataModel(QAbstractTableModel):
             if 'column_name' in sub_signal:
                 column_index = self.getMappingIndex(sub_signal['column_name'])
                 if column_index is not None:
-                    #print(f"TableModels.tableDataUpdate {id(self)} we update {sub_signal['column_name']}, {sub_signal['row_index']}")
                     index = self.index(sub_signal['row_index'], column_index)
                     success = self.setData(index, sub_signal['new_value']) #, Qt.EditRole
                     self.changed_list.add(index)

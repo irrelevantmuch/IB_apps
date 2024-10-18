@@ -99,8 +99,6 @@ class ListManagerWindow(MyAppWindow, ListEditor_UI, SymbolFinderImplementation):
     
 
     def deleteClicked(self, numeric_id):
-        print(f"ListManagerWindow.deleteClicked {numeric_id} {type(numeric_id)}")
-        print(self.stock_list[numeric_id])
         del self.stock_list[numeric_id]
         row_index = findRowForValue(self.stock_table, str(numeric_id), 0)
         self.stock_table.removeRow(row_index)

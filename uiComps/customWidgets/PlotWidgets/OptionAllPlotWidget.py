@@ -68,7 +68,6 @@ class OptionAllPlotWidget(pg.PlotWidget):
 
     
     def initialPlot(self):
-        print("OptionAllPlotWidget.initialPlot")
         self.clear()
         self.plotItem.legend.setColumnCount(7)
         self.plotItem.legend.setOffset((30,5))
@@ -82,11 +81,9 @@ class OptionAllPlotWidget(pg.PlotWidget):
         self.curve_hooks = dict()
 
         if self.option_frame.has_data:
-            print("\t Goes in level 1")
             self.curve_data = self.option_frame.getLinesFor(self.plot_type)
 
             if self.curve_data is not None:
-                print("\t Goes in level 2")
                 
                 self.curve_data = self.filterCurves(self.curve_data)
                 
@@ -119,10 +116,8 @@ class OptionAllPlotWidget(pg.PlotWidget):
             self.updatePlot()
 
     def updatePlot(self):
-        print("OptionAllPlotWidget.updatePlot")
         if self.option_frame.has_data:
             self.curve_data = self.option_frame.getLinesFor(self.plot_type)
-            print([self.curve_data.keys()])
             if self.curve_data is not None:
                 
                 self.curve_data = self.filterCurves(self.curve_data)
@@ -211,7 +206,6 @@ class OptionAllPlotWidget(pg.PlotWidget):
         
 
     def setDataObject(self, option_frame):
-        print(f"OptionAllPlotWidget.setDataObject {option_frame}")
         self.clear()
         self.curve_data = dict()
         self.curve_hooks = dict()

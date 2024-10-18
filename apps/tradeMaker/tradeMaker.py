@@ -210,12 +210,10 @@ class TradeMaker(TradingWindow):
 
     @pyqtSlot(str, dict)
     def dataUpdate(self, signal, sub_signal):
-        print(f"TradeMaker.dataUpdate {signal}")
         if (self.selected_key == sub_signal['uid']) and (self.selected_bar_type in sub_signal['bars']):
             if signal == Constants.HISTORICAL_DATA_READY:
                 if self.data_buffers.bufferExists(self.selected_key, self.selected_bar_type):
                     bars = self.data_buffers.getBufferFor(self.selected_key, self.selected_bar_type)
-                    print(self.stock_list)
                     self.trade_plot.setTimezone(self.stock_inf['time_zone'])
                     self.trade_plot.setHistoricalData(bars.iloc[:-1])
                     self.trade_plot.addNewBars(bars.iloc[[-1]], bars.index[-1])
@@ -262,7 +260,6 @@ class TradeMaker(TradingWindow):
 
 
     def tickerSelection(self, value):
-        print("TradeMaker.tickerSelection do we get here early?")
         ordered_keys = list(self.stock_list.keys())
         self.selected_key = ordered_keys[value]
         self.stock_inf = self.stock_list[self.selected_key]
@@ -276,7 +273,6 @@ class TradeMaker(TradingWindow):
 
     @pyqtSlot(str, dict)
     def trackingUpdate(self, signal, sub_signal):
-        print(f"TradeMaker.trackingUpdate {signal} {sub_signal}")
         if signal == "Stair Opened":
             self.active_keys.add((sub_signal['uid'], sub_signal['bar_type']))
         elif signal == "Stair Killed":
@@ -345,7 +341,6 @@ class TradeMaker(TradingWindow):
 
     @pyqtSlot(bool)
     def makeMarket(self, checked):
-        print(f"TradeMaker.makeMarket {checked}")
         self.market_ordering = checked
 
 
@@ -421,8 +416,6 @@ class TradeMaker(TradingWindow):
         price_margin = 0.1
         tab_name = self.tab_widget.tabText(self.tab_widget.currentIndex())
 
-        print(f"TradeMaker.setLevels for {tab_name}")
-
         if tab_name == "General Order":
             if self.action_type == Constants.BUY and high_low == Constants.HIGH:
                 self.profit_limit_field.setValue(price_level)
@@ -457,7 +450,6 @@ class TradeMaker(TradingWindow):
 
 
     def fillOutPriceFields(self, button=None, include_profit_loss=False):
-        print("TradeMaker.fillOutPriceFields")
         if button == self.ask_price_button:
             limit_price = self.latest_ask
         elif button == self.bid_price_button:
@@ -484,7 +476,6 @@ class TradeMaker(TradingWindow):
 
     @pyqtSlot(QAbstractButton, bool)
     def buySellSelection(self, button, value):
-        print("TradeMaker.buySellSelection")
         if button == self.buy_radio and value:
             self.action_type = Constants.BUY
             self.combo_sell_radio.setChecked(True)
@@ -530,11 +521,9 @@ class TradeMaker(TradingWindow):
             self.step_profit_type = 'Price'
 
         self.step_prop_update_signal.emit({'profit_type': self.step_profit_type})
-        print(f"We set it to: {self.step_profit_type}")
         
 
     def stopLimitCheck(self, value):
-        print(f"TradeMaker.stopLimitCheck {value} {Qt.Checked}")
         self.stop_limit_on = (value == Qt.Checked)
         
         if self.stop_limit_on:
@@ -542,7 +531,6 @@ class TradeMaker(TradingWindow):
             self.stop_loss_check.setChecked(self.stop_loss_on)
 
     def stoplossCheck(self, value):
-        print("TradeMaker.stoplossCheck")
         self.stop_loss_on = value
 
         # if not self.stop_loss_on:

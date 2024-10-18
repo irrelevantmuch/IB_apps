@@ -55,6 +55,5 @@ class DataDownloaderWindow(MyAppWindow, DataDownloader_UI, SymbolFinderImplement
         self.bar_combobox.setCurrentIndex(self.bar_combobox.count()-1)
     
     def dataUpdateAPI(self, signal, sub_signal):
-        print(f"DataDownloaderWindow.dataUpdateAPI: {signal}")
         self.contractUpdate(signal)
 

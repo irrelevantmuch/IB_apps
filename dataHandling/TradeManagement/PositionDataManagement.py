@@ -15,8 +15,6 @@
 
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QReadWriteLock, QAbstractTableModel, QSize, QObject
 from PyQt5 import QtCore
-# from math import isnan
-# from PyQt5.QtGui import QBrush, QColor
 from ibapi.contract import Contract
 
 from dataHandling.Constants import Constants
@@ -24,8 +22,6 @@ from dataHandling.IBConnectivity import IBConnectivity
 
 import numpy as np
 import pandas as pd
-
-# from dataHandling.DataManagement import DataManager
 
 
 class PositionDataManager(IBConnectivity):
@@ -47,28 +43,22 @@ class PositionDataManager(IBConnectivity):
         self.makeRequest({'type': 'reqAccountSummary'})
 
 
-
     def getDataObject(self):
         return self.data_object
 
 
     def accountSummary(self, req_id: int, account: str, tag: str, value: str, currency: str):
-        print("IBConnectivity.AccountSummary")
         super().accountSummary(req_id, account, tag, value, currency)
-        # print("AccountSummary. ReqId:", req_id, "Account:", account, "Tag: ", tag, "Value:", value, "Currency:", currency)
         self.accountUpdate('another_constnats', {'account': account, 'req_id': req_id})
         
 
     def updateAccountValue(self, key: str, val: str, currency: str, accountName: str):  
         super().updateAccountValue(key, val, currency, accountName)
-        print("UpdateAccountValue. Key:", key, "Value:", val, "Currency:", currency, "AccountName:", accountName)
         self.accountUpdate('some_constants', {'key': key, 'val': val, 'accountName': accountName})
 
 
     def updatePortfolio(self, contract: Contract, position, marketPrice, marketValue, averageCost, unrealizedPNL, realizedPNL, accountName):
         super().updatePortfolio(contract, position, marketPrice, marketValue, averageCost, unrealizedPNL, realizedPNL, accountName)
-        print(f"IBConnectivity.updatePortfolio {accountName} {contract.symbol} {position} {averageCost} {marketValue} {unrealizedPNL} {realizedPNL}")
-        print(contract)
         self.accountUpdate('whats_this', {'contract': contract, 'position': position, 'account_name': accountName, 'unrealized_pnl': unrealizedPNL, 'market_price': marketPrice})
         
 
@@ -78,12 +68,10 @@ class PositionDataManager(IBConnectivity):
         
 
     def accountUpdate(self, signal, sub_signal):
-        print(f"PositionDataManager.accountUpdate {signal} {sub_signal}")
         self.account_updater.emit(signal, sub_signal)
         if signal == 'another_constnats':
             self.account_number = sub_signal['account']
             if self.needs_position_fetch:
-                # print("Only once")
                 self.makeRequest({'type': 'reqAccountUpdates', 'subscribe': True, 'account_number': self.account_number})
                 self.needs_position_fetch = False
 
@@ -137,13 +125,9 @@ class PositionObject(QObject):
 
     @pyqtSlot(str, dict)
     def accountUpdate(self, signal, sub_signal):
-        print(f"PositionObject.accountUpdate {signal} {self}")
-        
         if signal == 'another_constnats':
             pass
-            # print(f"PositionObject.accountUpdate {signal} {sub_signal}")
         elif signal == "whats_this":
-            # print(sub_signal)
             self.updatePositions(sub_signal)
         elif signal == 'anotheranother':
             self.account_downloading_complete = True

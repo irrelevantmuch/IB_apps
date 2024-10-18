@@ -37,14 +37,6 @@ class SymbolManager(IBConnectivity):
 
     def contractDetails(self, req_id, contract_details):
         contract = contract_details.contract
-        # print("SymbolManager.contractDetails")
-        # print(contract_details.tradingHours)
-        # print(contract_details.liquidHours)
-        # print(contract_details.lastTradeTime)
-        # print(type(contract_details.tradingHours))
-        # print(type(contract_details.liquidHours))
-        # print(type(contract_details.lastTradeTime))
-        # print(contract_details.contract)
 
         if contract.primaryExchange == "":
             exchange = contract.exchange

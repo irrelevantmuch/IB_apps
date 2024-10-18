@@ -39,7 +39,6 @@ class StrikeLineObject:
     def strikeLineDragging(self, evt):
         pos = evt[0].value()  
         index = findNearest(self.plotItem.data_frame.data_x, pos)    
-        print('Position ', str(pos), ', ', str(index))
         self.strike_line.setPos(self.plotItem.data_frame.data_x[index])
         self.delegate.selected_strike = self.plotItem.data_frame.data_x[index]
 
@@ -48,8 +47,6 @@ class StrikeLineObject:
         pos = evt[0].value()
         index = findNearest(self.plotItem.data_frame.data_x, pos)    
         self.strike_line.setPos(self.plotItem.data_frame.data_x[index])
-        print('Position ', str(pos), ', ', str(index))
-        print(f"Who be my delegate {self.delegate}")
         self.delegate.selected_strike = self.plotItem.data_frame.data_x[index]
         self.delegate.updateStrikeSelection(self.delegate.selected_strike)
 

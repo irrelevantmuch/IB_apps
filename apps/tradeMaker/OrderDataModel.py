@@ -42,7 +42,6 @@ class SpinBoxDelegate(QStyledItemDelegate):
     
     def setEditorData(self, editor, index):
         value = index.model().data(index, Qt.EditRole)
-        # print(f"OrderDataModel.setEditorData {value} {type(value)}")
         editor.setValue(value)
 
 

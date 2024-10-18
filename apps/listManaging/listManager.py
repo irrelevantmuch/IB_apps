@@ -41,12 +41,12 @@ class ListManager(ListManagerWindow):
     
     option_chain_requests = []
 
-    def __init__(self, symbol_manager, buffered_manager, option_manager):
+    def __init__(self, symbol_manager, history_manager, option_manager):
         super().__init__()
 
         self.loadData()
         self.symbol_manager = symbol_manager
-        self.buffered_manager = buffered_manager
+        self.buffered_manager = BufferedDataManager(history_manager)
         self.option_manager = option_manager
 
 
@@ -119,8 +119,7 @@ class ListManager(ListManagerWindow):
     def fetchNextOptionChain(self):
 
         if len(self.option_chain_requests) > 0:
-            print("ListManager.fetchNextOptionChain")
-
+            
             process_progress = (self.total_chain_requests-len(self.option_chain_requests))/self.total_chain_requests
             next_uid = self.option_chain_requests.pop()
 
@@ -129,17 +128,13 @@ class ListManager(ListManagerWindow):
             stock_inf = self.stock_list[next_uid]
             contract_details = DetailObject(numeric_id=next_uid, **stock_inf)
 
-            print(next_uid)
-            
             self.fetch_stock_contracts.emit(contract_details, False)
         else:
             self.dialog.setOverallProgress(1.0, "All chains completed")            
 
 
     def fillOutTable(self):
-        print(self.stock_list)
         for index, (key, details) in enumerate(self.stock_list.items()):
-            print(f"{index}, {key}, {details}")
             self.addRowAt(index, key, details) 
 
 
@@ -158,12 +153,10 @@ class ListManager(ListManagerWindow):
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
-        print(f"ListManager.apiUpdate {signal}")
-
+        
         if signal == Constants.OPTION_INFO_LOADED:
             self.fetchNextOptionChain()
         elif signal == Constants.PROGRESS_UPDATE:
-            print(f"Progress update: {(sub_signal['total_requests']-sub_signal['open_requests'])/sub_signal['total_requests']}") 
             self.dialog.setProcessProgress((sub_signal['total_requests']-sub_signal['open_requests'])/sub_signal['total_requests'])
 
 
@@ -180,14 +173,6 @@ class ListManager(ListManagerWindow):
         elif value == self.warrant_rb:
             self.symbol_manager.setSelectedSectype(Constants.WARRANT)
 
-
-    # def closeEvent(self, *args, **kwargs):
-    #     print("ProcessorWindow.closeEvent")
-    #     super().closeEvent(*args, **kwargs)
-    #     self.data_processor.stop()
-    #     self.data_processor.deleteLater()
-    #     self.processor_thread.quit()
-    #     self.processor_thread.wait()
         
 
         #TODO this should be in super

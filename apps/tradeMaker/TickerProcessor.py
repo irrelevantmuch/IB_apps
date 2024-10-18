@@ -49,7 +49,7 @@ class LiveTickerProcessor(QObject):
 
     @pyqtSlot()
     def run(self):
-        print("LiveTickerProcessor.run")
+        pass
         
 
     def stop(self):
@@ -70,7 +70,6 @@ class LiveTickerProcessor(QObject):
 
     @pyqtSlot(str)
     def setBarType(self, bar_type):
-        print(f"We change the bar_type to: {bar_type}")
         self.selected_bar_type = bar_type
         
         if self.ticker_inf is not None:

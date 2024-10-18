@@ -47,7 +47,6 @@ class OptionTabWidget(QWidget):
 
 
     def setupUi(self):
-        print("OptionsTab.setupUI")
         new_form = OptionsTab() 
         new_form.setupUi(self)
         self.options_table = new_form.options_table
@@ -55,7 +54,6 @@ class OptionTabWidget(QWidget):
 
 
     def setModelData(self, data_object, selection_type, parameter='general'):
-        print("OptionsTabWidget.setModelData")
         self.data_model = PositionDataModel(data_object, selection_type, parameter)
         self.options_table.setModel(self.data_model)
 

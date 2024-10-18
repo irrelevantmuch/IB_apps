@@ -48,10 +48,8 @@ class DataDownloader(DataDownloaderWindow):
 
     def fetchHistoricalData(self):
         start_date = self.start_date_widget.selectedDate().toPyDate()
-        print(f"#####Date type is {type(start_date)}")
         end_date = self.end_date_widget.selectedDate().toPyDate()
 
-        print(type(start_date))
         if self.current_contract is not None:
             self.history_manager.fetchBarsForSpecs(self.current_contract, start_date, end_date, self.bar_combobox.currentText())
 
@@ -64,7 +62,6 @@ class DataDownloader(DataDownloaderWindow):
 
 
     def saveData(self, separately=False):
-        print("We save the completed frame")
         self.history_manager.historicalDF.sort_index(inplace=True)
         file_name = './data/downloads/' + self.current_contract.symbol + '_daily.csv'
         self.history_manager.historicalDF.to_csv(file_name)

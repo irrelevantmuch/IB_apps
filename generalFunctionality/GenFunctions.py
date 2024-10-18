@@ -140,7 +140,6 @@ def smallerThan(value_1, value_2): return value_1 < value_2
 
 
 def addEMAColumns(stock_frame, for_periods=[12, 26], from_index=None):
-    print(f"genFunctions.addEMAColumns {len(stock_frame)}")
     column_names, ema_columns = getEMAColumns(stock_frame, for_periods, from_index)
     stock_frame[column_names] = np.column_stack(ema_columns)
     return stock_frame
@@ -242,7 +241,7 @@ def getStartRecalcIndex(stock_frame, from_index):
             from_int_index = stock_frame.index.get_loc(from_index)
             indexer = min(indexer, from_int_index)
         except KeyError:
-            print(f"We have a problem finding {from_index}")
+            print(f"FROM INDEX not found {from_index}")
       
         
         #finally we want to make sure there are no NaNs that may need recomputing
@@ -358,9 +357,6 @@ def getDaysTillExpiration(expiration_date):
 
 
 def calculateCorrelation(frame_1, frame_2):
-    # lin_reg = linregress(frame_1, frame_2)
-    # print(lin_reg.slope)
-    # print(lin_reg.rvalue)
     r = np.corrcoef(np.vstack((frame_1, frame_2)))
 
     return r[1,0]

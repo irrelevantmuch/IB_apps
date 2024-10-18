@@ -25,8 +25,10 @@
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot
-from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
-from dataHandling.HistoryManagement.FinazonBufferedManager import FinazonBufferedDataManager 
+# from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
+# from dataHandling.HistoryManagement.FinazonBufferedManager import FinazonBufferedDataManager 
+from dataHandling.HistoryManagement.HistoricalDataManagement import HistoricalDataManager
+from dataHandling.HistoryManagement.FinazonDataManager import FinazonDataManager
 from .AlertWindow import AlertWindow
 
 from .AlertProcessor import AlertProcessorFinazon, AlertProcessorIB
@@ -48,23 +50,25 @@ class AlertManager(AlertWindow):
     last_update_id = 0
     
 
-    def __init__(self, buffered_manager, indicator_processor, processor_thread):
+    def __init__(self, history_manager, indicator_processor, processor_thread):
         super().__init__()
 
         self.loadLists()
         file_name, _ = self.stock_lists[0]
-        self.prepAlertProcessor(buffered_manager, indicator_processor, processor_thread)
+        self.prepAlertProcessor(history_manager, indicator_processor, processor_thread)
 
+        self.providerSpecificUiSettings(history_manager)
         self.setDefaultThresholds()
-        self.providerSpecificUiSettings(buffered_manager)
+
+        
 
 
-    def providerSpecificUiSettings(self, buffered_manager):
+    def providerSpecificUiSettings(self, history_manager):
 
-        if isinstance(buffered_manager, FinazonBufferedDataManager):
+        if isinstance(history_manager, FinazonDataManager):
             self.update_frequency_box.addItems(self.finazon_frequency_choices)
             self.update_frequency_box.setCurrentIndex(self.finazon_frequency_choices.index('1m'))
-        elif isinstance(buffered_manager, BufferedDataManager):
+        elif isinstance(history_manager, HistoricalDataManager):
             self.update_frequency_box.addItems(self.ibkr_frequency_choices)
             self.update_frequency_box.setCurrentIndex(self.ibkr_frequency_choices.index('30s'))
     
@@ -87,15 +91,12 @@ class AlertManager(AlertWindow):
         self.data_processor.telegram_signal = telegram_signal
 
 
-    def prepAlertProcessor(self, buffered_manager, indicator_processor, processor_thread):
-        if isinstance(buffered_manager, FinazonBufferedDataManager):
-            self.data_processor = AlertProcessorFinazon(buffered_manager, indicator_processor)
-        elif isinstance(buffered_manager, BufferedDataManager):
-            self.data_processor = AlertProcessorIB(buffered_manager, indicator_processor)
+    def prepAlertProcessor(self, history_manager, indicator_processor, processor_thread):
+        self.data_processor = AlertProcessorIB(history_manager, indicator_processor)
         self.processor_thread = processor_thread
         self.data_processor.moveToThread(self.processor_thread)
         
-        buffered_manager.history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
+        history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         self.update_signal.connect(self.data_processor.runUpdates, Qt.QueuedConnection)
         self.list_addition_signal.connect(self.data_processor.addStockList, Qt.QueuedConnection)
         self.list_removal_signal.connect(self.data_processor.removeStockList, Qt.QueuedConnection)
@@ -103,7 +104,7 @@ class AlertManager(AlertWindow):
         self.data_processor.stock_count_signal.connect(self.stockCountUpdated, Qt.QueuedConnection)
         self.selection_signal_change.connect(self.data_processor.selectionSignalChange, Qt.QueuedConnection)
         self.threshold_signal_change.connect(self.data_processor.thresholdChangeSignal, Qt.QueuedConnection)
-        self.update_frequency_signal.connect(buffered_manager.history_manager.setFrequency, Qt.QueuedConnection)
+        self.update_frequency_signal.connect(history_manager.setFrequency, Qt.QueuedConnection)
 
         self.processor_thread.started.connect(self.data_processor.run)
         self.processor_thread.start()
@@ -214,7 +215,6 @@ class AlertManager(AlertWindow):
     def apiUpdate(self, signal, sub_signal):
         pass
         #super().apiUpdate(signal, sub_signal)
-        # print(f"AlertManager.apiUpdate {signal}")
         # if signal == Constants.HISTORICAL_UPDATE_COMPLETE or signal == Constants.HISTORICAL_REQUESTS_COMPLETED:
         #     if self.rotating:
         #         self.fetchNextList()

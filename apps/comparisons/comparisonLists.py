@@ -59,11 +59,11 @@ class ComparisonList(ComparisonWindow):
     data_processor = None
     tops_and_bottoms = True
 
-    def __init__(self, buffered_manager, processor_thread):
+    def __init__(self, history_manager, processor_thread):
         super().__init__(self.bar_types)
 
         self.listSetup()    
-        self.setupProcessor(buffered_manager, processor_thread)
+        self.setupProcessor(history_manager, processor_thread)
         self.fillTickerLists()
         self.resetProcessor()
         sys.setrecursionlimit(20_000)
@@ -74,14 +74,12 @@ class ComparisonList(ComparisonWindow):
         file_name, _ = self.stock_lists[0]
         self.stock_list = readStockList(file_name)
         self.setPlotTimezone()
-        # self.comparison_list = readStockList(file_name)
         self.check_list = self.generateCheckList(self.stock_list)
         self.focus_list = self.check_list.copy()
-        # self.comp_list = self.generateCheckList(self.comparison_list) 
 
 
-    def setupProcessor(self, buffered_manager, processor_thread):
-        self.data_processor = ComparisonProcessor(buffered_manager, MAIN_BAR_TYPES, self.stock_list)
+    def setupProcessor(self, history_manager, processor_thread):
+        self.data_processor = ComparisonProcessor(history_manager, MAIN_BAR_TYPES, self.stock_list)
         self.data_container = self.data_processor.getDataObject()
         self.compare_plot.setDataObject(self.data_container)
         # self.focus_plot.setDataObject(self.data_container)
@@ -109,7 +107,6 @@ class ComparisonList(ComparisonWindow):
         
 
     def fillTickerLists(self):
-        # print("ComparisonList.fillTickerLists")
         addCheckableTickersTo(self.visible_ticker_box, self.stock_list, self.check_list)
         
         filtered_list = {uid: value for (uid, value) in self.stock_list.items() if self.check_list[uid]}
@@ -122,11 +119,9 @@ class ComparisonList(ComparisonWindow):
 
 
     def resetProcessor(self):
-        # print("ComparisonList.resetProcessor")
         self.initDataModels()
         self.prepCurrentTable()
         self.updateDataModels()
-        #self.data_processor.updateFrameForHistory(selected_tab=self.tab_widget.currentIndex(), initial_list_load=True) #self.time_period
         self.signalCurrentTable()
 
 
@@ -141,15 +136,13 @@ class ComparisonList(ComparisonWindow):
 
     @pyqtSlot(str, dict)
     def bufferUpdate(self, signal, sub_signal):
-        if signal == Constants.SELECTED_KEYS_CHANGED:
-            print("ComparisonList.bufferUpdate SELECTED_KEYS_CHANGED")
+        pass
 
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
-        print(f"ComparisonList.apiUpdate {signal} {sub_signal}")
         if signal == Constants.SELECTED_KEYS_CHANGED:
-            print("ComparisonList.apiUpdate SELECTED_KEYS_CHANGED")
+            pass
         elif ((signal == Constants.HISTORICAL_GROUP_COMPLETE) and (sub_signal['type'] == 'range_group')) or (signal == Constants.ALL_DATA_LOADED):
             self.setHistoryEnabled(True)
         elif signal == Constants.DATA_LOADED_FROM_FILE:
@@ -171,8 +164,7 @@ class ComparisonList(ComparisonWindow):
 
 
     def comparisonListSelection(self, value):
-        print(f"ComparisonList.comparisonListSelection {value}")
-        print("DOES NOTHING")
+        pass
         # self.loadNewComparisonList(value)        
         # self.resetCorrelationTable()
         # addCheckableTickersTo(self.comp_ticker_box, self.comparison_list, self.comp_list)
@@ -212,7 +204,6 @@ class ComparisonList(ComparisonWindow):
         self.compare_plot.setTimezone(first_stock['time_zone'])
 
     def listSelection(self, value):
-        print(f"ComparisonList.listSelection {value}")
         file_name, _ = self.stock_lists[value]
         self.stock_list = readStockList(file_name)
         self.setPlotTimezone()
@@ -293,10 +284,8 @@ class ComparisonList(ComparisonWindow):
 
     
     def changeBarType(self, new_index):
-        print("ComparisonList.changeBarType")
         self.selected_bar_type = self.bar_types[new_index]
         self.update_property_signal.emit({"bar_change_type": self.selected_bar_type})
-        print(self.bar_types)
         if self.bar_types[new_index] == Constants.DAY_BAR:
             self.plot_period_selector.setCurrentText('Max')
 
@@ -357,7 +346,6 @@ class ComparisonList(ComparisonWindow):
         if value:
             self.update_stock_list_signal.emit(self.selected_bar_type, True, True)
         else:
-            print("WE CALL FOR CANCELATION comp")
             self.cancel_update_signal.emit()
 
 
@@ -393,8 +381,7 @@ class ComparisonList(ComparisonWindow):
             symbol, uid = self.rsi_model.getStockFor(item.row())
             
             bar_type = self.bar_types[item.column()-2]
-            #bars = self.buffered_manager.existing_buffers[uid, bar_type]
-            bars = self.data_processor.getBarData(uid, bar_type) #buffered_manager.existing_buffers[uid, bar_type]
+            bars = self.data_processor.getBarData(uid, bar_type)
             
             dialog = QuickChart(symbol, bar_type, bars)
             dialog.exec()
@@ -402,7 +389,6 @@ class ComparisonList(ComparisonWindow):
 
     @pyqtSlot(str, dict)
     def processTelegram(self, command, params):
-        print("ComparisonList.processTelegram")
         if command.lower() == "plotComp".lower():
             if "l" in params:
                 for index, (file, name) in enumerate(self.stock_lists):
@@ -415,7 +401,6 @@ class ComparisonList(ComparisonWindow):
 
 
     def getAvailabeCommands(self):
-        print("We should return this no?")
         return {"text": "plotComp - Shows a comparison plot (default is all sectors, normalized) \n\t list=$name for specific list \n\t conv=norm or ind for normalized or indexed"}
 
 

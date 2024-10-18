@@ -49,7 +49,6 @@ class TradingWindow(MyAppWindow, TradingWindow_UI, SymbolFinderImplementation): 
     
 
     def __init__(self):
-        print("TradingWindow.__init__ What's going on???")
         MyAppWindow.__init__(self)
         TradingWindow_UI.__init__(self)
         SymbolFinderImplementation.__init__(self)
@@ -77,7 +76,6 @@ class TradingWindow(MyAppWindow, TradingWindow_UI, SymbolFinderImplementation): 
         self.count_field.setValue(10)
         self.step_count_field.setValue(10)
         
-        print("Symbol.radio")
         self.forceEmitToggleRadio(self.symbol_radio, self.input_selection_group)
         self.forceEmitToggleRadio(self.buy_radio, self.buy_sell_group)
         self.forceEmitToggleRadio(self.step_buy_radio, self.step_buy_sell_group)
@@ -117,7 +115,6 @@ class TradingWindow(MyAppWindow, TradingWindow_UI, SymbolFinderImplementation): 
 
 
     def connectActions(self):
-        print("TradingWindow.connectActions")
         self.bar_selector.currentTextChanged.connect(self.barSelection)
 
         self.buy_sell_group.buttonToggled.connect(self.buySellSelection)

@@ -32,7 +32,6 @@ class TelegramBot(QObject):
 
     def __init__(self): #, api_id, api_hash, bot_token, bot_username, message):
         super().__init__()
-        print("TelegramBot.__init__")
         self.bot_inf = self.readBotInfo()
         self.bot = telebot.TeleBot(self.bot_inf['token'])
     
@@ -54,12 +53,10 @@ class TelegramBot(QObject):
 
     def parseCommands(self, message):
         token_list = re.split("[., !?:()]+", message)
-        print(token_list)
         command = token_list[0]
         param_dict = dict()
         for token in token_list[1:]:
             param = re.split("=", token)
-            print(param)
             param_dict[param[0]] = param[1]
         return command, param_dict
 

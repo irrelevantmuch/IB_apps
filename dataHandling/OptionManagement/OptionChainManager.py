@@ -267,11 +267,15 @@ class OptionChainManager(IBConnectivity):
     @pyqtSlot(str)
     @pyqtSlot(str, bool)
     def requestOptionPricesForExpiration(self, for_exp, execute=True):
-        print(f"OptionChainManager.requestOptionDataByStrike {for_exp} {execute}")
         self.cancelOptionRequests(for_type=Constants.OPTION_DATA_STRIKE)
         self._selected_expiration = for_exp
         self._strike_comp_frame.resetDataFrame()
         strikes = self.chain_inf.getStrikesFor(for_exp)
+        
+            #when the information for the strike for the selected expiration aren't available we still want to request if possible
+        if len(strikes) == 0:
+            strikes = list(self.strike_set)
+
         for index, strike in enumerate(strikes):
 
             contract = self.getContract(strike, for_exp)
@@ -288,14 +292,15 @@ class OptionChainManager(IBConnectivity):
     @pyqtSlot(float)
     @pyqtSlot(float, bool)
     def requestOptionPricesForStrike(self, for_strike, execute=True):
-        print(f"OptionChainManager.requestOptionPricesForStrike {for_strike} {execute}")
         self.cancelOptionRequests(for_type=Constants.OPTION_DATA_EXP)
         self._exp_comp_frame.resetDataFrame()
         self._selected_strike = for_strike
         expirations = self.chain_inf.getExpirationsFor(self._selected_strike)
+            #when the information for the specific expiration for the selected strike aren't available we still want to request
+        if len(expirations) == 0:
+            expirations = list(self.exp_set)
 
         for index, expiration in enumerate(expirations):
-
             contract = self.getContract(self._selected_strike, expiration)
             
             if contract is not None:
@@ -304,7 +309,7 @@ class OptionChainManager(IBConnectivity):
                 self._type_strike_exp_for_req[req_id] = (None, for_strike, expiration)
                 
                 self.request_buffer.append({'req_id': req_id, 'contract': contract, 'keep_up_to_date': self._live_data_on})
-
+ 
         if execute:
             self.iterateOptionRequests()
 
@@ -321,7 +326,7 @@ class OptionChainManager(IBConnectivity):
 
 
     def executeOptionRequest(self):
-        if self.hasQueuedRequests() and self.getActiveReqCount() < self.queue_cap:
+        if self.hasQueuedRequests() and (self.getActiveReqCount() < self.queue_cap):
             opt_req = self.request_buffer.pop(0)
             request = dict()
             request['type'] = 'reqMktData'
@@ -331,6 +336,7 @@ class OptionChainManager(IBConnectivity):
             request['contract'] = opt_req['contract']
             request['keep_up_to_date'] = opt_req['keep_up_to_date']
             self.makeRequest(request)
+            
         if len(self.request_buffer) == 0:
             self.timer.stop()
 
@@ -429,13 +435,6 @@ class OptionChainManager(IBConnectivity):
                 self.api_updater.emit(Constants.OPTIONS_LOADED, dict())
 
 
-    def error(self, req_id, errorCode, errorString, advancedOrderRejectJson=None):
-        super().error(req_id, errorCode, errorString, advancedOrderRejectJson)
-        if errorCode == 200 or errorCode == 162:
-            if self.isOptionRequest(req_id):
-                self.option_error_signal.emit(req_id)
-
-
     def contractDetails(self, req_id, contract_details):
         super().contractDetails(req_id, contract_details)
         contract = contract_details.contract
@@ -445,7 +444,6 @@ class OptionChainManager(IBConnectivity):
 
     def contractDetailsEnd(self, req_id: int):
         super().contractDetailsEnd(req_id)
-        print("OptionChainManager.contractDetailsEnd")
         self.contract_req_ids.remove(req_id)
 
         requests_left = len(self.contract_req_ids)
@@ -472,7 +470,6 @@ class OptionChainManager(IBConnectivity):
         # if constr_type == OptionConstrType.single:
         return self.getSingleContract(strike, expiration)
         # else:
-        #     print("DO WE ACTUALLY USE THIS ONE?")
         #     return self.getSpreadContract(strike, expiration)
 
 
@@ -532,7 +529,6 @@ class OptionChainManager(IBConnectivity):
 
     # @pyqtSlot(str)
     # def orderTypeChangedTo(self, order_type):
-    #     print(f"We change the order_type to {order_type}")
     #     self.order_type = order_type
     #     self._all_option_frame.setOrderType(order_type)
 

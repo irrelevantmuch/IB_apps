@@ -24,7 +24,7 @@
 
 from PyQt5.QtCore import pyqtSlot, Qt
 from dataHandling.Constants import Constants
-from .PositionManagerWindow import PositionManagerWindow
+from .PortfolioManagerWindow import PositionManagerWindow
 from uiComps.customWidgets.StockListTab import StockListTab, SelectableTabWidget
 from uiComps.customWidgets.OptionTabWidget import OptionTabWidget
 import decimal

@@ -19,11 +19,11 @@ import numpy as np
 import pandas as pd
 
 from generalFunctionality.GenFunctions import getTradingHours
-from generalFunctionality.DateTimeFunctions import getLocalizedDt, convertToUtcTimestamp, todayDT, utcLocalize, dtFromDate
+from generalFunctionality.DateTimeFunctions import getCurrentUtcTime, getLocalizedDt, convertToUtcTimestamp, todayDT, utcLocalize, dtFromDate
 from dataHandling.Constants import Constants, MINUTES_PER_BAR, RESAMPLING_BARS
 from dataHandling.DataProcessor import DataProcessor
 from .ComparisonDataWrapper import ComparisonDataWrapper
-from dataHandling.HistoryManagement.SpecBufferedManager import SpecBufferedDataManager as BufferedDataManager
+from dataHandling.HistoryManagement.SpecBufferedManager import SpecBufferedManagerIB as BufferedDataManager
 
 
 class ComparisonProcessor(DataProcessor):
@@ -45,8 +45,8 @@ class ComparisonProcessor(DataProcessor):
 
     selected_date = todayDT()
 
-    def __init__(self, buffered_manager, bar_types, stock_list):
-        self.buffered_manager = buffered_manager
+    def __init__(self, history_manager, bar_types, stock_list):
+        self.buffered_manager = BufferedDataManager(history_manager)
         super().__init__(stock_list)
         self.data_object = ComparisonDataWrapper(set(stock_list))
         
@@ -74,6 +74,7 @@ class ComparisonProcessor(DataProcessor):
         start_date = utcLocalize(start_date)
         end_date = dtFromDate(self.getEndDate())
         end_date = utcLocalize(end_date)
+        end_date = min(end_date, getCurrentUtcTime())
         self.buffered_manager.fetchStockDataForPeriod(self.selected_bar_type, start_date, end_date)
 
 
@@ -122,7 +123,6 @@ class ComparisonProcessor(DataProcessor):
 
     @pyqtSlot(dict)
     def updateProperties(self, property_dict):
-        print(f"ComparisonProcessor.updateProperties {property_dict}")
         for prop, value in property_dict.items():
             if prop == "conversion_type":
                 self.conversion_type = value
@@ -182,7 +182,6 @@ class ComparisonProcessor(DataProcessor):
         pass
 
         # if (self.primary_graph_data is not None) and (len(self.primary_graph_data) > 0):
-        #     print("ComparisonProcessor.recalcFocusData")
         #     focus_list = [next(iter(self.primary_graph_data))]
 
         #     focus_key_iterator = iter(focus_list)
@@ -195,7 +194,6 @@ class ComparisonProcessor(DataProcessor):
         #     indexer = current_line['time_indices'].get_indexer(overlapping_indices)
         #     indexer = indexer[indexer != -1]
         #     base_line = current_line['adapted'][indexer]
-        #     print(f"    How do we make a selection of this? {type(base_line)} {type(overlapping_indices)}")
         #     for key in focus_key_iterator:
         #         current_line = self.primary_graph_data[next(focus_key_iterator)]
         #         indexer = current_line['time_indices'].get_indexer(overlapping_indices)

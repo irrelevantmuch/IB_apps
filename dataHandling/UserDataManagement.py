@@ -48,14 +48,12 @@ def writePositionNotes(dict):
 
 
 def getStockListNames():
-    print("UserDataManager.getStockListNames")
     files = []
     for (dirpath, dirnames, filenames) in walk('data/stock_lists/'):
         files.extend(filenames)
         break
 
     files = [fi for fi in files if fi.endswith(".pkl")]
-    print(files)
 
     list_names = []
     for file in files:
@@ -75,7 +73,6 @@ def getListName(file_name):
 
 
 def readStockList(file_name, alphabetized=False):
-    print(f"UserDataManager.readStockList {file_name}")
     try:
         with open('data/stock_lists/' + file_name, 'rb') as pickle_file:
             list_dict = pickle.load(pickle_file)

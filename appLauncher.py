@@ -32,9 +32,9 @@ from apps.alerting.alertManager import AlertManager
 from apps.tradeMaker.tradeMaker import TradeMaker
 from apps.movers.moversLists import MoversList
 from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
-from dataHandling.HistoryManagement.SpecBufferedManager import SpecbufferedManagerIB, SpecbufferedManagerFZ
 from dataHandling.HistoryManagement.FinazonBufferedManager import FinazonBufferedDataManager 
 
+from apps.portfolioManaging.portfolioManager import PositionManager
 from apps.positionManaging.positionManager import PositionApp
 from ConnectionThreadManager import ConnectionThreadManager
 from TelegramBot import TelegramBot
@@ -42,13 +42,17 @@ from TelegramBot import TelegramBot
 QtWidgets.QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
 QtWidgets.QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
+
+
+    #### Decorator for keeping track of which apps are open, as to avoid doubles
+    
 def appRunning(app_type, running_apps):
     current_app = None
     for app in running_apps:
         if isinstance(app, app_type):
             return app
 
-def app_opener(app_type):  # Decorator factory to accept 'app_type'
+def app_opener(app_type):
     def decorator(func):
         def wrapper(self):
             current_app = appRunning(app_type, self.running_apps)
@@ -84,7 +88,6 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
 
 
     def updateConnectionStatus(self, status):
-        print(f"AppLauncher.updateConnectionStatus {status}")
         if status == Constants.CONNECTION_OPEN:
             self.statusbar.showMessage("Connection Open")
             self.toggleAppButtons(True, interface=self.data_source)
@@ -131,10 +134,10 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
         return OptionVisualization(option_manager, symbol_manager)
             
 
-    # @app_opener(PortfolioManager)
-    # def openStocksApp(self):
-    #     position_manager = self.getNewPositionManager()
-    #     return PortfolioManager(position_manager)
+    @app_opener(PositionManager)
+    def openStocksApp(self):
+        position_manager = self.getNewPositionManager()
+        return PositionManager(position_manager)
         
 
     @app_opener(PositionApp)
@@ -147,15 +150,9 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
     @app_opener(AlertManager)
     def openAlertApp(self):
         history_manager = self.getHistoryManager('general_history')
+        indicator_processor = self.getIndicatorManager({'rsi', 'steps'}, history_manager.getDataBuffer())
 
-        if self.data_source == Constants.IB_SOURCE:
-            buffered_manager = BufferedDataManager(history_manager)
-        elif self.data_source == Constants.FINAZON_SOURCE:
-            buffered_manager = FinazonBufferedDataManager(history_manager)
-
-        indicator_processor = self.getIndicatorManager({'rsi', 'steps'}, buffered_manager.getDataBuffer())
-
-        alert_app = AlertManager(buffered_manager, indicator_processor, QThread())
+        alert_app = AlertManager(history_manager, indicator_processor, QThread())
         if self.telegram_bot is not None:
             alert_app.setTelegramListener(self.telegram_signal)
         return alert_app
@@ -178,24 +175,14 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
     def openMoversApp(self):
         history_manager = self.getHistoryManager()
 
-        if self.data_source == Constants.IB_SOURCE:
-            buffered_manager = BufferedDataManager(history_manager)
-        elif self.data_source == Constants.FINAZON_SOURCE:
-            buffered_manager = FinazonBufferedDataManager(history_manager)
-
-        return MoversList(buffered_manager, QThread())
+        return MoversList(history_manager, QThread())
 
     
     @app_opener(ComparisonList)
     def openComparisonApp(self):
         
         history_manager = self.getHistoryManager()
-        if self.data_source == Constants.IB_SOURCE:
-            buffered_manager = SpecbufferedManagerIB(history_manager)
-        elif self.data_source == Constants.FINAZON_SOURCE:
-            buffered_manager = SpecbufferedManagerFZ(history_manager)
-
-        comp_app = ComparisonList(buffered_manager, QThread())
+        comp_app = ComparisonList(history_manager, QThread())
         if self.telegram_bot is not None:
             comp_app.telegram_signal = self.telegram_signal
             self.telegram_bot.incoming_message_signal.connect(comp_app.processTelegram)
@@ -206,10 +193,9 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
     def openListManager(self):
         symbol_manager = self.getNewSymbolManager(identifier='list_symbol_manager')
         history_manager = self.getHistoryManagerIB()
-        buffered_manager = BufferedDataManager(history_manager)
         option_manager = self.getOptionManager()
-        return ListManager(symbol_manager, buffered_manager, option_manager)
-
+        return ListManager(symbol_manager, history_manager, option_manager)
+        
 
     def downloadShortRateData(self):
         downloadShortData("data/")
@@ -231,7 +217,6 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
 
 
     def toggleTelegramBot(self, checked):
-        print(f"AppLauncher.toggleTelegramBot {checked}")
         if checked:
             self.setupTelegramBot()
         else:
@@ -242,8 +227,7 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
                 # Setup the bot logic and thread
         self.telegram_bot = TelegramBot()  # Replace with your actual token
         self.telegram_signal.connect(self.telegram_bot.sendMessage, Qt.QueuedConnection)
-        self.telegram_bot.run()
-        print(f"AppLauncher init {int(QThread.currentThreadId())}")
+        self.telegram_bot.run() 
         
 
     def closeEvent(self, *args, **kwargs):

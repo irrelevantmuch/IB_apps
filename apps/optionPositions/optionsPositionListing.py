@@ -68,7 +68,6 @@ class OptionPositions(OptionPositionWindow):
 
     
     def tabSelection(self, index):
-        print("OptionPositions.tabSelection")
         if index > 0:
             self.current_tab = self.tabWidget.currentWidget()
         else:

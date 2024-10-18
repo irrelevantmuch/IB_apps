@@ -199,10 +199,7 @@ class DataDownloader(DataDownloaderWindow):
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
-        print(f"DataDownloader.apiUpdate {signal}")
         if signal == Constants.POLYGON_REQUEST_COMPLETED:
-            print("We receive polygon data!")
-            print(sub_signal)
             self.download_counter += 1
             self.statusBar.showMessage(f"Downloaded {self.download_counter} of {self.total_count}")
         elif signal == Constants.POLYGON_REQUESTS_COMPLETED:
@@ -281,8 +278,7 @@ class DataDownloader(DataDownloaderWindow):
         
         current_date = datetime.now()
         start_date = current_date - relativedelta(years=5)
-        print(f"DataDetails.downloadPolygonData {start_date}")
-
+        
         bar_types = [bar_type for bar_type, checked in self.bar_selection.items() if checked]
 
         if self.download_selection == "Single Ticker":

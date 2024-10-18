@@ -60,15 +60,14 @@ class MoversList(MoversWindow):
     data_processor = None
 
 
-    def __init__(self, buffered_manager, processor_thread):
+    def __init__(self, history_manager, processor_thread):
         super().__init__(self.bar_types)
 
         file_name, _ = self.stock_lists[0]
         self.stock_list = readStockList(file_name)
         self.attemptIndexLoading(self.findIndexList())
 
-        buffered_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
-        self.setupProcessor(buffered_manager, processor_thread)
+        self.setupProcessor(history_manager, processor_thread)
 
         self.initTableModels()
         #self.fetchShortRates()
@@ -78,13 +77,13 @@ class MoversList(MoversWindow):
         sys.setrecursionlimit(20_000)
 
 
-    def setupProcessor(self, buffered_manager, processor_thread):
-        self.data_processor = MoversProcessor(buffered_manager, DT_BAR_TYPES, self.stock_list) #, self.index_list)
+    def setupProcessor(self, history_manager, processor_thread):
+        self.data_processor = MoversProcessor(history_manager, DT_BAR_TYPES, self.stock_list) #, self.index_list)
         self.table_data = self.data_processor.getDataObject()
         main_thread = QThread.currentThread()
         self.processor_thread = processor_thread
         self.data_processor.moveToThread(self.processor_thread)
-
+        self.data_processor.buffered_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
         self.connectSignalToSlots()
  
         self.processor_thread.started.connect(self.data_processor.run)
@@ -291,11 +290,6 @@ class MoversList(MoversWindow):
     
     def onTabChange(self, value):
         super().onTabChange(value)
-        # print("MoversList.onTabChange")
-        # print(value)
-        # print(self.tab_widget)
-        # print(self.tab_widget.currentWidget())
-        # print(self.tab_widget.currentWidget().table_type)
         table_type = self.tab_widget.currentWidget().table_type
         self.gui_change_signal.emit(table_type)
 
@@ -310,8 +304,6 @@ class MoversList(MoversWindow):
 ############## Table interactions
 
     def prepOrder(self, item, direction_str):
-        print("MoversList.cellClicked")
-        print(f"{item} {item.row()} {item.column()}")
         row = item.row()
         column = item.column()
         
@@ -341,12 +333,9 @@ class MoversList(MoversWindow):
             if dialog.exec():
                 order_params = dialog.getOrder()
 
-                # print("Do we get what we need?")
-                # print(order_params)
-
-                # for order in bracket_order:
-                #     pass
-                #     # self.data_processor.history_manager.ib_interface.placeOrder(order.orderId, mycontract, order)
+                for order in bracket_order:
+                    pass
+                    # self.data_processor.history_manager.ib_interface.placeOrder(order.orderId, mycontract, order)
                 #     #self.buffered_manager.history_manager.ib_interface.placeOrder(order.orderId, mycontract, order)
 
 
@@ -358,12 +347,12 @@ class MoversList(MoversWindow):
             bar_type = self.bar_types[item.column()-1]
 
             if vs_index:
-                bars = self.data_processor.getCompBarData(uid, bar_type).copy() #buffered_manager.existing_buffers[uid, bar_type]
+                bars = self.data_processor.getCompBarData(uid, bar_type).copy()
                 index_uid = self.getIndexUI()
                 index_name = self.index_list[index_uid][Constants.SYMBOL]
                 symbol = f"{symbol}/{index_name}"
             else:
-                bars = self.data_processor.getBarData(uid, bar_type).copy() #buffered_manager.existing_buffers[uid, bar_type]
+                bars = self.data_processor.getBarData(uid, bar_type).copy()
             
             dialog = QuickChart(symbol, bar_type, tz=self.stock_list[uid]['time_zone'], bars=bars)
             dialog.exec()
@@ -374,7 +363,6 @@ class MoversList(MoversWindow):
         column = item.column()
         
         symbol, uid = self.overview_model.getStockFor(item.row())
-        print(f"MoversList.overviewClicked: {row} {column} {symbol} {uid}")
         
         QtWidgets.QToolTip.hideText()
         r = self.overview_table.visualRect(item)

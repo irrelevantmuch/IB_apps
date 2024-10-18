@@ -311,16 +311,7 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
-        # self.inspectMetaObject()
-        # QtCore.QMetaObject.connectSlotsByName(MainWindow)
-
-    def inspectMetaObject(self):
-        meta = self.metaObject()
-        for method_index in range(meta.methodCount()):
-            print(f"Method: {meta.method(method_index).name()}, Type: {meta.method(method_index).methodType()}")
-
-        for prop_index in range(meta.propertyCount()):
-            print(f"Property: {meta.property(prop_index).name()}")
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
 
     def retranslateUi(self, MainWindow):

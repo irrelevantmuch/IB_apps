@@ -13,8 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import time
-
 from dataHandling.Constants import Constants, DT_BAR_TYPES
 
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, Qt, QThread
@@ -52,7 +50,6 @@ class IndicatorProcessor(QObject):
 
     def run(self):
         self.data_buffers.buffer_updater.connect(self.bufferUpdate, Qt.QueuedConnection)
-        print(f"IndicatorProcessor.run on {int(QThread.currentThreadId())}")
 
 
     @pyqtSlot(dict)
@@ -114,7 +111,6 @@ class IndicatorProcessor(QObject):
 
     def updateIndicators(self, updated_uids=None, bar_types=None, indicator_type=None, updated_from=None, supress_signal=False):
         
-        # start_time = time.time()
         if 'rsi' in self.indicators:
             self.computeRSIs(updated_uids=updated_uids, updated_bar_types=bar_types, from_indices=updated_from, supress_signal=supress_signal)
 
@@ -123,7 +119,6 @@ class IndicatorProcessor(QObject):
 
         if 'emas' in self.indicators:
             self.computeEMAs(updated_uids=updated_uids, updated_bar_types=bar_types, supress_signal=supress_signal)
-        # print(f"IndicatorProcessor.updateIndicators takes {time.time() - start_time}")
             
     
     def computeSteps(self, updated_uids=None, updated_bar_types=None, supress_signal=False):
