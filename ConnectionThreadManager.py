@@ -35,6 +35,7 @@ class ConnectionThreadManager:
     order_manager = None
     history_manager = None
     indicator_processor = None
+    connectivty_ver = None
 
     running_workers = dict()
 
@@ -46,6 +47,13 @@ class ConnectionThreadManager:
         finally:
             self.curr_id += 1
             
+
+    def updateConnectionStatus(self, status, owners):
+        if status == Constants.CONNECTION_OPEN:
+            if not(self.connectivty_ver is None) and owners == {self.ver_id}:
+                self.connectivty_ver.stop()
+                self.connectivty_ver = None
+
 
     def getNewPositionManager(self):
         position_manager = PositionDataManager(self.local_address, int(self.trading_socket), self.next_id)
@@ -159,15 +167,13 @@ class ConnectionThreadManager:
         return order_manager
 
 
-    def openConnection(self):
+    def verifyConnection(self):
         self.local_address = self.address_line.text()
         self.trading_socket = self.socket_line.text()
-        app = IBConnectivity(self.local_address, int(self.trading_socket), self.next_id, name="Connectivity.TEST")
-        app.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
-        app.startConnection()
-        # Give some time to establish the connection
-        time.sleep(1)
-        app.disconnect()
+        self.connectivty_ver = IBConnectivity(self.local_address, int(self.trading_socket), self.next_id, name="Connectivity.TEST")
+        self.ver_id = self.connectivty_ver.registerOwner()
+        self.connectivty_ver.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
+        self.connectivty_ver.startConnection()
         
 
     def getOptionManager(self):

@@ -84,15 +84,16 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
         self.logging_instance.setLogWindow(self.log_window)
         self.real_tws_button.setChecked(True)
         self.connectionSelection()
-        self.updateConnectionStatus('closed')
+        self.updateConnectionStatus(Constants.CONNECTION_CLOSED, [])
 
 
-    def updateConnectionStatus(self, status):
+    def updateConnectionStatus(self, status, owners):
+        super().updateConnectionStatus(status, owners)
         if status == Constants.CONNECTION_OPEN:
             self.statusbar.showMessage("Connection Open")
             self.toggleAppButtons(True, interface=self.data_source)
             self.ib_connected = True
-        else:
+        elif status == Constants.CONNECTION_CLOSED:
             self.statusbar.showMessage("Offline")
             self.ib_connected = False
 
@@ -204,7 +205,7 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
         if signal == Constants.CONNECTION_STATUS_CHANGED:
-            self.updateConnectionStatus(sub_signal['connection_status'])
+            self.updateConnectionStatus(sub_signal['connection_status'], sub_signal['owners'])
  
 
     def setTradingOptions(self, local_address, trading_socket, editable):

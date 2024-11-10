@@ -69,7 +69,7 @@ class ComparisonPlotWidget(pg.PlotWidget):
     def setupGraphs(self, inverted=False):
         self.addCrossHair()
         self.proxy = pg.SignalProxy(self.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
-        self.setMouseEnabled(y=False) 
+        # self.setMouseEnabled(y=False) 
         self.setLabels(left='Normalized Price', bottom='Time (5m/point)')
 
 
@@ -124,6 +124,8 @@ class ComparisonPlotWidget(pg.PlotWidget):
         self.addItem(pg.InfiniteLine(pos=0.0, angle=0, pen=pg.mkPen(color=(170,170,170), width=2, style=QtCore.Qt.DashLine), movable=False))
         self.hLine = pg.InfiniteLine(pos=0.0, angle=0, pen=pg.mkPen(color=(170,170,170), width=2, style=QtCore.Qt.DashLine), movable=False)
         self.addItem(self.hLine,ignoreBounds=True)
+        self.vLine = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(170,170,170), width=2, style=QtCore.Qt.DashLine), movable=False)
+        self.addItem(self.vLine,ignoreBounds=True)
 
 
     def resetPlot(self):
@@ -308,6 +310,7 @@ class ComparisonPlotWidget(pg.PlotWidget):
             y_mouse = mousePoint.y()
     
             self.hLine.setPos(y_mouse)
+            self.vLine.setPos(x_mouse)
 
             for key in self.curve_points.keys():
                 for band in self.high_low_bands[key]:

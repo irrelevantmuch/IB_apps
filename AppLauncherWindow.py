@@ -53,7 +53,7 @@ class AppLauncherWindow(QMainWindow, AppLauncher_UI):
         self.open_position_manager.clicked.connect(self.openPositionsApp)
         self.open_poly_downloader.clicked.connect(self.openDataDetailsApp)
         self.open_movers.clicked.connect(self.openMoversApp)
-        self.verify_conn_button.clicked.connect(self.openConnection)
+        self.verify_conn_button.clicked.connect(self.verifyConnection)
         # self.open_fitter.clicked.connect(self.openFittingApp)
         # self.open_analysis.clicked.connect(self.openAnalysisApp)
         self.open_man_trader.clicked.connect(self.openManualTraderApp)

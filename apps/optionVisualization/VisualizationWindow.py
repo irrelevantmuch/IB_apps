@@ -253,4 +253,3 @@ class VisualizationWindow(MyAppWindow, Visualization_UI, SymbolFinderImplementat
         self.max_exp_plt_box.addItems(sorted_expiration_strings)
         self.max_exp_plt_box.setCurrentIndex(len(sorted_expiration_strings)-1)
 
-

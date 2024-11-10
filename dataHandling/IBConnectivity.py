@@ -153,7 +153,8 @@ class IBConnectivity(EClient, EWrapper, QObject):
             pub.sendMessage('log', message=f"Error: {req_id}, code: {errorCode}, message: {errorString}, req_id: {req_id}")
         
         if errorCode == 200 or errorCode == 162:
-            self._active_requests.remove(req_id)
+            if req_id in self._active_requests:
+                self._active_requests.remove(req_id)
             if self.isPriceRequest(req_id):
                 pass
                 #What was this for?
@@ -165,13 +166,13 @@ class IBConnectivity(EClient, EWrapper, QObject):
     def connectAck(self):
         super().connectAck()
         self._connection_status = Constants.CONNECTION_OPEN
-        self.api_updater.emit(Constants.CONNECTION_STATUS_CHANGED, {'connection_status': Constants.CONNECTION_OPEN})
+        self.api_updater.emit(Constants.CONNECTION_STATUS_CHANGED, {'connection_status': Constants.CONNECTION_OPEN, 'owners': self.owners})
  
 
     def connectionClosed(self):
         super().connectionClosed()
         self._connection_status = Constants.CONNECTION_CLOSED
-        self.api_updater.emit(Constants.CONNECTION_STATUS_CHANGED, {'connection_status': Constants.CONNECTION_CLOSED})
+        self.api_updater.emit(Constants.CONNECTION_STATUS_CHANGED, {'connection_status': Constants.CONNECTION_CLOSED, 'owners': self.owners})
         pub.sendMessage('log', message=f"Connection for {self.name} ({self.client_id}) closed")
         
 

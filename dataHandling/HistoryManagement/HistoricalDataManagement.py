@@ -618,7 +618,8 @@ class HistoricalDataManager(IBConnectivity):
                 for key in self._req_by_owner:
                     if req_id in self._req_by_owner[key]: self._req_by_owner[key].remove(req_id)
 
-                self._all_req_ids.remove(req_id)
+                    #TODO is the conditional necesarry? shouldn't it always be in this list, when is it not?
+                if req_id in self._all_req_ids: self._all_req_ids.remove(req_id)
 
 
     def createCompletedReqFor(self, req_id, start, end):

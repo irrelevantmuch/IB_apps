@@ -493,6 +493,7 @@ class OptionChainManager(IBConnectivity):
         return contract
 
 
+
     # def getSpreadContract(self, strike, expiration):
 
     #     contract = Contract()

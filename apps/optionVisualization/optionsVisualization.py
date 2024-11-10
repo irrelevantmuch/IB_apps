@@ -355,3 +355,8 @@ class OptionVisualization(VisualizationWindow):
     def accepts(self, value):
         return False
         
+
+    def closeEvent(self, event):
+        super().closeEvent(event)
+        self.symbol_manager.finished.emit()
+        self.option_data_manager.finished.emit()

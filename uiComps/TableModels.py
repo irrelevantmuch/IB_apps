@@ -23,7 +23,7 @@ from PyQt5.QtGui import QBrush, QColor
 class PandasDataModel(QAbstractTableModel):
 
     # model_updater = pyqtSignal(str, dict)
-    greyout_stale = True
+    greyout_stale = False
     changed_list = set()
 
     def __init__(self, table_data, mapping, header_labels=None, output_functions=None, **kwargs):
