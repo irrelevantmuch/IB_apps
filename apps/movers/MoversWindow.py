@@ -34,7 +34,7 @@ from uiComps.generalUIFunctionality import ProcessorWindow
 class MoversWindow(ProcessorWindow, Movers_UI):
 
     column_for_name = {'Price': 1, 'Day': 2, 'Week': 3, '2 Weeks': 4, 'Month': 5, "2 Months": 6, "6 Months": 7 , "1 Year": 8}
-    period_options = ["Day", "Week", "2 Weeks", "Month", "2 Months", "3 Months", "6 Months", "1 Year"]
+    period_options = ["Day", "Week", "2 Weeks", "Month", "2 Months", "3 Months", "6 Months", "1 Year", "2 Year", "Max"]
     corr_period_options = ["2 hours", "4 hours", "Today", "24 hours", "1 week", "2 week", "Month", "2 Months", "3 Months", "6 Months", "max"]
     
 

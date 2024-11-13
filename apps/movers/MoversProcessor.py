@@ -63,7 +63,8 @@ class MoversProcessor(DataProcessor):
                     "2 Months": subtract_months(2),
                     "3 Months": subtract_months(3),
                     "6 Months": subtract_months(6),
-                    "1 Year": subtract_months(12)}
+                    "1 Year": subtract_months(12),
+                    "2 Year": subtract_months(24)}
 
 
     def __init__(self, history_manager, bar_types, stock_list, index_list=None):
@@ -320,13 +321,15 @@ class MoversProcessor(DataProcessor):
         if updated_list is None:
             updated_list = self.stock_df.index.values
 
-
-        max_date = self.period_functions[time_period]
-        for uid in updated_list: 
+        for uid in updated_list:             
             if self.data_buffers.bufferExists(uid, Constants.DAY_BAR):
+
                 price = self.data_wrapper.getValueFor(uid, Constants.PRICE)
                 stock_frame = self.data_buffers.getBufferFor(uid, Constants.DAY_BAR)
-                stock_frame = stock_frame[stock_frame.index >= max_date]
+
+                if time_period != "Max":
+                    begin_date = self.period_functions[time_period]
+                    stock_frame = stock_frame[stock_frame.index >= begin_date]
 
                 if not stock_frame.empty:
                     self.data_wrapper.updateValueFor(uid, Constants.MAX, stock_frame[Constants.HIGH].max())
@@ -377,7 +380,12 @@ class MoversProcessor(DataProcessor):
                 
                 day_buffer = self.data_buffers.getBufferFor(uid, Constants.DAY_BAR)
                 if len(day_buffer) > 1:
-                    last_day_close = day_buffer[Constants.CLOSE].iloc[-2]
+                        #if we have a bar for today we want to go back 1 day. If there is no bar yet, we take the last completed
+                    dt_object = datetime.fromtimestamp(day_buffer[Constants.CLOSE].index[-1])
+                    if dt_object.date() == datetime.today().date():
+                        last_day_close = day_buffer[Constants.CLOSE].iloc[-2]
+                    else:
+                        last_day_close = day_buffer[Constants.CLOSE].iloc[-1]
                     price_move_perc = ((last_known_price-last_day_close)/last_day_close)*100
 
                     self.data_wrapper.updateValueFor(uid, Constants.DAY_MOVE, price_move_perc)

@@ -556,17 +556,32 @@
            </layout>
           </item>
           <item>
-           <spacer name="verticalSpacer">
+           <widget class="Line" name="line_3">
             <property name="orientation">
-             <enum>Qt::Vertical</enum>
+             <enum>Qt::Horizontal</enum>
             </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_5">
+            <item>
+             <widget class="QLabel" name="label_7">
+              <property name="text">
+               <string>Default Account:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="default_account_selector"/>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="Line" name="line_4">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
             </property>
-           </spacer>
+           </widget>
           </item>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -631,9 +646,9 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="data_group"/>
+  <buttongroup name="general_history_group"/>
   <buttongroup name="ib_group"/>
   <buttongroup name="trading_type_group"/>
-  <buttongroup name="general_history_group"/>
+  <buttongroup name="data_group"/>
  </buttongroups>
 </ui>

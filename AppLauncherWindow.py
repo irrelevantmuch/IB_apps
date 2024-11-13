@@ -62,7 +62,7 @@ class AppLauncherWindow(QMainWindow, AppLauncher_UI):
         self.open_list_manager.clicked.connect(self.openListManager)
         self.open_comparisons.clicked.connect(self.openComparisonApp)
         self.open_alert_system.clicked.connect(self.openAlertApp)
-        
+        self.default_account_selector.currentIndexChanged.connect(self.defaultAccountChange)
         self.telegram_checkbox.stateChanged.connect(self.toggleTelegramBot)
         self.data_group.buttonClicked.connect(self.dataSelection)
         self.trading_type_group.buttonClicked.connect(self.connectionSelection)

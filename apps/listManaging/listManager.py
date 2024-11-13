@@ -178,9 +178,10 @@ class ListManager(ListManagerWindow):
         #TODO this should be in super
     def accepts(self, value):
         return False
-        
+
 
     def closeEvent(self, event):
         super().closeEvent(event)
         self.symbol_manager.finished.emit()
         self.option_manager.finished.emit()
+        self.buffered_manager.deregister()

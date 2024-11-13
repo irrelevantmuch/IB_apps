@@ -212,8 +212,7 @@ class OptionChainManager(IBConnectivity):
 
     @pyqtSlot()
     def resetWholeChain(self):
-        uid = self.contract_details.numeric_id
-        self.chain_inf.removeEntireOptionChain(uid)
+        self.chain_inf.removeEntireOptionChain()
         self._all_option_frame.resetDataFrame()
         self.fetchOptionContracts()
 

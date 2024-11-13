@@ -28,7 +28,7 @@ from uiComps.generalUIFunctionality import MyAppWindow
 from uiComps.qtGeneration.TradingWindow_UI import Ui_MainWindow as TradingWindow_UI
 from dataHandling.Constants import Constants
 from generalFunctionality.SymbolFinderImpl import SymbolFinderImplementation
-
+from generalFunctionality.UIFunctions import addAccountsToSelector
 from uiComps.customWidgets.PlotWidgets.CandlePlotWidget import CandlePlotWidget
 
  
@@ -72,10 +72,11 @@ class TradingWindow(MyAppWindow, TradingWindow_UI, SymbolFinderImplementation): 
 
 
 
-    def setBaseGuiValues(self):
+    def setBaseGuiValues(self, accounts, default_account):
         self.count_field.setValue(10)
         self.step_count_field.setValue(10)
         
+        addAccountsToSelector(accounts, self.account_selector, default_account)
         self.forceEmitToggleRadio(self.symbol_radio, self.input_selection_group)
         self.forceEmitToggleRadio(self.buy_radio, self.buy_sell_group)
         self.forceEmitToggleRadio(self.step_buy_radio, self.step_buy_sell_group)
@@ -141,6 +142,7 @@ class TradingWindow(MyAppWindow, TradingWindow_UI, SymbolFinderImplementation): 
         self.step_profit_price_spin.valueChanged.connect(lambda new_value: self.stepLevelChange(new_value, "profit_price_level"))
         self.step_profit_check.stateChanged.connect(self.stepProfitTakeCheck)
         self.step_stoploss_check.stateChanged.connect(self.stepStoplossCheck)
+        self.account_selector.currentIndexChanged.connect(self.accountChange)
 
         self.input_selection_group.buttonClicked.connect(self.listSelectionChange)
         self.stop_limit_check.stateChanged.connect(self.stopLimitCheck)

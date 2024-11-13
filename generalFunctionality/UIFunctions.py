@@ -24,6 +24,24 @@ def findRowForValue(table, value, column):
     return -1
 
 
+def addAccountsToSelector(accounts, selector, def_account=""):
+    selector.blockSignals(True)
+    masked_accounts = [maskAccountString(account) for account in accounts]
+    selector.addItems(masked_accounts)
+    try:
+        def_index = accounts.index(def_account)
+        selector.setCurrentIndex(def_index)
+    except ValueError:
+        pass
+
+    selector.blockSignals(False)
+    
+def maskAccountString(unm_str):
+    mask_length = len(unm_str) - 3
+    masked = unm_str[:1] + '*' * mask_length + unm_str[-2:]
+    return masked
+
+
 def getNumericItem(float_value):
     item = QtWidgets.QTableWidgetItem()
     item.setData(QtCore.Qt.DisplayRole, float(float_value))

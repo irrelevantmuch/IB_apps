@@ -12,16 +12,19 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 from PyQt5.QtCore import QThread, pyqtSlot, Qt, pyqtSignal
 from PyQt5 import QtWidgets
-from dataHandling.Constants import Constants
-from AppLauncherWindow import AppLauncherWindow
 
 import sys, os, time
-from uiComps.Logging import Logger
 
+
+
+from AppLauncherWindow import AppLauncherWindow
+from dataHandling.Constants import Constants
+from uiComps.Logging import Logger
+from dataHandling.UserDataManagement import loadAccountSettings, saveAccountSettings
 from dataHandling.ibFTPdata import downloadShortData
+from generalFunctionality.UIFunctions import addAccountsToSelector
 
 from apps.listManaging.listManager import ListManager
 from apps.polygonDownload.dataDownloader import DataDownloader
@@ -38,6 +41,7 @@ from apps.portfolioManaging.portfolioManager import PositionManager
 from apps.positionManaging.positionManager import PositionApp
 from ConnectionThreadManager import ConnectionThreadManager
 from TelegramBot import TelegramBot
+
 
 QtWidgets.QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
 QtWidgets.QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
@@ -77,6 +81,7 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
     ib_connected = False
     telegram_signal = pyqtSignal(str, dict)
     telegram_bot = None
+    _accounts = []
 
     def __init__(self):
         super().__init__()
@@ -84,11 +89,13 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
         self.logging_instance.setLogWindow(self.log_window)
         self.real_tws_button.setChecked(True)
         self.connectionSelection()
-        self.updateConnectionStatus(Constants.CONNECTION_CLOSED, [])
+        self._account_settings = loadAccountSettings()
+        print(f"AppLauncher.init {self._account_settings}")
+        self.updateConnectionStatus(Constants.CONNECTION_CLOSED)
 
 
-    def updateConnectionStatus(self, status, owners):
-        super().updateConnectionStatus(status, owners)
+    def updateConnectionStatus(self, status):
+        
         if status == Constants.CONNECTION_OPEN:
             self.statusbar.showMessage("Connection Open")
             self.toggleAppButtons(True, interface=self.data_source)
@@ -169,7 +176,7 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
         order_manager = self.getOrderManager()
         history_manager = self.getHistoryManagerIB(identifier='manual_trader_history')
         symbol_manager = self.getNewSymbolManager(identifier='trader_symbol_manager')
-        return TradeMaker(order_manager, history_manager, symbol_manager)
+        return TradeMaker(self._accounts, self._account_settings['default_account'], order_manager, history_manager, symbol_manager)
 
 
     @app_opener(MoversList)
@@ -205,8 +212,23 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
         if signal == Constants.CONNECTION_STATUS_CHANGED:
-            self.updateConnectionStatus(sub_signal['connection_status'], sub_signal['owners'])
- 
+            self.updateConnectionStatus(sub_signal['connection_status'])
+        elif signal == Constants.MANAGED_ACCOUNT_LIST:
+            if not(self.connectivty_ver is None) and sub_signal['owners'] == {self.ver_id}:
+                self.connectivty_ver.stop()
+                self.connectivty_ver = None
+                self.setupAccountSelection(sub_signal['account_list'])
+
+
+    def setupAccountSelection(self, accounts):
+        self._accounts = [account for account in accounts.split(",") if account]
+        addAccountsToSelector(self._accounts, self.default_account_selector, self._account_settings['default_account'])
+
+
+    def defaultAccountChange(self, selected_index):
+        self._account_settings['default_account'] = self._accounts[selected_index]
+        saveAccountSettings(self._account_settings)
+
 
     def setTradingOptions(self, local_address, trading_socket, editable):
         self.local_address = local_address

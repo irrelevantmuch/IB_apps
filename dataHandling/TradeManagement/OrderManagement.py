@@ -190,6 +190,7 @@ class OrderManager(IBConnectivity):
 
     data_buffers = None
     stair_tracker = None
+    _account = None
     
     order_update_signal = pyqtSignal(int, dict)
 
@@ -203,6 +204,11 @@ class OrderManager(IBConnectivity):
 
         self.connectSignalsToSlots()
         self.trackAndBindOpenOrders()
+
+
+    @pyqtSlot(str)
+    def setTradingAccount(self, account):
+        self._account = account
 
 
     def getOrderBuffer(self):
@@ -289,6 +295,8 @@ class OrderManager(IBConnectivity):
             base_order.orderId = order_id
         base_order.outsideRth = True
         base_order.action = action
+        if self._account is not None:
+            base_order.account = self._account
         base_order.totalQuantity = int(quantity)
         base_order.eTradeOnly = ''
         if gtd is not None:

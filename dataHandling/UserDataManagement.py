@@ -122,3 +122,18 @@ def writePositionTypes(json_dict):
         print("We couldn't wite the JSON file.... :(")
 
 
+def loadAccountSettings():
+    try:
+        with open('data/account_settings.json') as json_file:
+            json_dict = json.load(json_file)
+            return json_dict
+    except: # (IOError, OSError) as e:
+        return {'default_account': ""}
+
+
+def saveAccountSettings(dict):
+    try:
+        with open('data/account_settings.json', 'w') as outfile:
+            json.dump(dict, outfile)
+    except: # (IOError, OSError) as e:
+        print("We couldn't wite the JSON file.... :(")

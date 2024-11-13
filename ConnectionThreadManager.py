@@ -48,13 +48,6 @@ class ConnectionThreadManager:
             self.curr_id += 1
             
 
-    def updateConnectionStatus(self, status, owners):
-        if status == Constants.CONNECTION_OPEN:
-            if not(self.connectivty_ver is None) and owners == {self.ver_id}:
-                self.connectivty_ver.stop()
-                self.connectivty_ver = None
-
-
     def getNewPositionManager(self):
         position_manager = PositionDataManager(self.local_address, int(self.trading_socket), self.next_id)
         position_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)

@@ -196,6 +196,7 @@ class Constants:
     PROPERTY_UPDATE: Final = "Property Update"
     ACTIVE_REQUESTS_CANCELLED: Final = "Active Requests Cancelled"
 
+    MANAGED_ACCOUNT_LIST: Final = "Managed account list"
     SELECTED_KEYS_CHANGED: Final = "Selected keys changed"
 
     LAST_FIVE_AT: Final = "LAST_FIVE_AT"

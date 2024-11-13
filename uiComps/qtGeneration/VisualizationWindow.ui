@@ -207,7 +207,7 @@
          </sizepolicy>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>2</number>
         </property>
         <widget class="QWidget" name="strike_plot_tab">
          <attribute name="title">
@@ -351,14 +351,14 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>Reset Prices</string>
+                 <string>Reset</string>
                 </property>
                </widget>
               </item>
               <item>
                <widget class="QPushButton" name="flush_button">
                 <property name="text">
-                 <string>Flush</string>
+                 <string>Flush Prices</string>
                 </property>
                </widget>
               </item>
@@ -729,9 +729,9 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="premium_price_strike_group"/>
   <buttongroup name="buy_sell_group"/>
-  <buttongroup name="call_put_group"/>
+  <buttongroup name="premium_price_strike_group"/>
   <buttongroup name="premium_price_all_group"/>
+  <buttongroup name="call_put_group"/>
  </buttongroups>
 </ui>

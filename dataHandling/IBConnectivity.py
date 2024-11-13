@@ -44,7 +44,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
     run_ib_client_signal = pyqtSignal()
     _active_requests = set()
 
-    
     _price_req_is_active = False
     snapshot = False
 
@@ -192,6 +191,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
             if (not self.queue_timer.isActive()) and not(self.request_queue.empty()):
                 self.restart_timer.emit()
         self.managed_accounts_initialized = True
+        self.api_updater.emit(Constants.MANAGED_ACCOUNT_LIST, {'account_list': accountsList, 'owners': self.owners})
         
 
     def readyForRequests(self):

@@ -54,18 +54,21 @@ class TradeMaker(TradingWindow):
     set_ticker_signal = pyqtSignal(tuple, set)
     step_prop_update_signal = pyqtSignal(dict)
     set_bar_signal = pyqtSignal(str)
+    account_change = pyqtSignal(str)
     place_complex_signal = pyqtSignal(Contract, str, int, float, dict)
     place_combo_signal = pyqtSignal(Contract, str, int, float, float, float)
     place_stair_order = pyqtSignal(Contract, str, str)
     kill_stair_order = pyqtSignal()
 
 
-    def __init__(self, order_manager, history_manager, symbol_manager):
+    def __init__(self, accounts, default_account, order_manager, history_manager, symbol_manager):
         super().__init__()
         self.loadStockLists()
         self.order_manager = order_manager
         self.history_manager = history_manager
         self.symbol_manager = symbol_manager
+        self.accounts = accounts
+        self.sel_account = default_account
 
         self.data_buffers = history_manager.getDataBuffer()
         self.history_manager.latest_price_signal.connect(self.priceUpdate)
@@ -82,10 +85,11 @@ class TradeMaker(TradingWindow):
         self.prepTickerProcessor(history_manager)
         self.setupOrderTable(self.order_buffer)
         self.setupStairTable(self.stair_tracker)
-        self.setBaseGuiValues()
+        self.setBaseGuiValues(self.accounts, default_account)
 
         
         self.connectSignalSlots()
+        self.account_change.emit(self.sel_account)
         
         self.product_label.setText(self.stock_list[self.selected_key]['long_name']) 
         
@@ -96,6 +100,16 @@ class TradeMaker(TradingWindow):
         self.processor_thread.start()
 
         self.set_bar_signal.emit(self.selected_bar_type)
+
+
+    # @property
+    # def trading_account(self):
+    #     return self.accounts[self.account_selector.currentIndex()]
+
+    @pyqtSlot(int)
+    def accountChange(self, sel_index):
+        self.sel_account = self.accounts[sel_index]
+        self.account_change.emit(self.sel_account)
 
 
     def setupStairTable(self, stair_tracker):
@@ -155,6 +169,7 @@ class TradeMaker(TradingWindow):
         self.set_ticker_signal.connect(self.data_processor.setTicker, Qt.QueuedConnection)
         self.set_bar_signal.connect(self.data_processor.setBarType, Qt.QueuedConnection)
         self.cancel_all_signal.connect(self.order_manager.cancelAllOrders, Qt.QueuedConnection)
+        self.account_change.connect(self.order_manager.setTradingAccount, Qt.QueuedConnection)
         self.cancel_order_by_row.connect(self.order_manager.cancelOrderByRow, Qt.QueuedConnection)
         self.cancel_stair_by_row.connect(self.order_manager.cancelStairByRow, Qt.QueuedConnection)
         self.place_complex_signal.connect(self.order_manager.placeComboOrder, Qt.QueuedConnection)

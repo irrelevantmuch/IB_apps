@@ -40,7 +40,7 @@
    </property>
    <layout class="QGridLayout" name="gridLayout_2">
     <item row="0" column="1">
-     <layout class="QVBoxLayout" name="vertical_stack" stretch="0,0,0,0">
+     <layout class="QVBoxLayout" name="vertical_stack" stretch="0,0,0,0,0">
       <property name="spacing">
        <number>10</number>
       </property>
@@ -59,6 +59,23 @@
       <property name="bottomMargin">
        <number>10</number>
       </property>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_8">
+        <item>
+         <widget class="QLabel" name="label_17">
+          <property name="text">
+           <string>Account:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="account_selector"/>
+        </item>
+       </layout>
+      </item>
       <item>
        <layout class="QHBoxLayout" name="symbol_layout">
         <item>
@@ -1188,10 +1205,10 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="step_buy_sell_group"/>
+  <buttongroup name="step_profit_selection_group"/>
   <buttongroup name="combo_buy_sell_group"/>
+  <buttongroup name="step_buy_sell_group"/>
   <buttongroup name="buy_sell_group"/>
   <buttongroup name="input_selection_group"/>
-  <buttongroup name="step_profit_selection_group"/>
  </buttongroups>
 </ui>
