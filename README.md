@@ -1,6 +1,7 @@
 **Project Introduction**
 
-The is no documentation so far, but I have made an overview video which can be found here. Feel free to reach out to me at vriesdephilip@gmail.com if you have any questions.
+The is no documentation so far, but I have made an overview video which can be found here: https://www.youtube.com/watch?v=Jjhe66Vvcro&authuser=0.
+Feel free to reach out to me at vriesdephilip@gmail.com if you have any questions.
 
 **Disclaimer**
 
