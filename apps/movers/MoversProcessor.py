@@ -277,7 +277,12 @@ class MoversProcessor(DataProcessor):
                 latest_rsi = rsi_padded_frame.iloc[-1]['rsi']
                 self.data_wrapper.updateValueFor(uid, bar_type + "_RSI", latest_rsi)
 
-        difference_rsi = self.stock_df.loc[uid, "1 day_RSI"] - (self.stock_df.loc[uid, "5 mins_RSI"] + self.stock_df.loc[uid, "15 mins_RSI"])/2
+        day_rsi = self.stock_df.loc[uid, "1 day_RSI"]
+        five_rsi = self.stock_df.loc[uid, "5 mins_RSI"]
+        fifteen_rsi = self.stock_df.loc[uid, "15 mins_RSI"]
+        hour_rsi = self.stock_df.loc[uid, "1 hour_RSI"]
+        short_rsis = [five_rsi, fifteen_rsi, hour_rsi]
+        difference_rsi = max(abs(day_rsi - short_rsi) for short_rsi in short_rsis)
         self.data_wrapper.updateValueFor(uid, "Difference_RSI", difference_rsi)
     
 
