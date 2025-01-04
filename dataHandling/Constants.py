@@ -29,21 +29,22 @@ class Constants:
     SYMBOL_SUBMIT: Final = 1
 
     SYMBOL_SEARCH_REQID: Final = 2
-    STK_PRICE_REQID: Final = 3
+
     PNL_REQID: Final = 5
     ACCOUNT_SUMMARY_REQID: Final = 6
     SEC_DEF_OPTION_PARAM_REQID: Final = 7
-    BASE_OPTION_BUFFER_REQID: Final = 1000000
-    BASE_OPTION_LIVE_REQID: Final = 2000000
-    BASE_HIST_MIN_MAX_REQID: Final = 3000000
-    BASE_HIST_DATA_REQID: Final = 4000000
-    BASE_HIST_BARS_REQID: Final = 5000000
-    BASE_MKT_STOCK_REQID: Final = 6000000
-    BASE_PNL_REQID: Final = 7000000
-    BASE_HIST_EARLIEST_REQID: Final = 8000000
-    BASE_ORDER_REQID: Final = 9000000
-    OPTION_CONTRACT_DEF_ID: Final = 10000000
-    REQID_STEP: Final = 1000000
+    BASE_PRICE_REQID: Final = 1_000_000
+    BASE_OPTION_BUFFER_REQID: Final = 2_000_000
+    BASE_OPTION_LIVE_REQID: Final = 3_000_000
+    BASE_HIST_MIN_MAX_REQID: Final = 4_000_000
+    BASE_HIST_DATA_REQID: Final = 5_000_000
+    BASE_HIST_BARS_REQID: Final = 6_000_000
+    BASE_MKT_STOCK_REQID: Final = 7_000_000
+    BASE_PNL_REQID: Final = 8_000_000
+    BASE_HIST_EARLIEST_REQID: Final = 9_000_000
+    BASE_ORDER_REQID: Final = 10_000_000
+    OPTION_CONTRACT_DEF_ID: Final = 11_000_000
+    REQID_STEP: Final = 1_000_000
 
     SECONDS_IN_DAY: Final = 86400
     
@@ -141,7 +142,7 @@ class Constants:
     NAMES: Final = 'NAMES'
     DAYS_TILL_EXP: Final = 'DAYS_TILL_EXP'
 
-    DEFAULT_OPT_EXC: Final = "CBOE" #"AMEX"
+    DEFAULT_OPT_EXC: Final = "SMART" #"CBOE" #"AMEX"
     EXCHANGE: Final = 'exchange'
     SMART: Final = "SMART"
 
@@ -225,18 +226,19 @@ class Constants:
     TWELVE_HOUR_BAR: Final = '12 hours'
     DAY_BAR: Final = '1 day'
     THREE_DAY_BAR: Final = '3 days'
+    WEEK_BAR: Final = '1 week'
 
 
 QUICK_BAR_TYPES: Final = [Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR]
-MAIN_BAR_TYPES: Final = [Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR, Constants.DAY_BAR]
-DT_BAR_TYPES: Final = [Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR, Constants.DAY_BAR]
-DOWNLOADABLE_BAR_TYPES: Final = {Constants.ONE_MIN_BAR: Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR: Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR: Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR: Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR: Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR: Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR: Constants.HOUR_BAR, Constants.DAY_BAR: Constants.DAY_BAR}
-RESAMPLING_BARS: Final = {Constants.TWO_MIN_BAR: '2min', Constants.THREE_MIN_BAR: '3min', Constants.FIVE_MIN_BAR: '5min', Constants.FIFTEEN_MIN_BAR: '15min', Constants.HOUR_BAR: '1h', Constants.FOUR_HOUR_BAR: '4h', Constants.DAY_BAR: 'D'}
-RESAMPLING_DT_BARS: Final = {Constants.TWO_MIN_BAR: '2min', Constants.THREE_MIN_BAR: '3min', Constants.FIVE_MIN_BAR: '5min', Constants.FIFTEEN_MIN_BAR: '15min', Constants.HOUR_BAR: 'h', Constants.FOUR_HOUR_BAR: '4h', Constants.DAY_BAR: 'D'}
-RESAMPLING_SECONDS: Final = {Constants.TWO_MIN_BAR: 120, Constants.THREE_MIN_BAR: 180, Constants.FIVE_MIN_BAR: 300, Constants.FIFTEEN_MIN_BAR: 900, Constants.HOUR_BAR: 3600, Constants.FOUR_HOUR_BAR: 14400, Constants.DAY_BAR: 86400}
+MAIN_BAR_TYPES: Final = [Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR, Constants.DAY_BAR] #, Constants.THREE_DAY_BAR, Constants.WEEK_BAR]
+DT_BAR_TYPES: Final = [Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR, Constants.DAY_BAR] #, Constants.THREE_DAY_BAR, Constants.WEEK_BAR]
+DOWNLOADABLE_BAR_TYPES: Final = {Constants.ONE_MIN_BAR: Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR: Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR: Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR: Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR: Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR: Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR: Constants.HOUR_BAR, Constants.DAY_BAR: Constants.DAY_BAR, Constants.THREE_DAY_BAR: Constants.DAY_BAR, Constants.WEEK_BAR: Constants.DAY_BAR}
+RESAMPLING_BARS: Final = {Constants.TWO_MIN_BAR: '2min', Constants.THREE_MIN_BAR: '3min', Constants.FIVE_MIN_BAR: '5min', Constants.FIFTEEN_MIN_BAR: '15min', Constants.HOUR_BAR: '1h', Constants.FOUR_HOUR_BAR: '4h', Constants.DAY_BAR: 'D', Constants.THREE_DAY_BAR: '3D', Constants.WEEK_BAR: 'W'}
+RESAMPLING_DT_BARS: Final = {Constants.TWO_MIN_BAR: '2min', Constants.THREE_MIN_BAR: '3min', Constants.FIVE_MIN_BAR: '5min', Constants.FIFTEEN_MIN_BAR: '15min', Constants.HOUR_BAR: 'h', Constants.FOUR_HOUR_BAR: '4h', Constants.DAY_BAR: 'D', Constants.THREE_DAY_BAR: '3D', Constants.WEEK_BAR: 'W'}
+RESAMPLING_SECONDS: Final = {Constants.TWO_MIN_BAR: 120, Constants.THREE_MIN_BAR: 180, Constants.FIVE_MIN_BAR: 300, Constants.FIFTEEN_MIN_BAR: 900, Constants.HOUR_BAR: 3600, Constants.FOUR_HOUR_BAR: 14400, Constants.DAY_BAR: 86400, Constants.THREE_DAY_BAR: 259200, Constants.WEEK_BAR: 604800}
 
 
-MINUTES_PER_BAR: Final = {Constants.ONE_MIN_BAR: 1, Constants.TWO_MIN_BAR: 2, Constants.THREE_MIN_BAR: 3, Constants.FIVE_MIN_BAR: 5, Constants.FIFTEEN_MIN_BAR: 15, Constants.HOUR_BAR: 60, Constants.FOUR_HOUR_BAR: 240, Constants.DAY_BAR: 1440}
+MINUTES_PER_BAR: Final = {Constants.ONE_MIN_BAR: 1, Constants.TWO_MIN_BAR: 2, Constants.THREE_MIN_BAR: 3, Constants.FIVE_MIN_BAR: 5, Constants.FIFTEEN_MIN_BAR: 15, Constants.HOUR_BAR: 60, Constants.FOUR_HOUR_BAR: 240, Constants.DAY_BAR: 1440, Constants.THREE_DAY_BAR: 4320, Constants.WEEK_BAR: 10080}
 
 # importing enum for enumerations
 import enum
