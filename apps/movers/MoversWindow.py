@@ -85,7 +85,7 @@ class MoversWindow(ProcessorWindow, Movers_UI):
         for tbl in self.list_of_tables:
             tbl.setSortingEnabled(True)
         
-        self.keep_up_box.setEnabled(False)
+        self.keep_up_button.setEnabled(False)
         
         self.connectScrollbars()
 
@@ -106,10 +106,11 @@ class MoversWindow(ProcessorWindow, Movers_UI):
 
 
     def setupActions(self):
-        self.fetch_button.clicked.connect(self.fetchData)
+        self.update_button.clicked.connect(self.updateData)
+        self.full_fetch_button.clicked.connect(self.refreshData)
         self.period_selector.currentTextChanged.connect(self.periodSelection)
         self.index_selector.currentIndexChanged.connect(self.indexSelection)
-        self.keep_up_box.stateChanged.connect(self.keepUpToDate, Qt.QueuedConnection)
+        self.keep_up_button.clicked.connect(self.keepUpToDate, Qt.QueuedConnection)
         self.use_stale_box.stateChanged.connect(self.greyoutStale)
         self.list_selector.currentIndexChanged.connect(self.listSelection)
         self.tab_widget.currentChanged.connect(self.onTabChange) 

@@ -46,13 +46,13 @@ class MoversList(MoversWindow):
     time_period = "Month"
 
     gui_change_signal = pyqtSignal(TableType)
-    fetch_latest_signal = pyqtSignal()
+    fetch_latest_signal = pyqtSignal(bool)
     set_stock_list_signal = pyqtSignal(dict)
     update_stock_list_signal = pyqtSignal(str, bool, bool)
     period_update_signal = pyqtSignal(str)
     cancel_update_signal = pyqtSignal()
     index_selection_signal = pyqtSignal(str)
-
+    continuous_updating_on = False
     bar_types = DT_BAR_TYPES
     counter = 0
 
@@ -142,9 +142,9 @@ class MoversList(MoversWindow):
         self.inside_bar_table.setModel(self.inside_bar_model)
         self.setupVerticalHeaderInteraction(self.inside_bar_table, self.inside_bar_model)
 
-        mapping = {0: Constants.PRICE, 1: '1 min_RSI', 2: '2 mins_RSI', 3: '3 mins_RSI', 4: '5 mins_RSI', 5: '15 mins_RSI', 6: "1 hour_RSI", 7: "4 hours_RSI", 8: "1 day_RSI", 9: "Difference_RSI"}
-        header_labels = ['Price', Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR, Constants.DAY_BAR, 'Long v Short']
-        function_labels = [lambda x: f"{x:.2f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}"]
+        mapping = {0: Constants.PRICE, 1: '1 min_RSI', 2: '2 mins_RSI', 3: '3 mins_RSI', 4: '5 mins_RSI', 5: '15 mins_RSI', 6: "1 hour_RSI", 7: "4 hours_RSI", 8: "1 day_RSI", 9: "Difference_RSI"} #, 9: "3 days_RSI", 10: "1 week_RSI"
+        header_labels = ['Price', Constants.ONE_MIN_BAR, Constants.TWO_MIN_BAR, Constants.THREE_MIN_BAR, Constants.FIVE_MIN_BAR, Constants.FIFTEEN_MIN_BAR, Constants.HOUR_BAR, Constants.FOUR_HOUR_BAR, Constants.DAY_BAR, 'Long v Short'] #, Constants.THREE_DAY_BAR, Constants.WEEK_BAR
+        function_labels = [lambda x: f"{x:.2f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}", lambda x: f"{x:.1f}"] #, lambda x: f"{x:.1f}", lambda x: f"{x:.1f}"
         self.rsi_model = RSIModel(self.table_data, mapping, header_labels, function_labels)
         self.rsi_table.setModel(self.rsi_model)
         self.setupVerticalHeaderInteraction(self.rsi_table, self.rsi_model)
@@ -186,6 +186,7 @@ class MoversList(MoversWindow):
     def processingUpdate(self, signal):
         if signal == Constants.ALL_DATA_LOADED:
             self.setHistoryEnabled(True)
+
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
@@ -231,9 +232,18 @@ class MoversList(MoversWindow):
 
 ############## BUTTON ACTIONS
 
-    def fetchData(self):
-        self.fetch_button.setEnabled(False)
-        self.fetch_latest_signal.emit()
+    def updateData(self):
+        self.update_button.setEnabled(False)
+        self.full_fetch_button.setEnabled(False)
+        self.keep_up_button.setEnabled(False)
+        self.fetch_latest_signal.emit(False)
+
+
+    def refreshData(self):
+        self.update_button.setEnabled(False)
+        self.keep_up_button.setEnabled(False)
+        self.full_fetch_button.setEnabled(False)
+        self.fetch_latest_signal.emit(True)
 
 
     def indexSelection(self, value):
@@ -254,9 +264,9 @@ class MoversList(MoversWindow):
         self.initTableModels()
         #self.fetchShortRates()
         
-        self.fetch_button.setEnabled(True)
-        self.keep_up_box.setChecked(False)
-        self.keep_up_box.setEnabled(False)
+        self.update_button.setEnabled(True)
+        self.full_fetch_button.setEnabled(True)
+        self.keep_up_button.setEnabled(False)
 
         self.setHistoryEnabled(True, self.data_processor.isUpdatable())
         
@@ -281,8 +291,9 @@ class MoversList(MoversWindow):
     def setHistoryEnabled(self, fetch_enabled, keep_up_enabled=None):
         if keep_up_enabled is None:
             keep_up_enabled = fetch_enabled
-        self.fetch_button.setEnabled(fetch_enabled)
-        self.keep_up_box.setEnabled(keep_up_enabled)
+        self.update_button.setEnabled(fetch_enabled)
+        self.full_fetch_button.setEnabled(fetch_enabled)
+        self.keep_up_button.setEnabled(keep_up_enabled)
         
 
 
@@ -294,12 +305,14 @@ class MoversList(MoversWindow):
         self.gui_change_signal.emit(table_type)
 
 
-    def keepUpToDate(self, value):
-        if value:
-            self.update_stock_list_signal.emit(Constants.ONE_MIN_BAR, value, True)
-        else:
+    def keepUpToDate(self, button):
+        if self.continuous_updating_on:
             self.cancel_update_signal.emit()
-    
+            self.keep_up_button.setText("Continuous")
+        else:
+            self.update_stock_list_signal.emit(Constants.ONE_MIN_BAR, True, True)
+            self.keep_up_button.setText("Stop Cont.")
+        
 
 ############## Table interactions
 

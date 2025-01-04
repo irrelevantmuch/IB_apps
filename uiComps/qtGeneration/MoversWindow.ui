@@ -47,22 +47,46 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="list_selector"/>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="keep_up_box">
-        <property name="layoutDirection">
-         <enum>Qt::RightToLeft</enum>
-        </property>
-        <property name="text">
-         <string>Keep up-to-date</string>
+       <widget class="QComboBox" name="list_selector">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="fetch_button">
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="full_fetch_button">
         <property name="text">
-         <string>Fetch!</string>
+         <string>Redo All</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="keep_up_button">
+        <property name="text">
+         <string>Continuous</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="update_button">
+        <property name="text">
+         <string>Update</string>
         </property>
        </widget>
       </item>
@@ -108,7 +132,7 @@
       </widget>
       <widget class="QWidget" name="from_low_widget">
        <attribute name="title">
-        <string>From Low</string>
+        <string>Lows</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_6">
         <item row="0" column="0">
@@ -118,7 +142,7 @@
       </widget>
       <widget class="QWidget" name="from_high_widget">
        <attribute name="title">
-        <string>From High</string>
+        <string>Highs</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_7">
         <item row="0" column="0">
@@ -128,7 +152,7 @@
       </widget>
       <widget class="QWidget" name="steps_up_widget">
        <attribute name="title">
-        <string>Steps U</string>
+        <string>Steps Up</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_2">
         <item row="0" column="0">
@@ -138,7 +162,7 @@
       </widget>
       <widget class="QWidget" name="steps_down_widget">
        <attribute name="title">
-        <string>Steps D</string>
+        <string>Steps Do</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_8">
         <item row="0" column="0">
