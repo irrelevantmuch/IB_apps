@@ -93,8 +93,13 @@ class TelegramBot(QObject):
 
         tv_url = f"https://www.tradingview.com/chart/?symbol={symbol}"
 
-        if 'daily_move' in message_properties:
-            message = f"<a href='{tv_url}'>{symbol}</a> (<b>{latest_price:.2f} • {message_properties['daily_move']:.1f}%</b>)" 
+
+        if 'daily_move' in message_properties:  
+            if message_properties['daily_move'] > 0:
+                color_indicator = "🟢"
+            else:
+                color_indicator = "🔻"
+            message = f"<a href='{tv_url}'>{symbol}</a> (<b>{latest_price:.2f} • {color_indicator}{message_properties['daily_move']:.1f}%</b>)" 
         else:
             message = f"<a href='{tv_url}'>{symbol}</a> (<b>{latest_price:.2f}</b>)" 
         if 'daily_rsi' in message_properties:
