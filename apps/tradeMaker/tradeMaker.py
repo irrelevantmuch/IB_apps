@@ -396,10 +396,10 @@ class TradeMaker(TradingWindow):
 
         close_dict = dict()
         if self.profit_take_on:
-            close_dict['profit_limit'] = float(self.profit_limit_field.text()) 
+            close_dict['profit_limit'] = self.profit_limit_field.value()
         if self.stop_loss_on:
-            close_dict['stop_trigger'] = float(self.stop_trigger_field.text()) 
-            close_dict['stop_limit'] = float(self.stop_limit_field.text()) 
+            close_dict['stop_trigger'] = self.stop_trigger_field.value()
+            close_dict['stop_limit'] = self.stop_limit_field.value()
 
         self.place_complex_signal.emit(contract, action, count, limit_price, close_dict)
         
