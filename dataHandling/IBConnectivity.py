@@ -1,4 +1,4 @@
-
+# 
 # Copyright (c) 2024 Jelmer de Vries
 #
 # This program is free software: you can redistribute it and/or modify
@@ -36,25 +36,171 @@ from pubsub import pub
 from threading import Thread
 
 
+class ReqIDManager:
+
+    
+    def __init__(self):
+        self._open_requests = set()
+        self._hist_req_ids = set()       #general log of open history requests, allows for creating unique id's
+        self._price_req_ids = set()
+        self._option_live_ids = set()
+        self._option_buffer_ids = set()
+        self._option_contract_ids = set()
+
+        
+
+    def getNextPriceReqID(self):
+        if len(self._price_req_ids) == 0:
+            next_id = Constants.BASE_PRICE_REQID
+        else:
+            next_id = max(self._price_req_ids)+1
+
+        self._price_req_ids.add(next_id)
+        return next_id
+
+
+    def getNextOptionLiveID(self):
+        if len(self._option_live_ids) == 0:
+            next_id = Constants.BASE_OPTION_LIVE_REQID
+        else:
+            next_id = max(self._option_live_ids)+1
+
+        self._option_live_ids.add(next_id)
+        return next_id
+
+
+    def getNextOptionBufferID(self):
+        if len(self._option_buffer_ids) == 0:
+            next_id = Constants.BASE_OPTION_BUFFER_REQID
+        else:
+            next_id = max(self._option_buffer_ids)+1
+
+        self._option_buffer_ids.add(next_id)
+        return next_id
+
+
+    def getNextHistID(self, cancelling_req_ids=set()):
+        req_ids_in_use = self._hist_req_ids.union(cancelling_req_ids)
+        if len(req_ids_in_use) == 0:
+            new_id = Constants.BASE_HIST_DATA_REQID
+        else:
+            new_id = max(req_ids_in_use) + 1
+        
+        self._hist_req_ids.add(new_id)     #keep a trace requested but not yet used requests
+        return new_id
+
+    
+    def getNextOptionContractID(self):
+        if len(self._option_contract_ids) == 0:
+            next_id = Constants.OPTION_CONTRACT_DEF_ID
+        else:
+            next_id = max(self._option_contract_ids) + 1
+
+        self._option_contract_ids.add(next_id)
+        return next_id
+            
+
+    def clearPriceReqID(self, req_id):
+        if req_id in self._price_req_ids: self._price_req_ids.remove(req_id)
+
+
+    def clearHistReqID(self, req_id):
+        if req_id in self._hist_req_ids: self._hist_req_ids.remove(req_id)
+
+
+    def clearHistReqIDs(self, req_ids):
+        self._open_requests = self._open_requests - req_ids
+
+    def getAllHistIDs(self):
+        return self._hist_req_ids.copy()
+
+
+    def isActiveHistID(self, req_id):
+        return (req_id in self._hist_req_ids)
+
+
+    def isStrikeType(self, req_id):
+        return (req_id >= Constants.BASE_OPTION_BUFFER_REQID and req_id < (Constants.BASE_OPTION_BUFFER_REQID + Constants.REQID_STEP))
+
+
+    def isExpType(self, req_id):
+        return (req_id >= Constants.BASE_OPTION_LIVE_REQID and req_id < (Constants.BASE_OPTION_LIVE_REQID + Constants.REQID_STEP))
+
+
+    def isOptionRequest(self, req_id):
+        return self.isExpType(req_id) or self.isStrikeType(req_id)
+
+
+    def isLiveReqID(self, req_id):
+        return req_id >= Constants.BASE_OPTION_LIVE_REQID and (req_id < Constants.BASE_OPTION_LIVE_REQID + Constants.REQID_STEP)
+
+    
+    def isBufferReqID(self, req_id):
+        return req_id >= Constants.BASE_OPTION_BUFFER_REQID and (req_id < Constants.BASE_OPTION_BUFFER_REQID + Constants.REQID_STEP)
+
+
+    def isPriceRequest(self, req_id):
+        return (req_id >= Constants.BASE_MKT_STOCK_REQID and req_id < (Constants.BASE_MKT_STOCK_REQID + Constants.REQID_STEP))
+
+
+    def isHistDataRequest(self, req_id):
+        return (req_id >= Constants.BASE_HIST_DATA_REQID and req_id < (Constants.BASE_HIST_DATA_REQID + Constants.REQID_STEP))
+
+
+    def isHistBarsRequest(self, req_id):
+        return (req_id >= Constants.BASE_HIST_BARS_REQID and req_id < (Constants.BASE_HIST_BARS_REQID + Constants.REQID_STEP))
+
+
+    def isHistMinMaxRequest(self, req_id):
+        return (req_id >= Constants.BASE_HIST_MIN_MAX_REQID and req_id < (Constants.BASE_HIST_MIN_MAX_REQID + Constants.REQID_STEP))
+
+
+    def isHistoryRequest(self, req_id):
+        return (self.isHistMinMaxRequest(req_id) or self.isHistDataRequest(req_id) or self.isHistBarsRequest(req_id))
+
+
+    def addOpenReq(self, req_id):
+        self._open_requests.add(req_id)
+
+
+    def isOpenReqID(self, req_id):
+        return (req_id in self._open_requests)
+
+
+    def clearOpenReqID(self, req_id):
+        if req_id in self._open_requests:
+            self._open_requests.remove(req_id)
+
+    def getActiveReqCount(self):
+        return len(self._open_requests)
+
+
+    def cleanIfActive(self, req_id):
+        if req_id in self._open_requests:
+            self._open_requests.remove(req_id)
+
+
+
 class IBConnectivity(EClient, EWrapper, QObject):
     
     finished = pyqtSignal()
 
     api_updater = pyqtSignal(str, dict)
     run_ib_client_signal = pyqtSignal()
-    _active_requests = set()
 
-    _price_req_is_active = False
+    _cont_hist = set()
+
+    req_id_manager = ReqIDManager()
+
+    _active_price_req_id = None
     snapshot = False
 
     queue_timer = None
-
-    restart_timer = pyqtSignal()
-    next_id_event = None
+    restart_timer_signal = pyqtSignal()
     latest_price_signal = pyqtSignal(float, str)
 
-    managed_accounts_initialized = False
-    next_valid_initialized = False
+    _managed_accounts_initialized = False
+    _next_valid_initialized = False
 
     _connection_status = Constants.CONNECTION_CLOSED
 
@@ -76,8 +222,10 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
     @pyqtSlot(DetailObject)
     def requestMarketData(self, contractDetails):
-        if self._price_req_is_active:
-            self.makeRequest({'type': 'cancelMktData', 'req_id': Constants.STK_PRICE_REQID})
+        if self._active_price_req_id is not None:
+            self.makeRequest({'type': 'cancelMktData', 'req_id': self._active_price_req_id})
+            self.req_id_manager.clearPriceReqID(self._active_price_req_id)
+            self._active_price_req_id = None
 
         contract = Contract()
         contract.symbol = contractDetails.symbol
@@ -94,29 +242,30 @@ class IBConnectivity(EClient, EWrapper, QObject):
         else:
             contract.currency = Constants.USD
         
+        self._active_price_req_id = self.req_id_manager.getNextPriceReqID()
         contract.exchange = Constants.SMART
         request = dict()
         request['type'] = 'reqMktData'
-        request['req_id'] = Constants.STK_PRICE_REQID
+        request['req_id'] = self._active_price_req_id
         request['contract'] = contract
         request['snapshot'] = self.snapshot
         request['reg_snapshot'] = False
         self.makeRequest(request)
-        self._price_req_is_active = True
 
     
     ################ General Connection
         
     @pyqtSlot()
     def startConnection(self):
-        self.setConnectionOptions("+PACEAPI")
+        # self.setConnectionOptions("+PACEAPI")
         def target():
+            print(f"We start the connection on: {int(QThread.currentThreadId())}")
             self.connect(self.local_address, self.trading_socket, self.client_id)
             self.run()
         
         self.queue_timer = QTimer()
         self.queue_timer.timeout.connect(self.processQueue)
-        self.restart_timer.connect(self.startProcessingQueue, Qt.QueuedConnection)
+        self.restart_timer_signal.connect(self.startProcessingQueue, Qt.QueuedConnection)
 
         self.tws_thread = Thread(target=target, daemon=True)
         self.tws_thread.start()
@@ -142,6 +291,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
         return len(self.owners)
 
     def error(self, message):
+        print(f"IBConnectivity.error {message}")
         pub.sendMessage('log', message=f"Error: {message}")
 
 
@@ -152,14 +302,12 @@ class IBConnectivity(EClient, EWrapper, QObject):
             pub.sendMessage('log', message=f"Error: {req_id}, code: {errorCode}, message: {errorString}, req_id: {req_id}")
         
         if errorCode == 200 or errorCode == 162:
-            if req_id in self._active_requests:
-                self._active_requests.remove(req_id)
-            if self.isPriceRequest(req_id):
+            if self.req_id_manager.isOpenReqID(req_id):
+                self.req_id_manager.clearHistReqID(req_id)
+            if self.req_id_manager.isPriceRequest(req_id):
                 pass
                 #What was this for?
                 #self.delegate.mktDataError(req_id)
-
-        #if req_id in self._active_requests: self._active_requests.remove(req_id)
             
         
     def connectAck(self):
@@ -180,46 +328,41 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
         self.next_order_ID = orderId
 
-        if self.managed_accounts_initialized:
+        if self._managed_accounts_initialized:
             if (not self.queue_timer.isActive()) and not(self.request_queue.empty()):
-                self.restart_timer.emit()
-        self.next_valid_initialized = True
+                self.restart_timer_signal.emit()
+        self._next_valid_initialized = True
         
 
     def managedAccounts(self, accountsList: str):
-        if self.next_valid_initialized:
+        if self._next_valid_initialized:
             if (not self.queue_timer.isActive()) and not(self.request_queue.empty()):
-                self.restart_timer.emit()
-        self.managed_accounts_initialized = True
+                self.restart_timer_signal.emit()
+        self._managed_accounts_initialized = True
         self.api_updater.emit(Constants.MANAGED_ACCOUNT_LIST, {'account_list': accountsList, 'owners': self.owners})
         
 
     def readyForRequests(self):
-        return (self._connection_status == Constants.CONNECTION_OPEN) and self.managed_accounts_initialized and self.next_valid_initialized
-
-
-    def getActiveReqCount(self):
-        return len(self._active_requests)
+        return (self._connection_status == Constants.CONNECTION_OPEN) and self._managed_accounts_initialized and self._next_valid_initialized
 
 
     ################ Specific Callbacks
 
     def tickPrice(self, req_id, tickType, price, attrib):
-        tick_type_str = TickTypeEnum.to_str(tickType)
+        tick_type_str = TickTypeEnum.toStr(tickType)
         self.latest_price_signal.emit(price, tick_type_str)
 
     def tickSnapshotEnd(self, req_id: int):
         super().tickSnapshotEnd(req_id)
-        if req_id in self._active_requests:
-            self._active_requests.remove(req_id)
-
+        self.req_id_manager.cleanIfActive(req_id)
+        
     ################ Request processing
 
 
     def makeRequest(self, request):
         self.request_queue.put(request)
         if (self.queue_timer is not None) and (not (self.queue_timer.isActive())) and self.readyForRequests():
-            self.restart_timer.emit()
+            self.restart_timer_signal.emit()
 
 
     @pyqtSlot()
@@ -229,6 +372,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
     @pyqtSlot()
     def processQueue(self):
+        print(f"IBConnectivity.processQueue {self.request_queue.qsize()}")
         if not self.request_queue.empty():
             request = self.request_queue.get_nowait()
             self.processRequest(request)
@@ -244,14 +388,18 @@ class IBConnectivity(EClient, EWrapper, QObject):
         message = f"Process ({request['req_id'] if 'req_id' in request else '-'}): {request['type']}"
 
         if req_type == 'reqHistoricalData':
-            message += f"for {request['contract'].symbol} ({request['bar_type']}) for {request['duration']} with end date {request['end_date'] if request['end_date'] else 'now'} and keep up {request['keep_up_to_date']}"
+            message += f" for {request['contract'].symbol} ({request['bar_type']}) for {request['duration']} with end date {request['end_date'] if request['end_date'] else 'now'} and keep up {request['keep_up_to_date']}"
             self.reqHistoricalData(request['req_id'], request['contract'], request['end_date'], request['duration'], request['bar_type'], Constants.TRADES, request['regular_hours'], 2, request['keep_up_to_date'], [])
-            self._active_requests.add(request['req_id'])
+            if request['keep_up_to_date']: self._cont_hist.add(request['req_id'])
+            self.req_id_manager.addOpenReq(request['req_id'])
         elif req_type == 'cancelHistoricalData':
+            if request['req_id'] in self._cont_hist:
+                self._cont_hist.remove(request['req_id'])
+                self.req_id_manager.clearOpenReqID(request['req_id'])
             self.cancelHistoricalData(request['req_id'])
         elif req_type == 'reqHeadTimeStamp':
             self.reqHeadTimeStamp(request['req_id'], request['contract'], request['data_type'], request['use_rth'], request['format_date'])
-            self._active_requests.add(request['req_id'])
+            self.req_id_manager.addOpenReq(request['req_id'])
         elif req_type == 'reqOpenOrders':
             self.reqOpenOrders()
         elif req_type == 'reqAccountUpdates':
@@ -263,13 +411,13 @@ class IBConnectivity(EClient, EWrapper, QObject):
         elif req_type == 'reqIds':
             self.reqIds(request['num_ids'])
         elif req_type == 'reqSecDefOptParams':
-            message += f"for {request['symbol']}"
+            message += f" for {request['symbol']}"
             self.reqSecDefOptParams(request['req_id'], request['symbol'], "", request['equity_type'], request['numeric_id'])
-            self._active_requests.add(request['req_id'])
+            self.req_id_manager.addOpenReq(request['req_id'])
         elif req_type == 'reqRealTimeBars':
-            message += f"for {request['contract'].symbol}"
+            message += f" for {request['contract'].symbol}"
             self.reqRealTimeBars(request['req_id'], request['contract'], 5, "MIDPOINT", False, [])
-            self._active_requests.add(request['req_id'])
+            self.req_id_manager.addOpenReq(request['req_id'])
         elif req_type == 'cancelMktData':
             self.cancelMktData(request['req_id'])
         elif req_type == 'reqGlobalCancel':
@@ -284,10 +432,10 @@ class IBConnectivity(EClient, EWrapper, QObject):
             if request['contract'].secType == "OPT":
                 message += f" at strike {request['contract'].strike} with expiration {request['contract'].lastTradeDateOrContractMonth}"
             self.reqMktData(request['req_id'], request['contract'], "", request['snapshot'], request['reg_snapshot'], [])
-            self._active_requests.add(request['req_id'])
+            self.req_id_manager.addOpenReq(request['req_id'])
         elif req_type == 'reqContractDetails':
             self.reqContractDetails(request['req_id'], request['contract'])
-            self._active_requests.add(request['req_id'])
+            self.req_id_manager.addOpenReq(request['req_id'])
         
         pub.sendMessage('log', message=message)
         
@@ -295,55 +443,20 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
     def headTimestamp(self, req_id: int, head_time_stamp: str):
         super().headTimestamp(req_id, head_time_stamp)
-        if req_id in self._active_requests: self._active_requests.remove(req_id)
+        self.req_id_manager.cleanIfActive(req_id)
 
 
     def historicalDataEnd(self, req_id: int, start: str, end: str):
         super().historicalDataEnd(req_id, start, end)
-        if req_id in self._active_requests: self._active_requests.remove(req_id)
+        if self.req_id_manager.isOpenReqID(req_id) and not(req_id in self._cont_hist): self.req_id_manager.clearOpenReqID(req_id)
 
-
-    ############# REQUEST TYPING
-
-
-    def isStrikeType(self, req_id):
-        return (req_id >= Constants.BASE_OPTION_BUFFER_REQID and req_id < (Constants.BASE_OPTION_BUFFER_REQID + Constants.REQID_STEP))
-
-
-    def isExpType(self, req_id):
-        return (req_id >= Constants.BASE_OPTION_LIVE_REQID and req_id < (Constants.BASE_OPTION_LIVE_REQID + Constants.REQID_STEP))
-
-
-    def isOptionInfRequest(self, req_id):
-        return (req_id >= Constants.OPTION_CONTRACT_DEF_ID and req_id < (Constants.OPTION_CONTRACT_DEF_ID + Constants.REQID_STEP))
-
-    def isOptionRequest(self, req_id):
-        return self.isExpType(req_id) or self.isStrikeType(req_id)
-
-
-    def isPriceRequest(self, req_id):
-        return (req_id >= Constants.BASE_MKT_STOCK_REQID and req_id < (Constants.BASE_MKT_STOCK_REQID + Constants.REQID_STEP))
-
-
-    def isHistDataRequest(self, req_id):
-        return (req_id >= Constants.BASE_HIST_DATA_REQID and req_id < (Constants.BASE_HIST_DATA_REQID + Constants.REQID_STEP))
-
-
-    def isHistBarsRequest(self, req_id):
-        return (req_id >= Constants.BASE_HIST_BARS_REQID and req_id < (Constants.BASE_HIST_BARS_REQID + Constants.REQID_STEP))
-
-
-    def isHistMinMaxRequest(self, req_id):
-        return (req_id >= Constants.BASE_HIST_MIN_MAX_REQID and req_id < (Constants.BASE_HIST_MIN_MAX_REQID + Constants.REQID_STEP))
-
-
-    def isHistoryRequest(self, req_id):
-        return (self.isHistMinMaxRequest(req_id) or self.isHistDataRequest(req_id) or self.isHistBarsRequest(req_id))
 
 
     def stopActiveRequests(self, owner_id):
-        if self._price_req_is_active:
+        if self._active_price_req_id is not None:
             self.makeRequest({'type': 'cancelMktData', 'req_id': Constants.STK_PRICE_REQID})
+            self.clearPriceReqID(self._active_price_req_id)
+            self._active_price_req_id = None
 
 
     def stop(self):
