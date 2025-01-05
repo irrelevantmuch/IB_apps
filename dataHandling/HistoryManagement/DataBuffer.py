@@ -17,6 +17,7 @@ from dataHandling.Constants import Constants, MAIN_BAR_TYPES, DT_BAR_TYPES, MINU
 from generalFunctionality.GenFunctions import stringRange
 from dataHandling.HistoryManagement.RangeObject import RangeObject
 import pandas as pd
+from numpy import int64
 from datetime import datetime, timedelta
 from pytz import utc
 from zoneinfo import ZoneInfo
@@ -53,6 +54,17 @@ class DataBuffers(QObject):
         if not((uid, bar_type) in self._date_ranges) or (req_ranges_list is not None):
             self._date_ranges[uid, bar_type] = RangeObject(requested_ranges=req_ranges_list) 
         self._locks[uid, bar_type].unlock()
+
+
+    def clearBufferFor(self, uid):
+        matching_keys = [key for key in self._buffers if key[0] == uid]
+        
+        for key in matching_keys:
+            self._locks[key] = QReadWriteLock()
+            del self._buffers[key]
+            del self._date_ranges[key]
+            self._locks[key].unlock()
+            del self._locks[key]
 
 
     def addToBuffer(self, uid, bar_type, new_data, new_req_range=None):
@@ -423,7 +435,7 @@ class DataBuffers(QObject):
 
     def propagateUpdates(self, uid, from_bar_type, to_bar_type, new_req_range, update_full=True):
         updatable_range = self.getUpdatableRange(new_req_range, uid, from_bar_type, to_bar_type)
-        updated_indices = pd.Int64Index([])
+        updated_indices = pd.Index([], dtype=int64)
 
             # we ensure the origin data exists
         if updatable_range is not None:
@@ -461,12 +473,27 @@ class DataBuffers(QObject):
 
     def barFollowing(self, dt, bar_type):
         freq = RESAMPLING_DT_BARS[bar_type]
-        return pd.Timestamp(dt).ceil(freq).to_pydatetime()
+
+        if freq == 'W':
+            ceiled = pd.Timestamp(dt).normalize() + pd.offsets.Day()  # Get to next midnight
+            days_to_monday = (7 - ceiled.weekday()) % 7  # Calculate days until Monday
+            if days_to_monday == 0:
+                days_to_monday = 7  # If we're on Monday, go to next Monday
+            return (ceiled + pd.Timedelta(days=days_to_monday - 1)).to_pydatetime()
+        else:
+            return pd.Timestamp(dt).ceil(freq).to_pydatetime()
 
 
     def barPreceeding(self, dt, bar_type):
         freq = RESAMPLING_DT_BARS[bar_type]
-        return pd.Timestamp(dt).floor(freq).to_pydatetime()
+        if freq == 'W':
+            floored = pd.Timestamp(dt).normalize() + pd.offsets.Day()  # Get to next midnight
+            days_from_monday = floored.weekday() % 7  # Calculate days until Monday
+            if days_from_monday == 0:
+                days_from_monday = 7  # If we're on Monday, go to next Monday
+            return (floored - pd.Timedelta(days=days_from_monday)).to_pydatetime()
+        else:
+            return pd.Timestamp(dt).floor(freq).to_pydatetime()
 
 
     def getUpdatableRange(self, new_range, uid, from_bar_type, to_bar_type):
@@ -504,7 +531,8 @@ class DataBuffers(QObject):
         elif to_bar_type == Constants.HOUR_BAR: return Constants.FIFTEEN_MIN_BAR
         elif to_bar_type == Constants.FOUR_HOUR_BAR: return Constants.HOUR_BAR
         elif to_bar_type == Constants.DAY_BAR: return Constants.FIFTEEN_MIN_BAR
-
+        elif to_bar_type == Constants.THREE_DAY_BAR: return Constants.DAY_BAR
+        elif to_bar_type == Constants.WEEK_BAR: return Constants.DAY_BAR
 
 
     def moveIndex(self, time_index, bar_type, forward=True):
