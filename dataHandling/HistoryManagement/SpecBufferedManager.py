@@ -39,8 +39,8 @@ class SpecBufferedDataManager:
     ################ CREATING AND TRIGGERING HISTORIC REQUESTS
 
 
-    def fetchStockDataForPeriod(self, bar_type, start_date, end_date):
-        self._request_buffer = self.makeRequestList(bar_type, start_date, end_date)
+    def fetchStockDataForPeriod(self, bar_type, start_date, end_date, in_full):
+        self._request_buffer = self.makeRequestList(bar_type, start_date, end_date, in_full)
 
         if len(self._request_buffer) > 0:
             for request in self._request_buffer:
@@ -54,15 +54,18 @@ class SpecBufferedDataManager:
         self.history_manager.process_owner = self       
             
 
-    def makeRequestList(self, bar_type, start_date, end_date):
+    def makeRequestList(self, bar_type, start_date, end_date, in_full):
         request_list = []
         for uid, value in self._buffering_stocks.items():
             details = DetailObject(numeric_id=uid, **value)
 
-            if self.data_buffers.bufferExists(uid, bar_type):
+            if not(in_full) and self.data_buffers.bufferExists(uid, bar_type):
                 current_ranges = self.data_buffers.getRangesForBuffer(uid, bar_type)
                 missing_ranges = self.data_buffers.getMissingRangesFor(uid, bar_type, (start_date, end_date))
-                    
+                print("SpecBufferedDataManager.makeRequestList")
+                print(current_ranges)
+                print(missing_ranges)
+
                 for missing_range in missing_ranges:
                     request_list.append((details, bar_type, missing_range)) 
             else:
