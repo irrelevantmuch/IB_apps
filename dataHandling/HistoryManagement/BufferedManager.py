@@ -36,8 +36,6 @@ class BufferedDataManager(QObject):
     updated_through = dict()
     initial_fetch = True
 
-    fetching_bars = None
-
     queued_update_requests = []
 
     reset_signal = pyqtSignal(int)
@@ -98,68 +96,77 @@ class BufferedDataManager(QObject):
 
     ################ CREATING AND TRIGGERING HISTORIC REQUESTS
 
-    def fetchLatestStockDataWithCancelation(self, bar_types=MAIN_BAR_TYPES):
-        self.history_manager.cleanup_done_signal.connect(lambda: self.fetchLatestStockData(bar_types, True), Qt.QueuedConnection)
+    def fetchLatestStockDataWithCancelation(self):
+        self.history_manager.cleanup_done_signal.connect(lambda: self.fetchLatestStockData(False, True), Qt.QueuedConnection)
         self.reset_signal.emit(self.hist_id)
         
 
     @pyqtSlot()
-    @pyqtSlot(list)
-    def fetchLatestStockData(self, bar_types=MAIN_BAR_TYPES, needs_disconnect=False):
+    @pyqtSlot(bool)
+    def fetchLatestStockData(self, full_fetch=False, needs_disconnect=False):
+        bar_types=MAIN_BAR_TYPES
         if needs_disconnect: self.history_manager.cleanup_done_signal.disconnect()
 
-        stocks_to_fetch = self.findStocksInNeedOfDownload()
+        stock_list = self._buffering_stocks.copy()
 
-        self.fetching_bars = bar_types
-
-        if len(stocks_to_fetch) > 0:
-
-            for uid, stock_inf in stocks_to_fetch.items():
-                self.queStockRequestsFor(uid, stock_inf, bar_types=bar_types)
-                #if there is a mix, we mark this as a partial update to ensure updates are done after the initial fetch                
+        if full_fetch:
+            bars_to_fetch = {uid: bar_types for uid in stock_list.keys()}
+        else:
+            bars_to_fetch = self.barsInNeedOfDownload(stock_list, bar_types)
+        
+        if len(bars_to_fetch) > 0:
+            for uid, stock_inf in stock_list.items():
+                if full_fetch:
+                    self.data_buffers.clearBufferFor(uid)
+                self.queStockRequestsFor(uid, stock_inf, full_fetch, bar_types=bars_to_fetch[uid])
             self.group_request_signal.emit('full_update')
             self.queued_update_requests.append({'bar_type': Constants.ONE_MIN_BAR, 'update_list': self._buffering_stocks, 'keep_up_to_date': False, 'allow_splitting': True})
-            self.execute_request_signal.emit(4_000)
+            self.execute_request_signal.emit(3_000)
         else:
             self.requestUpdates(update_list=self._buffering_stocks, propagate_updates=True)
             
 
-    def findStocksInNeedOfDownload(self):
-        stocks_to_fetch = dict()
-        for uid, value in self._buffering_stocks.items():
-            all_ranges_within = self.allRangesWithinUpdate(uid)
-            if not all_ranges_within:
-                stocks_to_fetch[uid] = value
+    def barsInNeedOfDownload(self, stock_list, bar_types):
+        bars_to_fetch = dict()
+        for uid, value in stock_list.items():
+            bars_required_downloading = self.barsNotUpdated(uid, bar_types)
+            if bars_required_downloading:
+                bars_to_fetch[uid] = bars_required_downloading
             
-        return stocks_to_fetch
+        return bars_to_fetch
 
-    def allRangesWithinUpdate(self, uid, bar_types=MAIN_BAR_TYPES):
+
+    def barsNotUpdated(self, uid, bar_types=MAIN_BAR_TYPES):
+        bars_needing_update = []
         for bar_type in bar_types:
             if self.data_buffers.bufferExists(uid, bar_type):
-                last_timestamp = self.data_buffers.getIndexAtPos(uid, bar_type, pos=-1)
+                bar_ranges = self.data_buffers.getRangesForBuffer(uid, bar_type)
+                last_timestamp = bar_ranges[-1][1]
                 if not self.isRecent(last_timestamp):
-                    return False
+                    bars_needing_update += [bar_type]
+                begin_date_for_bar = standardBeginDateFor(getCurrentUtcTime(), bar_type)
+                if bar_ranges[-1][0] > begin_date_for_bar:
+                    bars_needing_update += [bar_type]
             else:
-                return False
+                bars_needing_update += [bar_type]
 
-        return True
+        return bars_needing_update
 
 
-    def isRecent(self, timestamp):
+    def isRecent(self, utc_aware_dt):
         current_dateTime = getCurrentUtcTime()
-        dt_object = datetime.utcfromtimestamp(timestamp)
-        utc_aware_dt = dt_object.replace(tzinfo=utc)
+        # dt_object = datetime.utcfromtimestamp(timestamp)
+        # utc_aware_dt = dt_object.replace(tzinfo=utc)
         day_diff = (current_dateTime-utc_aware_dt).days
         return day_diff < self.max_day_diff
 
 
-    def queStockRequestsFor(self, uid, stock_inf, bar_types=None):
-        if bar_types is None: bar_types = MAIN_BAR_TYPES
-
+    def queStockRequestsFor(self, uid, stock_inf, full_fetch, bar_types):
+        print(f"BufferedManager.queStockRequestsFor {uid} {bar_types}")
         details = DetailObject(numeric_id=uid, **stock_inf)
 
         for bar_type in bar_types:
-            date_ranges = self.getDateRanges(uid, bar_type, False)
+            date_ranges = self.getDateRanges(uid, bar_type, full_fetch)
             for begin_date, end_date in date_ranges:
                 downloadable_bar = DOWNLOADABLE_BAR_TYPES[bar_type]
                 self.create_request_signal.emit(self.hist_id, details, begin_date, end_date, downloadable_bar, True)
@@ -242,7 +249,7 @@ class BufferedDataManager(QObject):
         end_date = getCurrentUtcTime()
 
         if full_fetch:
-            return self.getFullRanges(uid, bar_type, end_date)
+            return [(standardBeginDateFor(end_date, bar_type), end_date)]
         else:
             return self.getStandardRanges(uid, bar_type, end_date)
         
@@ -256,20 +263,20 @@ class BufferedDataManager(QObject):
             return [desired_range]
 
 
-    def getFullRanges(self, uid, bar_type, end_date):
-            #TODO: this code should be updated
-        if uid in self.history_manager.earliest_date_by_uid:
-            earliest_date = self.history_manager.earliest_date_by_uid[uid]
-        else:
-            now_time = getCurrentUtcTime()
-            earliest_date = now_time - relativedelta(years=10)
+    # def getFullRanges(self, uid, bar_type, end_date):
+    #         #TODO: this code should be updated
+    #     if uid in self.history_manager.earliest_date_by_uid:
+    #         earliest_date = self.history_manager.earliest_date_by_uid[uid]
+    #     else:
+    #         now_time = getCurrentUtcTime()
+    #         earliest_date = now_time - relativedelta(years=10)
 
-        if (uid, bar_type) in self.existing_buffers:
-            begin_date = earliest_date
-            missing_ranges = self.data_buffers.getMissingRangesFor(uid, bar_type, (begin_date, end_date))
-            return missing_ranges
-        else:
-            return [(earliest_date, end_date)]
+    #     if (uid, bar_type) in self.existing_buffers:
+    #         begin_date = earliest_date
+    #         missing_ranges = self.data_buffers.getMissingRangesFor(uid, bar_type, (begin_date, end_date))
+    #         return missing_ranges
+    #     else:
+    #         return [(earliest_date, end_date)]
 
 
     def deregister(self):
