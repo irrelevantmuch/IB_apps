@@ -233,12 +233,20 @@ class OptionVisualization(VisualizationWindow):
         #this is the callback from the symbol textbox selection
     def returnSelection(self):
         if self.current_selection is not None:
+            self.updateOptionGUI([],[])
+            self.strike_plot.clear()
+            self.expiration_plot.clear()
+            self.exp_grouped_plot.clear()
+            self.strike_grouped_plot.clear()
+            self.max_exp = None
+            self.min_exp = None
+            self.max_strike = None
+            self.min_strike = None
             self.stock_selection_signal.emit(self.current_selection)
             self.stock_fetch_initiated = True
             self.first_price = True
-            self.updateOptionGUI([],[])
             self.current_selection = None
-
+            
 
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):

@@ -74,6 +74,8 @@ class OptionChainManager(IBConnectivity):
     @pyqtSlot(DetailObject)
     def makeStockSelection(self, contract_details):
         
+        self.resetOptionBuffer()
+
         self.contract_details = contract_details
         if isRegularTradingHours():
             self.reqMarketDataType(1)
@@ -83,7 +85,6 @@ class OptionChainManager(IBConnectivity):
         uid = contract_details.numeric_id
         self.chain_inf = OptionChainInf(uid)
         
-        self.resetOptionBuffer()
         if not self.chain_inf.is_empty:
             self._all_option_frame = self.chain_inf.loadPricesToFrame(self._all_option_frame)
             exp_strings, strikes = self.chain_inf.getContractIdsFromChain()
@@ -111,6 +112,8 @@ class OptionChainManager(IBConnectivity):
 
     def resetOptionBuffer(self):
         self._all_option_frame.resetDataFrame()
+        self._strike_comp_frame.resetDataFrame()
+        self._exp_comp_frame.resetDataFrame()
 
 
     ################ Selection interaction
@@ -144,6 +147,7 @@ class OptionChainManager(IBConnectivity):
 
     def securityDefinitionOptionParameter(self, req_id: int, exchange: str, underlyingConId: int, tradingClass: str, multiplier: str, expirations, strikes):
         super().securityDefinitionOptionParameter(req_id, exchange, underlyingConId, tradingClass, multiplier, expirations, strikes)
+        print(f"OptionChainManager.securityDefinitionOptionParameter {exchange}")
         if exchange == Constants.DEFAULT_OPT_EXC:
             self.contract_req_ids = set()
             
@@ -151,13 +155,13 @@ class OptionChainManager(IBConnectivity):
             self.strike_set = strikes
 
             self.api_updater.emit(Constants.OPTION_INFO_LOADED, {'expirations': self.exp_set, 'strikes': self.strike_set, 'is_verified': False})
-
+            
             self.req_list_exp = []
             for index, expiration in enumerate(expirations):
-                next_id = Constants.OPTION_CONTRACT_DEF_ID + index + self.previous_count
+                next_id = self.req_id_manager.getNextOptionContractID()
                 self.req_list_exp.append((next_id, expiration))
                 self.contract_req_ids.add(next_id)
-
+            
             self.total_requests = len(expirations)
             self.previous_count += self.total_requests
             self.api_updater.emit(Constants.PROGRESS_UPDATE, {'total_requests': self.total_requests, 'request_type': 'option chain', 'open_requests': self.total_requests})
@@ -171,7 +175,7 @@ class OptionChainManager(IBConnectivity):
             # self.total_requests = len(self.req_list_strikes)
             # self.previous_count += self.total_requests
             # self.api_updater.emit(Constants.PROGRESS_UPDATE, {'total_requests': self.total_requests, 'request_type': 'option chain', 'open_requests': self.total_requests})
-
+            
             self.fetchContractsIds()
 
 
@@ -203,6 +207,7 @@ class OptionChainManager(IBConnectivity):
             request = {'type': 'reqContractDetails', 'req_id': req_id, 'contract': contract}
             self.makeRequest(request)
             
+            
 
     @pyqtSlot()
     def flushData(self):
@@ -215,14 +220,6 @@ class OptionChainManager(IBConnectivity):
         self.chain_inf.removeEntireOptionChain()
         self._all_option_frame.resetDataFrame()
         self.fetchOptionContracts()
-
-
-    def isLiveReqID(self, req_id):
-        return req_id >= Constants.BASE_OPTION_LIVE_REQID and (req_id < Constants.BASE_OPTION_LIVE_REQID + Constants.REQID_STEP)
-
-    
-    def isBufferReqID(self, req_id):
-        return req_id >= Constants.BASE_OPTION_BUFFER_REQID and (req_id < Constants.BASE_OPTION_BUFFER_REQID + Constants.REQID_STEP)
 
 
   ############# Request management
@@ -241,8 +238,7 @@ class OptionChainManager(IBConnectivity):
     @pyqtSlot(list, float, float, int, int)
     def requestForAllStrikesAndExpirations(self, option_types, min_strike, max_strike, min_expiration, max_expiration):
 
-        next_req_id = Constants.BASE_OPTION_BUFFER_REQID
-
+        print("OptionChainManager.requestForAllStrikesAndExpirations")
         contract_items = self.chain_inf.getContractItems()
         for (opt_type, strike, expiration), contract_id in contract_items:
             if (opt_type in option_types) and self.strikeExpInDownloadRange(strike, expiration, min_strike, max_strike, min_expiration, max_expiration):
@@ -250,12 +246,14 @@ class OptionChainManager(IBConnectivity):
                 contract.right = opt_type
                 contract.conId = contract_id
                 
+                next_req_id = self.req_id_manager.getNextOptionBufferID()
                 self._all_option_reqs.add(next_req_id)
 
                 self._type_strike_exp_for_req[next_req_id] = (opt_type, strike, expiration) #, contract_id)
 
-                self.request_buffer.append({'req_id': next_req_id, 'contract': contract, 'keep_up_to_date': False})
-                next_req_id += 1
+                request = {'req_id': next_req_id, 'contract': contract, 'keep_up_to_date': False}
+                self.request_buffer.append(request)
+                print(f"new request: {request}")
 
         self.total_requests = len(self.request_buffer)
         self.api_updater.emit(Constants.PROGRESS_UPDATE, {'request_type': 'price', 'open_requests': len(self._all_option_reqs), 'total_requests': self.total_requests})
@@ -275,14 +273,15 @@ class OptionChainManager(IBConnectivity):
         if len(strikes) == 0:
             strikes = list(self.strike_set)
 
-        for index, strike in enumerate(strikes):
+        for strike in strikes:
 
             contract = self.getContract(strike, for_exp)
             if contract is not None:
-                req_id = index + Constants.BASE_OPTION_LIVE_REQID
-                self._strike_option_reqs.add(req_id)
-                self._type_strike_exp_for_req[req_id] = (None, strike, for_exp)
-                self.request_buffer.append({'req_id': req_id, 'contract': contract, 'keep_up_to_date': self._live_data_on})
+
+                next_req_id = self.req_id_manager.getNextOptionLiveID()
+                self._strike_option_reqs.add(next_req_id)
+                self._type_strike_exp_for_req[next_req_id] = (None, strike, for_exp)
+                self.request_buffer.append({'req_id': next_req_id, 'contract': contract, 'keep_up_to_date': self._live_data_on})
 
         if execute:
             self.iterateOptionRequests()
@@ -303,11 +302,11 @@ class OptionChainManager(IBConnectivity):
             contract = self.getContract(self._selected_strike, expiration)
             
             if contract is not None:
-                req_id = index + int(Constants.BASE_OPTION_LIVE_REQID+Constants.REQID_STEP/2)
-                self._exp_option_reqs.add(req_id)
-                self._type_strike_exp_for_req[req_id] = (None, for_strike, expiration)
+                next_req_id = self.req_id_manager.getNextOptionLiveID()
+                self._exp_option_reqs.add(next_req_id)
+                self._type_strike_exp_for_req[next_req_id] = (None, for_strike, expiration)
                 
-                self.request_buffer.append({'req_id': req_id, 'contract': contract, 'keep_up_to_date': self._live_data_on})
+                self.request_buffer.append({'req_id': next_req_id, 'contract': contract, 'keep_up_to_date': self._live_data_on})
  
         if execute:
             self.iterateOptionRequests()
@@ -325,7 +324,7 @@ class OptionChainManager(IBConnectivity):
 
 
     def executeOptionRequest(self):
-        if self.hasQueuedRequests() and (self.getActiveReqCount() < self.queue_cap):
+        if self.hasQueuedRequests() and (self.req_id_manager.getActiveReqCount() < self.queue_cap):
             opt_req = self.request_buffer.pop(0)
             request = dict()
             request['type'] = 'reqMktData'
@@ -346,18 +345,22 @@ class OptionChainManager(IBConnectivity):
     def cancelOptionRequests(self, for_type=None):
         if for_type is None or for_type == Constants.OPTION_DATA_STRIKE:
             for req_id in self._strike_option_reqs:
-                if req_id in self._active_requests:
+                # print("I have some question marks here, should this be if-ifel")
+                if self.req_id_manager.isOpenReqID(req_id):
                     self.makeRequest({'type': 'cancelMktData', 'req_id': req_id})
                 elif self.isBufferedRequest(req_id):
+                        #what is the purpose here?
                     self.request_buffer = [req for req in self.request_buffer if req['req_id'] != req_id]
             
             self._strike_option_reqs = set()
 
         if for_type is None or for_type == Constants.OPTION_DATA_EXP:
             for req_id in self._exp_option_reqs:
-                if req_id in self._active_requests:
+                # print("I have some question marks here, should this be if-ifel")
+                if self.req_id_manager.isOpenReqID(req_id):
                     self.makeRequest({'type': 'cancelMktData', 'req_id': req_id})
                 elif self.isBufferedRequest(req_id):
+                        #what is the purpose here?
                     self.request_buffer = [req for req in self.request_buffer if req['req_id'] != req_id]
             
             self._exp_option_reqs = set()
@@ -368,9 +371,9 @@ class OptionChainManager(IBConnectivity):
     def processOptionPrice(self, req_id, tick_type, option_price):
         if option_price != -1.0:
             if tick_type == Constants.BID or tick_type == Constants.ASK or tick_type == Constants.CLOSE:
-                if self.isBufferReqID(req_id):
+                if self.req_id_manager.isBufferReqID(req_id):
                     self.addTo2dBufferFrame(req_id, option_price, tick_type)
-                elif self.isLiveReqID(req_id):
+                elif self.req_id_manager.isLiveReqID(req_id):
                     self.addToSingularFrame(req_id, option_price, tick_type)
 
 
@@ -402,8 +405,8 @@ class OptionChainManager(IBConnectivity):
     ###############ECLIENT callbacks
 
     def tickPrice(self, req_id, tickType, price, attrib):
-        tick_type_str = TickTypeEnum.to_str(tickType)
-        if self.isOptionRequest(req_id):
+        tick_type_str = TickTypeEnum.toStr(tickType)
+        if self.req_id_manager.isOptionRequest(req_id):
             self.processOptionPrice(req_id, tick_type_str, price)
         elif tick_type_str == Constants.LAST:
             self.price = price

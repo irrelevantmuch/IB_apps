@@ -80,26 +80,26 @@ class OptionAllPlotWidget(pg.PlotWidget):
         self.curve_mid = dict()
         self.curve_hooks = dict()
 
-        if self.option_frame.has_data:
-            self.curve_data = self.option_frame.getLinesFor(self.plot_type)
+        self.updatePlot()
 
-            if self.curve_data is not None:
+        # if self.option_frame.has_data:
+        #     self.curve_data = self.option_frame.getLinesFor(self.plot_type)
+        #     if self.curve_data is not None:
                 
-                self.curve_data = self.filterCurves(self.curve_data)
-                
-                if -1 in self.curve_data:
-                    color_list = [(200,200,200)] + self.generateColorList(len(self.curve_data)-1)
-                else:
-                    color_list = self.generateColorList(len(self.curve_data))
+        #         self.curve_data = self.filterCurves(self.curve_data)
+        #         if -1 in self.curve_data:
+        #             color_list = [(200,200,200)] + self.generateColorList(len(self.curve_data)-1)
+        #         else:
+        #             color_list = self.generateColorList(len(self.curve_data))
             
-                for index, (data_name, data_line) in enumerate(self.curve_data.items()):
+        #         for index, (data_name, data_line) in enumerate(self.curve_data.items()):
 
-                    pen = pg.mkPen(color=color_list[index],width=2)
-                    if len(data_line['x']) > 1:
-                        self.curve_mid[data_name] = self.plot(data_line['x'], data_line['y'], pen=pen, symbol='o', symbolPen=pen, name=data_line['display_name'])
-                        self.curve_mid[data_name].setSymbolSize(1)
-                        self.curve_hooks[data_name] = pg.CurvePoint(self.curve_mid[data_name])
-                        self.addItem(self.curve_hooks[data_name])
+        #             pen = pg.mkPen(color=color_list[index],width=2)
+        #             if len(data_line['x']) > 1:
+        #                 self.curve_mid[data_name] = self.plot(data_line['x'], data_line['y'], pen=pen, symbol='o', symbolPen=pen, name=data_line['display_name'])
+        #                 self.curve_mid[data_name].setSymbolSize(1)
+        #                 self.curve_hooks[data_name] = pg.CurvePoint(self.curve_mid[data_name])
+        #                 self.addItem(self.curve_hooks[data_name])
                     
         self.arrow_mid = pg.ArrowItem(angle=240,pen=(255,255,0),brush=(255,0,0))
         self.text_mid = pg.TextItem('',color=(80,80,80),fill=pg.mkBrush('w'),anchor=(0.5,2.0))
@@ -114,6 +114,7 @@ class OptionAllPlotWidget(pg.PlotWidget):
             self.initialPlot()
         else:
             self.updatePlot()
+
 
     def updatePlot(self):
         if self.option_frame.has_data:
@@ -155,7 +156,6 @@ class OptionAllPlotWidget(pg.PlotWidget):
         # Set the limits of the linear region
         top_region.setRegion([0, 100])
         bottom_region.setRegion([-100, 0])
-
         
     
     def filterCurves(self, curve_data):
@@ -224,7 +224,7 @@ class OptionAllPlotWidget(pg.PlotWidget):
         for key, line in self.curve_data.items():
 
             # Compute the Euclidean distances for all points in the current line
-            distances = np.sqrt((line['x'] - mouse_x) ** 2 + (line['y'] - mouse_y) ** 2)
+            distances = (line['x'] - mouse_x) ** 2 + (line['y'] - mouse_y) ** 2
             
             # Find the minimum distance and its index for the current line
             min_distance = distances.min()
@@ -278,7 +278,7 @@ class OptionAllPlotWidget(pg.PlotWidget):
             mousePoint = self.plotItem.vb.mapSceneToView(pos)
             x_mouse = mousePoint.x()
             y_mouse = mousePoint.y()
-    
+            
             min_key, min_index = self.findNearestDataPoint(x_mouse, y_mouse)
         
 
