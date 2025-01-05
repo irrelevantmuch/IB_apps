@@ -44,7 +44,7 @@ class ComparisonList(ComparisonWindow):
     time_period = "Month"
     selected_duration = "Max"
     
-    fetch_range_signal = pyqtSignal()
+    fetch_range_signal = pyqtSignal(bool)
     fetch_latest_signal = pyqtSignal()
     cancel_update_signal = pyqtSignal()
     set_stock_list_signal = pyqtSignal(dict)
@@ -154,8 +154,13 @@ class ComparisonList(ComparisonWindow):
     def fetchRangeData(self):
         self.fetch_range_button.setEnabled(False)
         self.fetch_full_button.setEnabled(False)
-        self.fetch_range_signal.emit()
+        self.fetch_range_signal.emit(False)
 
+
+    def refreshRangeData(self):
+        self.fetch_range_button.setEnabled(False)
+        self.fetch_full_button.setEnabled(False)
+        self.fetch_range_signal.emit(True)
 
     def fetchData(self):
         self.fetch_range_button.setEnabled(False)
@@ -295,7 +300,7 @@ class ComparisonList(ComparisonWindow):
         if self.sel_all_button.text() == f"Select {Constants.MAX_DEFAULT_LINES}":
             self.visible_ticker_box.selectAll()
             self.check_list.update(self.visible_ticker_box.itemStates())
-            self.data_processor.updateFrameForHistory(selected_tab=self.tab_widget.currentIndex(), initial_list_load=True)
+            self.data_processor.updateFrameForHistory(selected_tab=self.tab_widget.currentIndex())
             self.sel_all_button.setText("Check All")
         else:
             if self.sel_all_button.text() == "Uncheck All":

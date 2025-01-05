@@ -40,7 +40,7 @@
        <widget class="QDateEdit" name="date_picker">
         <property name="dateTime">
          <datetime>
-          <hour>7</hour>
+          <hour>6</hour>
           <minute>0</minute>
           <second>0</second>
           <year>2000</year>
@@ -102,19 +102,6 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="4">
-       <widget class="QCheckBox" name="keep_up_box">
-        <property name="layoutDirection">
-         <enum>Qt::RightToLeft</enum>
-        </property>
-        <property name="text">
-         <string>Keep up-to-date</string>
-        </property>
-        <attribute name="buttonGroup">
-         <string notr="true">history_interaction_group</string>
-        </attribute>
-       </widget>
-      </item>
       <item row="0" column="7">
        <widget class="QPushButton" name="fetch_full_button">
         <property name="text">
@@ -133,6 +120,26 @@
         <attribute name="buttonGroup">
          <string notr="true">history_interaction_group</string>
         </attribute>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QCheckBox" name="keep_up_box">
+        <property name="layoutDirection">
+         <enum>Qt::RightToLeft</enum>
+        </property>
+        <property name="text">
+         <string>Keep up-to-date</string>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">history_interaction_group</string>
+        </attribute>
+       </widget>
+      </item>
+      <item row="0" column="4">
+       <widget class="QPushButton" name="refresh_range_button">
+        <property name="text">
+         <string>Refresh Range</string>
+        </property>
        </widget>
       </item>
      </layout>

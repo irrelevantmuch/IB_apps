@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import timedelta, date
+from datetime import datetime, timedelta, date
 from PyQt5.QtCore import pyqtSlot
 import numpy as np
 import pandas as pd
@@ -68,14 +68,14 @@ class ComparisonProcessor(DataProcessor):
         super().moveToThread(thread)
 
 
-    @pyqtSlot()
-    def fetchStockRangeData(self):
+    @pyqtSlot(bool)
+    def fetchStockRangeData(self, in_full=False):
         start_date = self.selected_date
         start_date = utcLocalize(start_date)
         end_date = dtFromDate(self.getEndDate())
         end_date = utcLocalize(end_date)
         end_date = min(end_date, getCurrentUtcTime())
-        self.buffered_manager.fetchStockDataForPeriod(self.selected_bar_type, start_date, end_date)
+        self.buffered_manager.fetchStockDataForPeriod(self.selected_bar_type, start_date, end_date, in_full)
 
 
     @pyqtSlot(str, dict)
