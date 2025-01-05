@@ -38,24 +38,25 @@ from dataHandling.IBConnectivity import IBConnectivity
 
 
 class HistoricalDataManager(IBConnectivity):
-    
 
+    historical_bar_signal = pyqtSignal(int, BarData)
+    historial_end_signal = pyqtSignal(int, str, str)
+    cleanup_done_signal = pyqtSignal()        
+
+    timeout_delay = 30_000
     update_delay = 10
-    most_recent_first = True       #order in which requests are processed
-    smallest_bar_first = True
     
     queue_cap = Constants.OPEN_REQUEST_MAX
-
-    
-    regular_hours = 0
-    
-    cleanup_done_signal = pyqtSignal()
 
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)        
         self.initializeRequestTracking()
         self.data_buffers = DataBuffers(Constants.BUFFER_FOLDER)
+        self.most_recent_first = True       #order in which requests are processed
+        self.smallest_bar_first = True
+        self.regular_hours = 0
+
 
 
     def initializeRequestTracking(self):
@@ -71,10 +72,6 @@ class HistoricalDataManager(IBConnectivity):
 
         self._grouped_req_ids = []
         
-            #req_id tracking
-        self._all_req_ids = set()       #general log of open history requests, allows for creating unique id's
-        
-
             #update tracking
         self._update_requests = set()        #open updating requests
         self._initial_fetch_complete = dict()
@@ -106,10 +103,23 @@ class HistoricalDataManager(IBConnectivity):
         return owner_id
 
 
-
     def deregisterOwner(self, owner_id):
         super().deregisterOwner(owner_id)
         del self._req_by_owner[owner_id]
+
+
+    @pyqtSlot()
+    def startConnection(self):
+        super().startConnection()
+        
+        print(f"HistoricalDataManager.startConnection: {int(QThread.currentThreadId())}")
+        self.timeout_timer = QTimer()
+        self.timeout_timer.setInterval(self.timeout_delay)
+        self.timeout_timer.timeout.connect(self.handleTimeout)
+
+            #we connect slots to be signalled from callbacks to get on the current thread
+        self.historical_bar_signal.connect(self.processHistoricalBar, Qt.QueuedConnection)
+        self.historial_end_signal.connect(self.processHistoricalDataEnd, Qt.QueuedConnection)
 
 
     def addNewListener(self, controller, listener_function):
@@ -142,8 +152,8 @@ class HistoricalDataManager(IBConnectivity):
             if req_id in self._update_requests:
                 self._update_requests.remove(req_id)
             
-            if req_id in self._all_req_ids:
-                self._all_req_ids.remove(req_id)
+            if self.req_id_manager.isActiveHistID(req_id):
+                self.req_id_manager.clearHistReqID(req_id)
                 self.makeRequest({'type': 'cancelHistoricalData', 'req_id': req_id})
 
         QTimer.singleShot(1_000, lambda: self.performCleanupFor(uid, relevant_requests))
@@ -173,6 +183,16 @@ class HistoricalDataManager(IBConnectivity):
         QTimer.singleShot(delay, lambda: self.performFinalCleanup(cancelled_ids))
         
 
+    @pyqtSlot()
+    def handleTimeout(self):
+        print("HistoricalDataManager.handleTimeout")
+        open_req_ids = self.req_id_manager.getAllHistIDs()
+        for req_id in open_req_ids:
+            if (req_id not in self._keep_up_requests):
+                self.cleanupAndNotify(req_id)
+                # self.makeRequest({'type': 'cancelHistoricalData', 'req_id': req_id})
+
+
     def performFinalCleanup(self, cancelled_ids):
         self._cancelling_req_ids.difference_update(cancelled_ids)
         self.cleanup_done_signal.emit()
@@ -197,11 +217,11 @@ class HistoricalDataManager(IBConnectivity):
 
     def stopActiveRequests(self, owner_id=None):
         super().stopActiveRequests(owner_id)
-        active_ids = set()
-        active_ids.update(self._keep_up_requests)
-        active_ids.update(self._update_requests)
-        active_ids.update(self._all_req_ids)
-
+        # active_ids = set()
+        # active_ids.update(self._keep_up_requests)
+        # active_ids.update(self._update_requests)
+        # active_ids.update(self._all_req_ids)
+        active_ids = self.req_id_manager.getAllHistIDs()
         if owner_id is not None:
             active_ids = active_ids.intersection(self._req_by_owner[owner_id])
 
@@ -211,7 +231,8 @@ class HistoricalDataManager(IBConnectivity):
 
         self._keep_up_requests = self._keep_up_requests - active_ids
         self._update_requests = self._update_requests - active_ids
-        self._all_req_ids = self._all_req_ids - active_ids
+
+        self.req_id_manager.clearHistReqIDs(active_ids)
 
         return active_ids
 
@@ -273,7 +294,7 @@ class HistoricalDataManager(IBConnectivity):
 
 
     def addRequestTo(self, owner_id, requests, contract, bar_type, period, begin_date, end_date, propagate_data=False):
-        req_id = self.getNextReqID()
+        req_id = self.req_id_manager.getNextHistID(self._cancelling_req_ids)
         self._req_by_owner[owner_id].add(req_id)
         self.addUIDbyReq(contract.conId, req_id)
         self._propagating_data[req_id] = propagate_data
@@ -295,8 +316,12 @@ class HistoricalDataManager(IBConnectivity):
             # Calculate the number of weeks, remaining days and seconds
         num_weeks = total_seconds // seconds_per_week
         remaining_seconds = total_seconds % seconds_per_week
-        num_days = remaining_seconds // seconds_per_day
-        num_seconds = remaining_seconds % seconds_per_day
+        if remaining_seconds < seconds_per_day:
+            num_days = 0
+            num_seconds = remaining_seconds
+        else:
+            num_days = int(math.ceil(remaining_seconds/seconds_per_day))
+            num_seconds = 0
 
         return num_weeks, num_days, num_seconds
 
@@ -304,6 +329,7 @@ class HistoricalDataManager(IBConnectivity):
     @pyqtSlot(int, dict, dict, str, bool, bool)
     @pyqtSlot(int, dict, dict, str, bool, bool, bool)
     def requestUpdates(self, owner_id, stock_list, begin_dates, bar_type, keep_up_to_date, propagate_updates=False, prioritize_uids=False):
+        print("HistoricalDataManager.requestUpdates")
         for uid, stock_inf in stock_list.items():
                 
             if prioritize_uids:
@@ -321,7 +347,7 @@ class HistoricalDataManager(IBConnectivity):
 
     @pyqtSlot(Contract)
     def turnOnRealtimeBarsFor(self, contract):        
-        req_id = self.getNextReqID()
+        req_id = self.req_id_manager.getNextHistID(self._cancelling_req_ids)
         self._uid_by_req[req_id] = contract.conId
         self.makeRequest({'type': 'reqRealTimeBars', 'req_id': req_id, 'contract': contract})
 
@@ -334,8 +360,8 @@ class HistoricalDataManager(IBConnectivity):
 
 
     def createUpdateRequests(self, owner_id, contract_details, bar_type, time_in_sec, date_range, keep_up_to_date=True, propagate_updates=False):
-        req_id = self.getNextReqID()
-        
+        req_id = self.req_id_manager.getNextHistID(self._cancelling_req_ids)
+        print(req_id)
         self._req_by_owner[owner_id].add(req_id)
         uid = contract_details.numeric_id
         self._contract_details_by_uid[uid] = contract_details
@@ -427,7 +453,7 @@ class HistoricalDataManager(IBConnectivity):
     @pyqtSlot()
     def executeHistoryRequest(self):
         if self.hasQueuedRequests():
-            if self.getActiveReqCount() < self.queue_cap:
+            if self.req_id_manager.getActiveReqCount() < self.queue_cap:
                 hr = self.getNextHistoryRequest()   
                 self._historical_dfs[hr.req_id] = pd.DataFrame(columns=[Constants.OPEN, Constants.HIGH, Constants.LOW, Constants.CLOSE, Constants.VOLUME])
                 request = dict()
@@ -442,6 +468,7 @@ class HistoricalDataManager(IBConnectivity):
                 else:
                     request['regular_hours'] = self.regular_hours
                 request['keep_up_to_date'] = hr.keep_updating
+                if not(hr.keep_updating): self.timeout_timer.start()
                 self.makeRequest(request)
                 self.api_updater.emit(Constants.HISTORICAL_REQUEST_SUBMITTED, {'req_id': hr.req_id})
         
@@ -465,17 +492,6 @@ class HistoricalDataManager(IBConnectivity):
 
 
 ####################
-
-    def getNextReqID(self):
-
-        req_ids_in_use = self._all_req_ids.union(self._cancelling_req_ids)
-        if len(req_ids_in_use) == 0:
-            new_id = Constants.BASE_HIST_DATA_REQID
-        else:
-            new_id = max(req_ids_in_use) + 1
-        
-        self._all_req_ids.add(new_id)     #keep a trace requested but not yet used requests
-        return new_id
 
 
     def getContractFor(self, contract_details):
@@ -508,7 +524,7 @@ class HistoricalDataManager(IBConnectivity):
 
     def iterateEarliestDateReqs(self, delay):
         self.earliest_req_timer = QTimer()
-        self.earliest_req_timer.timeout.connect(self.executeEarliestDateReq)
+        self.earliest_req_timer.timeoutstartConnection(self.executeEarliestDateReq)
         self.earliest_req_timer.start(delay)
 
 
@@ -550,15 +566,17 @@ class HistoricalDataManager(IBConnectivity):
 
     def historicalData(self, req_id, bar):
         super().historicalData(req_id, bar)
-        if self.isHistDataRequest(req_id):
-            self.processHistoricalBar(req_id, bar)
+        if self.req_id_manager.isHistDataRequest(req_id):
+            self.historical_bar_signal.emit(req_id, bar)
+            
             
 
     def historicalDataUpdate(self, req_id, bar):
         super().historicalDataUpdate(req_id, bar)
-        self.processHistoricalBar(req_id, bar)
+        self.historical_bar_signal.emit(req_id, bar)
 
 
+    @pyqtSlot(int, BarData)
     def processHistoricalBar(self, req_id, bar):
         if (req_id in self._historical_dfs) and (req_id in self._uid_by_req) and bar.volume != 0:
             uid = self._uid_by_req[req_id]
@@ -595,31 +613,46 @@ class HistoricalDataManager(IBConnectivity):
 
     def historicalDataEnd(self, req_id: int, start: str, end: str):
         super().historicalDataEnd(req_id, start, end)
-        if req_id in self._all_req_ids:
+
+        self.historial_end_signal.emit(req_id, start, end)
+
+
+    @pyqtSlot(int, str, str)
+    def processHistoricalDataEnd(self, req_id, start, end):
+        self.timeout_timer.start()
+        if self.req_id_manager.isActiveHistID(req_id):
             completed_req = self.createCompletedReqFor(req_id, start, end)
             if completed_req is not None:
                 self.data_buffers.processNewData(completed_req, self._propagating_data[req_id])
             
+            self.cleanupAndNotify(req_id)
+
+
+    def cleanupAndNotify(self, req_id):
+        self.processGroupSignal(req_id)
+        if self.req_id_manager.isActiveHistID(req_id):
             uid = self._uid_by_req[req_id]
-            
-            self.processGroupSignal(req_id)
             if req_id in self._update_requests:
                 self._update_requests.remove(req_id)
                 if req_id in self._keep_up_requests:
                     self._last_update_time[req_id] = time.time()
                     self._initial_fetch_complete[req_id] = True
                 if len(self._update_requests) == 0:
+                    self.timeout_timer.stop()
                     self.api_updater.emit(Constants.HISTORICAL_UPDATE_COMPLETE, {'completed_uid': uid})
 
             if not (req_id in self._keep_up_requests):
                 del self._uid_by_req[req_id]
                 del self._bar_type_by_req[req_id]
                 del self._date_ranges_by_req[req_id]
+                if req_id in self._historical_dfs:
+                    print("Do we ever come here?")
+                    del self._historical_dfs[req_id]     #in case we come here through a timeout
                 for key in self._req_by_owner:
                     if req_id in self._req_by_owner[key]: self._req_by_owner[key].remove(req_id)
 
                     #TODO is the conditional necesarry? shouldn't it always be in this list, when is it not?
-                if req_id in self._all_req_ids: self._all_req_ids.remove(req_id)
+                self.req_id_manager.clearHistReqID(req_id)                
 
 
     def createCompletedReqFor(self, req_id, start, end):
@@ -659,23 +692,12 @@ class HistoricalDataManager(IBConnectivity):
 
     
     def error(self, req_id, errorCode, errorString, advancedOrderRejectJson=None):
-        super().error(req_id, errorCode, errorString, advancedOrderRejectJson=None)
+        print(f"HistoricalDataManager.error {req_id} {errorCode} {errorString}")
         if errorCode == 200 or errorCode == 162:
-            if self.isHistoryRequest(req_id):
-                self.historyError(req_id)
+            if self.req_id_manager.isHistoryRequest(req_id):
+                self.cleanupAndNotify(req_id)
 
-
-    def historyError(self, req_id):
-        if req_id in self._uid_by_req:
-            uid = self._uid_by_req[req_id]
-            
-            self.processGroupSignal(req_id)
-            if req_id in self._update_requests:
-                self._update_requests.remove(req_id)
-            
-            del self._uid_by_req[req_id]
-            del self._date_ranges_by_req[req_id]
-
+        super().error(req_id, errorCode, errorString, advancedOrderRejectJson=None)
 
 
 class HistoryRequest():
@@ -687,6 +709,7 @@ class HistoryRequest():
         self.period_string = period_string
         self.bar_type = bar_type
         self.keep_updating = keep_updating
+
 
     def __repr__(self):
         return f"HistoryRequest({self.contract.symbol}, {self.end_date},{self.period_string}, {self.bar_type})"
