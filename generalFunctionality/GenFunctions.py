@@ -167,8 +167,9 @@ def addRSIsEMAs(stock_frame, from_index=None):
     stock_frame.loc[updated_indices, ['up_ema', 'down_ema', 'rsi']] = np.column_stack([up_emas, down_emas, rsi])
     
         #we want to remove any NaNs, not sure if this is still necesarry 
-    stock_frame['rsi'] = stock_frame['rsi'].ffill()
-    stock_frame['rsi'] = stock_frame['rsi'].round(1)
+    if len(stock_frame['rsi']) != 0:
+        stock_frame['rsi'] = stock_frame['rsi'].ffill()
+        stock_frame['rsi'] = stock_frame['rsi'].round(1)
 
     return stock_frame
 
