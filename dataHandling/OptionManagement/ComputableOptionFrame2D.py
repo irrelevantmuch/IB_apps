@@ -148,8 +148,8 @@ class Computable2DDataFrame(QObject):
         result_frame = self.calculatePricesForCurrentConstruction()
         
         self.data_points = {'expiration_grouped': dict(), 'strike_grouped': dict(), 'price_est': dict()}
-        unique_expirations = result_frame.index.get_level_values('days_till_exp').unique().sort_values()
-        unique_strikes = result_frame.index.get_level_values('strike').unique().sort_values()
+        unique_expirations = result_frame.index.get_level_values('days_till_exp').unique().sort_values().values.astype(float)
+        unique_strikes = result_frame.index.get_level_values('strike').unique().sort_values().values.astype(float)
 
         self.calculateExpirationGrouped(result_frame, unique_strikes, unique_expirations)
         self.calculateStrikeGrouped(result_frame, unique_strikes)
@@ -177,8 +177,8 @@ class Computable2DDataFrame(QObject):
                 if expiration <= self.selected_exp:
                     data_selection = result_frame.xs(expiration, level='days_till_exp')
                     data_selection = data_selection.sort_index(ascending=False)
-                    reworked_indices = self.selected_strike - data_selection.index
-                    profit_loss = data_selection['combo_price'].values
+                    reworked_indices = self.selected_strike - data_selection.index.values.astype(float)
+                    profit_loss = data_selection['combo_price'].values.astype(float)
                     if self._order_type == Constants.SELL: profit_loss = 0 - profit_loss
                     profit_loss = profit_loss - self.selected_cost
                     
@@ -191,9 +191,9 @@ class Computable2DDataFrame(QObject):
             data_selection = result_frame.xs(strike, level='strike')
             data_selection = data_selection.sort_index()
 
-            x_coords = np.insert(data_selection[Constants.DAYS_TILL_EXP].values, 0, -1)
+            x_coords = np.insert(data_selection[Constants.DAYS_TILL_EXP].values.astype(float), 0, -1)
             expiration_price = self.getExpirationPriceForStrike(self._constr_type, strike)
-            y_coords = np.insert(data_selection['combo_price'].values, 0, expiration_price)
+            y_coords = np.insert(data_selection['combo_price'].values.astype(float), 0, expiration_price)
             if self._order_type == Constants.SELL:
                 y_coords = 0 - y_coords
 
@@ -224,11 +224,11 @@ class Computable2DDataFrame(QObject):
             data_selection = result_frame.xs(expiration, level='days_till_exp')
             data_selection = data_selection.sort_index()
 
-            y_coords = data_selection['combo_price'].values
+            y_coords = data_selection['combo_price'].values.astype(float)
             if self._order_type == Constants.SELL:
                 y_coords = 0 - y_coords
 
-            self.data_points['expiration_grouped'][expiration] = {'display_name': f"{expiration} dte", 'x': data_selection.index, 'y': y_coords, 'y_detail': data_selection['price_detail'].values}
+            self.data_points['expiration_grouped'][expiration] = {'display_name': f"{expiration} dte", 'x': data_selection.index.values.astype(float), 'y': y_coords, 'y_detail': data_selection['price_detail'].values}
         
 
     def withinExpirationRange(self, expiration):
@@ -443,17 +443,17 @@ class Computable2DDataFrame(QObject):
             put_selection = self._price_frames[Constants.PUT].xs(exp_value, level='expiration')
             put_selection = put_selection.sort_index()
             
-            strikes = np.intersect1d(call_selection.index.values, put_selection.index.values)
-            call_prices = call_selection.loc[strikes, 'price_est'].values
-            put_prices = put_selection.loc[strikes, 'price_est'].values
+            strikes = np.intersect1d(call_selection.index.values.astype(float), put_selection.index.values.astype(float))
+            call_prices = call_selection.loc[strikes, 'price_est'].values.astype(float)
+            put_prices = put_selection.loc[strikes, 'price_est'].values.astype(float)
             prices = np.column_stack((call_prices, put_prices))
             return strikes, prices, exp_value
         else:
             data_selection = self._price_frames[self._option_type].xs(exp_value, level='expiration')
             data_selection = data_selection.sort_index()
 
-            strikes = data_selection.index.values
-            y_values = data_selection['price_est'].values
+            strikes = data_selection.index.values.astype(float)
+            y_values = data_selection['price_est'].values.astype(float)
             
             return strikes, y_values, exp_value
 
@@ -462,8 +462,8 @@ class Computable2DDataFrame(QObject):
         data_selection = self._price_frames[option_type].xs(exp_value, level='expiration')
         data_selection = data_selection.sort_index()
 
-        strikes = data_selection.index.values
-        y_values = data_selection[column].values
+        strikes = data_selection.index.values.astype(float)
+        y_values = data_selection[column].values.astype(float)
             
         return strikes, y_values
 
@@ -478,17 +478,17 @@ class Computable2DDataFrame(QObject):
     #         put_selection = self._price_frames[Constants.PUT].xs(exp_value, level='expiration')
     #         put_selection = put_selection.sort_index()
             
-    #         strikes = np.intersect1d(call_selection.index.values, put_selection.index.values)
-    #         call_prices = call_selection.loc[strikes, 'price_est'].values
-    #         put_prices = put_selection.loc[strikes, 'price_est'].values
+    #         strikes = np.intersect1d(call_selection.index.values.astype(float), put_selection.index.values.astype(float))
+    #         call_prices = call_selection.loc[strikes, 'price_est'].values.astype(float)
+    #         put_prices = put_selection.loc[strikes, 'price_est'].values.astype(float)
     #         prices = np.column_stack((call_prices, put_prices))
     #         return strikes, prices, exp_value
     #     else:
     #         data_selection = self._price_frames[self._option_type].xs(exp_value, level='expiration')
     #         data_selection = data_selection.sort_index()
 
-    #         strikes = data_selection.index.values
-    #         y_values = data_selection['price_est'].values
+    #         strikes = data_selection.index.values.astype(float)
+    #         y_values = data_selection['price_est'].values.astype(float)
             
     #         return strikes, y_values, exp_value
 
