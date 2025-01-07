@@ -392,7 +392,7 @@ class TradeMaker(TradingWindow):
         contract = self.getCurrentContract()
         action = self.action_type
         count = self.count_field.value()
-        limit_price = float(self.limit_field.text())
+        limit_price = self.limit_field.value()
 
         close_dict = dict()
         if self.profit_take_on:
@@ -408,9 +408,9 @@ class TradeMaker(TradingWindow):
         contract = self.getCurrentContract()
         action = self.combo_action_type
         count = self.count_field.value()
-        profit_limit = float(self.combo_limit_field.text())
-        stop_trigger = float(self.combo_sl_trigger_field.text())
-        stop_limit = float(self.combo_stop_limit_field.text()) if self.combo_sl_check.isChecked() else None
+        profit_limit = self.combo_limit_field.value()
+        stop_trigger = self.combo_sl_trigger_field.value()
+        stop_limit = self.combo_stop_limit_field.value() if self.combo_sl_check.isChecked() else None
         self.place_combo_signal.emit(contract, action, count, profit_limit, stop_trigger, stop_limit)
         
 
