@@ -113,12 +113,12 @@ class BufferedDataManager(QObject):
             bars_to_fetch = {uid: bar_types for uid in stock_list.keys()}
         else:
             bars_to_fetch = self.barsInNeedOfDownload(stock_list, bar_types)
-        
+
         if len(bars_to_fetch) > 0:
-            for uid, stock_inf in stock_list.items():
+            for uid, stock_inf in bars_to_fetch.items():
                 if full_fetch:
                     self.data_buffers.clearBufferFor(uid)
-                self.queStockRequestsFor(uid, stock_inf, full_fetch, bar_types=bars_to_fetch[uid])
+                self.queStockRequestsFor(uid, stock_list[uid], full_fetch, bar_types=bars_to_fetch[uid])
             self.group_request_signal.emit('full_update')
             self.queued_update_requests.append({'bar_type': Constants.ONE_MIN_BAR, 'update_list': self._buffering_stocks, 'keep_up_to_date': False, 'allow_splitting': True})
             self.execute_request_signal.emit(3_000)
@@ -134,6 +134,10 @@ class BufferedDataManager(QObject):
                 bars_to_fetch[uid] = bars_required_downloading
             
         return bars_to_fetch
+
+
+    def allRangesWithinUpdate(self, uid):
+        return not(self.barsNotUpdated(uid))
 
 
     def barsNotUpdated(self, uid, bar_types=MAIN_BAR_TYPES):
