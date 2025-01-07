@@ -65,10 +65,8 @@ def standardBeginDateFor(end_date, bar_type):
         begin_date = end_date - relativedelta(days=3)
     elif bar_type == Constants.FIFTEEN_MIN_BAR:
         begin_date = end_date - relativedelta(days=5)
-    elif bar_type == Constants.HOUR_BAR:
+    elif bar_type == Constants.HOUR_BAR or bar_type == Constants.FOUR_HOUR_BAR: #we don't fetch 4 hour bars, only in the form of hourly
         begin_date = end_date - relativedelta(days=7)
-    elif bar_type == Constants.FOUR_HOUR_BAR:
-        begin_date = end_date - relativedelta(days=28)
     elif bar_type == Constants.DAY_BAR:
         begin_date = end_date - relativedelta(days=700)
     elif bar_type == "1 week":
