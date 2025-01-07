@@ -454,7 +454,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
     def stopActiveRequests(self, owner_id):
         if self._active_price_req_id is not None:
-            self.makeRequest({'type': 'cancelMktData', 'req_id': Constants.STK_PRICE_REQID})
+            self.makeRequest({'type': 'cancelMktData', 'req_id': self._active_price_req_id})
             self.clearPriceReqID(self._active_price_req_id)
             self._active_price_req_id = None
 
