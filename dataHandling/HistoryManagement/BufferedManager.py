@@ -150,6 +150,7 @@ class BufferedDataManager(QObject):
                 if not self.isRecent(last_timestamp):
                     bars_needing_update += [bar_type]
                 begin_date_for_bar = standardBeginDateFor(getCurrentUtcTime(), bar_type)
+                # if bar_ranges[-1][0] > begin_date_for_bar or ((Constants.FIRST_AVAILABLE_DATE in self._buffering_stocks[uid]) and (bar_ranges[-1][0] >= self._buffering_stocks[uid][Constants.FIRST_AVAILABLE_DATE])):
                 if bar_ranges[-1][0] > begin_date_for_bar:
                     bars_needing_update += [bar_type]
             else:

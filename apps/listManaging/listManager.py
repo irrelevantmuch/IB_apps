@@ -40,7 +40,7 @@ class ListManager(ListManagerWindow):
     # existing_buffers = dict()
     # existing_ranges = dict()
     fetch_stock_contracts = pyqtSignal(DetailObject, bool)
-    
+    fetch_earliest_date = pyqtSignal(DetailObject)
     option_chain_requests = []
 
     def __init__(self, symbol_manager, history_manager, option_manager):
@@ -107,6 +107,12 @@ class ListManager(ListManagerWindow):
             self.stock_list = dict()
 
 
+    def returnSelection(self):
+        if self.current_selection is not None:
+            self.fetch_earliest_date.emit(self.current_selection)
+        super().returnSelection()
+
+
     def bufferChains(self):
 
         self.dialog = ProgressBarDialog()
@@ -158,7 +164,10 @@ class ListManager(ListManagerWindow):
     @pyqtSlot(str, dict)
     def apiUpdate(self, signal, sub_signal):
         
-        if signal == Constants.OPTION_INFO_LOADED:
+        if signal == Constants.DATE_RETRIEVED:
+            uid = sub_signal['uid']
+            self.stock_list[uid][Constants.FIRST_AVAILABLE_DATE] = sub_signal['dt']
+        elif signal == Constants.OPTION_INFO_LOADED:
             self.fetchNextOptionChain()
         elif signal == Constants.PROGRESS_UPDATE:
             self.dialog.setProcessProgress((sub_signal['total_requests']-sub_signal['open_requests'])/sub_signal['total_requests'])

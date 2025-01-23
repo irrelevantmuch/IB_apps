@@ -145,6 +145,7 @@ class Constants:
     DEFAULT_OPT_EXC: Final = "SMART" #"CBOE" #"AMEX"
     EXCHANGE: Final = 'exchange'
     SMART: Final = "SMART"
+    FIRST_AVAILABLE_DATE: Final = "First Available Date"
 
     TRADES: Final = 'TRADES'
 
@@ -159,7 +160,7 @@ class Constants:
     BOTTOM_REVERSAL: Final = 'bottom_reversal'
 
     POSITIONS_UPDATED: Final = "Positions updated"
-    DATES_RETRIEVED: Final = "Dates retrieved"
+    DATE_RETRIEVED: Final = "Dates retrieved"
     OPTION_INFO_LOADED: Final = "Options info loaded"
     OPTION_PRICE_UPDATE: Final = "Option Price Updated"
     OPTIONS_MOSTLY_LOADED: Final = "Most options loaded"

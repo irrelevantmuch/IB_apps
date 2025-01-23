@@ -44,6 +44,8 @@ class HistoricalDataManager(IBConnectivity):
     historial_end_signal = pyqtSignal(int, str, str)
     cleanup_done_signal = pyqtSignal()        
 
+    
+
     timeout_delay = 30_000
     update_delay = 10
     
@@ -70,6 +72,7 @@ class HistoricalDataManager(IBConnectivity):
         self._req_by_owner = dict()
         self._bar_type_by_req = dict()
         self._date_ranges_by_req = dict()
+        self.earliest_uid_by_req = dict()
 
         self._grouped_req_ids = []
         
@@ -190,7 +193,7 @@ class HistoricalDataManager(IBConnectivity):
         open_req_ids = self.req_id_manager.getAllHistIDs()
         for req_id in open_req_ids:
             if (req_id not in self._keep_up_requests):
-                self.cleanupAndNotify(req_id)
+                self.cleanupAndNotify(req_id, cleared_by_ib=False)
                 # self.makeRequest({'type': 'cancelHistoricalData', 'req_id': req_id})
 
 
@@ -330,7 +333,7 @@ class HistoricalDataManager(IBConnectivity):
     @pyqtSlot(int, dict, dict, str, bool, bool)
     @pyqtSlot(int, dict, dict, str, bool, bool, bool)
     def requestUpdates(self, owner_id, stock_list, begin_dates, bar_type, keep_up_to_date, propagate_updates=False, prioritize_uids=False):
-        print("HistoricalDataManager.requestUpdates")
+        print(f"HistoricalDataManager.requestUpdates on: {int(QThread.currentThreadId())}")
         for uid, stock_inf in stock_list.items():
                 
             if prioritize_uids:
@@ -362,7 +365,6 @@ class HistoricalDataManager(IBConnectivity):
 
     def createUpdateRequests(self, owner_id, contract_details, bar_type, time_in_sec, date_range, keep_up_to_date=True, propagate_updates=False):
         req_id = self.req_id_manager.getNextHistID(self._cancelling_req_ids)
-        print(req_id)
         self._req_by_owner[owner_id].add(req_id)
         uid = contract_details.numeric_id
         self._contract_details_by_uid[uid] = contract_details
@@ -444,6 +446,7 @@ class HistoricalDataManager(IBConnectivity):
 
     @pyqtSlot(int)
     def iterateHistoryRequests(self, delay=11_000):
+        # print(f"HistoricalDataManager.iterateHistoryRequests on: {int(QThread.currentThreadId())}")
         if self.hasQueuedRequests():
             self.history_exec_timer = QTimer()
             self.history_exec_timer.timeout.connect(self.executeHistoryRequest)
@@ -453,6 +456,7 @@ class HistoricalDataManager(IBConnectivity):
 
     @pyqtSlot()
     def executeHistoryRequest(self):
+        # print(f"HistoricalDataManager.executeHistoryRequest on: {int(QThread.currentThreadId())}")
         if self.hasQueuedRequests():
             if self.req_id_manager.getActiveReqCount() < self.queue_cap:
                 hr = self.getNextHistoryRequest()   
@@ -509,42 +513,12 @@ class HistoricalDataManager(IBConnectivity):
         return req_id in self._update_requests or req_id in self._keep_up_requests
 
 
-    @pyqtSlot(list)
-    def fetchEarliestDates(self, stock_list, delay=50):
-
-        self.earliest_uid_by_req = dict()
-        self.earliest_date_by_uid = dict()
-
-        for index, (uid, contract_details) in enumerate(stock_list.items()):        
-            req_id = Constants.BASE_HIST_EARLIEST_REQID + index
-            self.earliest_uid_by_req[req_id] = uid
-
-            self.earliest_request_queue[req_id] = contract_details
-        self.iterateEarliestDateReqs(delay)
-  
-
-    def iterateEarliestDateReqs(self, delay):
-        self.earliest_req_timer = QTimer()
-        self.earliest_req_timer.timeoutstartConnection(self.executeEarliestDateReq)
-        self.earliest_req_timer.start(delay)
-
-
-    def executeEarliestDateReq(self):
-        if len(self.earliest_request_queue) > 0:
-            (req_id, contract_details) = self.earliest_request_queue.popitem()
-
-            contract = Contract()
-            contract.exchange = Constants.SMART
-            contract.secType = Constants.STOCK
-            contract.symbol = contract_details[Constants.SYMBOL]
-            contract.conId = self.earliest_uid_by_req[req_id]   ##TODO this is not ok
-            contract.primaryExchange = contract_details[Constants.EXCHANGE]
-                
-            request = {'type': 'reqHeadTimeStamp', 'req_id': req_id, 'contract': contract}
-            self.makeRequest(request)
-            
-        if len(self.earliest_request_queue) == 0:
-            self.earliest_req_timer.stop()
+    @pyqtSlot(DetailObject)
+    def fetchEarliestDate(self, contract_details):        
+        req_id = self.req_id_manager.getNextHistID(self._cancelling_req_ids)
+        self.earliest_uid_by_req[req_id] = contract_details.numeric_id
+        request = {'type': 'reqHeadTimeStamp', 'req_id': req_id, 'contract': self.getContractFor(contract_details)}
+        self.makeRequest(request)
 
 
 ############### IB Interface callbacks
@@ -554,16 +528,12 @@ class HistoricalDataManager(IBConnectivity):
         
         self.cancelHeadTimeStamp(req_id)
         uid = self.earliest_uid_by_req[req_id]
-
         date_time_obj = dateFromString(head_time_stamp, sep='-')
         date_time_obj = utc.localize(date_time_obj)
-        self.earliest_date_by_uid[uid] = date_time_obj
-        
-        if req_id in self.earliest_uid_by_req:
-            del self.earliest_uid_by_req[req_id]
-            if len(self.earliest_uid_by_req) == 0:
-                self.api_updater.emit(Constants.DATES_RETRIEVED, dict())
-
+    
+        del self.earliest_uid_by_req[req_id]
+        self.api_updater.emit(Constants.DATE_RETRIEVED, {'uid': uid, 'dt': date_time_obj})
+        self.req_id_manager.clearHistReqID(req_id)
 
     def historicalData(self, req_id, bar):
         super().historicalData(req_id, bar)
@@ -629,7 +599,7 @@ class HistoricalDataManager(IBConnectivity):
             self.cleanupAndNotify(req_id)
 
 
-    def cleanupAndNotify(self, req_id):
+    def cleanupAndNotify(self, req_id, cleared_by_ib=True):
         self.processGroupSignal(req_id)
         if self.req_id_manager.isActiveHistID(req_id):
             uid = self._uid_by_req[req_id]
@@ -642,18 +612,19 @@ class HistoricalDataManager(IBConnectivity):
                     self.timeout_timer.stop()
                     self.api_updater.emit(Constants.HISTORICAL_UPDATE_COMPLETE, {'completed_uid': uid})
 
-            if not (req_id in self._keep_up_requests):
+            
+            if not(req_id in self._keep_up_requests):
                 del self._uid_by_req[req_id]
                 del self._bar_type_by_req[req_id]
                 del self._date_ranges_by_req[req_id]
                 if req_id in self._historical_dfs:
-                    print("Do we ever come here?")
                     del self._historical_dfs[req_id]     #in case we come here through a timeout
+
                 for key in self._req_by_owner:
                     if req_id in self._req_by_owner[key]: self._req_by_owner[key].remove(req_id)
 
-                    #TODO is the conditional necesarry? shouldn't it always be in this list, when is it not?
-                self.req_id_manager.clearHistReqID(req_id)                
+                if cleared_by_ib:
+                    self.req_id_manager.clearHistReqID(req_id)                
 
 
     def createCompletedReqFor(self, req_id, start, end):
