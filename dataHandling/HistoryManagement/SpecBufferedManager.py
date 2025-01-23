@@ -74,17 +74,17 @@ class SpecBufferedDataManager:
         return request_list
 
 
-    @pyqtSlot(str, bool, bool)
-    def requestUpdates(self, update_bar=Constants.ONE_MIN_BAR, keep_up_to_date=False, propagate_updates=False, update_list=None, needs_disconnect=False):
+    # @pyqtSlot(str, bool, bool)
+    # def requestUpdates(self, update_bar=Constants.ONE_MIN_BAR, keep_up_to_date=False, propagate_updates=False, update_list=None, needs_disconnect=False):
         
-        if update_list is None:
-            update_list = self._buffering_stocks.copy()
+    #     if update_list is None:
+    #         update_list = self._buffering_stocks.copy()
 
-        begin_dates = dict()
-        for uid in update_list:
-            begin_dates[uid] = self.getUpdateStart(uid)
+    #     begin_dates = dict()
+    #     for uid in update_list:
+    #         begin_dates[uid] = self.getUpdateStart(uid)
         
-        self.request_update_signal.emit(self.hist_id, update_list, begin_dates, update_bar, keep_up_to_date, propagate_updates)
+    #     self.request_update_signal.emit(self.hist_id, update_list, begin_dates, update_bar, keep_up_to_date, propagate_updates)
 
 
     @pyqtSlot()
