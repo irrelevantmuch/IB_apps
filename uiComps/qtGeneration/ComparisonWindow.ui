@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
+    <width>822</width>
     <height>600</height>
    </rect>
   </property>
@@ -17,30 +17,11 @@
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
      <layout class="QGridLayout" name="gridLayout_3">
-      <item row="0" column="2">
-       <widget class="QComboBox" name="list_selector"/>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="text">
-         <string>Starting:</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
+      <item row="2" column="1">
        <widget class="QDateEdit" name="date_picker">
         <property name="dateTime">
          <datetime>
-          <hour>6</hour>
+          <hour>5</hour>
           <minute>0</minute>
           <second>0</second>
           <year>2000</year>
@@ -52,21 +33,89 @@
          <bool>true</bool>
         </property>
         <property name="timeSpec">
-         <enum>Qt::OffsetFromUTC</enum>
+         <enum>Qt::TimeSpec::UTC</enum>
         </property>
        </widget>
       </item>
-      <item row="1" column="6">
+      <item row="0" column="1">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>List</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="3">
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Bar:</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QCheckBox" name="keep_up_box">
+        <property name="layoutDirection">
+         <enum>Qt::LayoutDirection::RightToLeft</enum>
+        </property>
+        <property name="text">
+         <string>Keep up-to-date</string>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">history_interaction_group</string>
+        </attribute>
+       </widget>
+      </item>
+      <item row="2" column="6">
        <widget class="QLabel" name="label_9">
         <property name="text">
          <string>For:</string>
         </property>
         <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
         </property>
        </widget>
       </item>
-      <item row="1" column="2">
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>Starting:</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QComboBox" name="list_selector"/>
+      </item>
+      <item row="0" column="8">
+       <widget class="QPushButton" name="fetch_range_button">
+        <property name="text">
+         <string>Fetch Range</string>
+        </property>
+        <attribute name="buttonGroup">
+         <string notr="true">history_interaction_group</string>
+        </attribute>
+       </widget>
+      </item>
+      <item row="2" column="4">
+       <widget class="QComboBox" name="plot_tf_selector"/>
+      </item>
+      <item row="2" column="8">
+       <widget class="QComboBox" name="plot_period_selector"/>
+      </item>
+      <item row="2" column="2">
        <widget class="QCheckBox" name="regular_hours_box">
         <property name="text">
          <string>Reg.  Hours</string>
@@ -76,33 +125,7 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="4">
-       <widget class="QComboBox" name="plot_tf_selector"/>
-      </item>
-      <item row="1" column="7">
-       <widget class="QComboBox" name="plot_period_selector"/>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>List</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="3">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>Bar:</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="7">
+      <item row="0" column="4">
        <widget class="QPushButton" name="fetch_full_button">
         <property name="text">
          <string>Fetch Full</string>
@@ -113,29 +136,6 @@
        </widget>
       </item>
       <item row="0" column="6">
-       <widget class="QPushButton" name="fetch_range_button">
-        <property name="text">
-         <string>Fetch Range</string>
-        </property>
-        <attribute name="buttonGroup">
-         <string notr="true">history_interaction_group</string>
-        </attribute>
-       </widget>
-      </item>
-      <item row="0" column="3">
-       <widget class="QCheckBox" name="keep_up_box">
-        <property name="layoutDirection">
-         <enum>Qt::RightToLeft</enum>
-        </property>
-        <property name="text">
-         <string>Keep up-to-date</string>
-        </property>
-        <attribute name="buttonGroup">
-         <string notr="true">history_interaction_group</string>
-        </attribute>
-       </widget>
-      </item>
-      <item row="0" column="4">
        <widget class="QPushButton" name="refresh_range_button">
         <property name="text">
          <string>Refresh Range</string>
@@ -165,7 +165,7 @@
              <string>Selection:</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -178,14 +178,14 @@
              <string>Conv:</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
           <item row="0" column="2">
            <widget class="QCheckBox" name="yesterday_close_check">
             <property name="layoutDirection">
-             <enum>Qt::LeftToRight</enum>
+             <enum>Qt::LayoutDirection::LeftToRight</enum>
             </property>
             <property name="text">
              <string>Yest.  Close</string>
@@ -235,7 +235,7 @@
              <string>Comp List:</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -254,7 +254,7 @@
              <string>Focus:</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -270,7 +270,7 @@
              <string>Selection:</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -291,7 +291,7 @@
              <string>Time frame</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -304,7 +304,7 @@
              <string>Period</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
@@ -317,7 +317,7 @@
              <string>Comp List</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
             </property>
            </widget>
           </item>
