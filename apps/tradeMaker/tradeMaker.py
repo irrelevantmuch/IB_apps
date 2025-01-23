@@ -86,19 +86,22 @@ class TradeMaker(TradingWindow):
         self.prepTickerProcessor(history_manager)
         self.setupOrderTable(self.order_buffer)
         self.setupStairTable(self.stair_tracker)
-        self.setBaseGuiValues(self.accounts, default_account)
-
+        input_selection_button = self.symbol_radio
+        self.setBaseGuiValues(self.accounts, default_account, input_selection_button)
+        self.listSelectionChange(input_selection_button)
         
         self.connectSignalSlots()
         self.account_change.emit(self.sel_account)
         
         self.product_label.setText(self.stock_list[self.selected_key]['long_name']) 
         
-    
+        
         # self.order_manager.open_order_request.emit()
         self.tickerSelection(0)
 
         self.processor_thread.start()
+
+
 
         self.set_bar_signal.emit(self.selected_bar_type)
 

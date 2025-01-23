@@ -72,12 +72,12 @@ class TradingWindow(MyAppWindow, TradingWindow_UI, SymbolFinderImplementation): 
 
 
 
-    def setBaseGuiValues(self, accounts, default_account):
+    def setBaseGuiValues(self, accounts, default_account, selected_input_button):
         self.count_field.setValue(10)
         self.step_count_field.setValue(10)
         
         addAccountsToSelector(accounts, self.account_selector, default_account)
-        self.forceEmitToggleRadio(self.symbol_radio, self.input_selection_group)
+        self.forceEmitToggleRadio(selected_input_button, self.input_selection_group)
         self.forceEmitToggleRadio(self.buy_radio, self.buy_sell_group)
         self.forceEmitToggleRadio(self.step_buy_radio, self.step_buy_sell_group)
         self.forceEmitToggleRadio(self.step_profit_factor_radio, self.step_profit_selection_group)
