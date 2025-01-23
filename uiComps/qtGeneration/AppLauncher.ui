@@ -45,7 +45,7 @@
        <number>10</number>
       </property>
       <property name="sizeConstraint">
-       <enum>QLayout::SetDefaultConstraint</enum>
+       <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
       </property>
       <property name="leftMargin">
        <number>20</number>
@@ -206,14 +206,14 @@
           <item>
            <widget class="Line" name="line_2">
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
            </widget>
           </item>
           <item>
            <spacer name="verticalSpacer_2">
             <property name="orientation">
-             <enum>Qt::Vertical</enum>
+             <enum>Qt::Orientation::Vertical</enum>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
@@ -268,13 +268,6 @@
               </attribute>
              </widget>
             </item>
-            <item row="2" column="1">
-             <widget class="QPushButton" name="open_poly_downloader">
-              <property name="text">
-               <string>Polygon Download</string>
-              </property>
-             </widget>
-            </item>
             <item row="2" column="0">
              <widget class="QPushButton" name="open_option_viz">
               <property name="text">
@@ -292,14 +285,14 @@
         <item>
          <widget class="Line" name="line">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
          </widget>
         </item>
         <item>
          <spacer name="horizontalSpacer">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -510,10 +503,10 @@
                </sizepolicy>
               </property>
               <property name="inputMethodHints">
-               <set>Qt::ImhUppercaseOnly</set>
+               <set>Qt::InputMethodHint::ImhUppercaseOnly</set>
               </property>
               <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
               </property>
               <property name="clearButtonEnabled">
                <bool>true</bool>
@@ -536,7 +529,7 @@
                </sizepolicy>
               </property>
               <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
               </property>
              </widget>
             </item>
@@ -558,7 +551,7 @@
           <item>
            <widget class="Line" name="line_3">
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
            </widget>
           </item>
@@ -579,7 +572,7 @@
           <item>
            <widget class="Line" name="line_4">
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
            </widget>
           </item>
@@ -620,7 +613,7 @@
          <string>TWS Messages:</string>
         </property>
         <property name="textFormat">
-         <enum>Qt::RichText</enum>
+         <enum>Qt::TextFormat::RichText</enum>
         </property>
        </widget>
       </item>
@@ -646,9 +639,9 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="general_history_group"/>
   <buttongroup name="ib_group"/>
-  <buttongroup name="trading_type_group"/>
+  <buttongroup name="general_history_group"/>
   <buttongroup name="data_group"/>
+  <buttongroup name="trading_type_group"/>
  </buttongroups>
 </ui>

@@ -166,11 +166,7 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
             alert_app.setTelegramListener(self.telegram_signal)
         return alert_app
 
-
-    @app_opener(DataDownloader)
-    def openDataDetailsApp(self):
-        return DataDownloader(QThread())
-        
+    
 
     @app_opener(TradeMaker)
     def openManualTraderApp(self):
