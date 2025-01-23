@@ -277,16 +277,16 @@ class ComparisonProcessor(DataProcessor):
             
             datetime_for_start = datetime(start_date.year, start_date.month, start_date.day)
 
-                #todo, make this contingent on instrument tz
-            nyc_timezone = timezone(Constants.NYC_TIMEZONE)
-            datetime_for_start = nyc_timezone.localize(datetime_for_start)
+            instr_timezone = timezone(self._stock_list[key]['time_zone'])
+            datetime_for_start = instr_timezone.localize(datetime_for_start)
 
             try:
-                closest_index = day_frame.index.get_loc(datetime_for_start)
+                closest_index = day_frame.index.get_loc(int(datetime_for_start.timestamp()))
                 closest_label = day_frame.index[closest_index-1]
                 return day_frame.loc[closest_label, Constants.CLOSE]
-            except KeyError:
-                print("Yesterday's close not present")
+            except KeyError as e:
+                print(f"We caught: {e}")
+
             
         return filtered_data_frame.iloc[0][Constants.CLOSE]
 
