@@ -373,7 +373,6 @@ class IBConnectivity(EClient, EWrapper, QObject):
 
     @pyqtSlot()
     def processQueue(self):
-        print(f"IBConnectivity.processQueue {self.request_queue.qsize()}")
         if not self.request_queue.empty():
             request = self.request_queue.get_nowait()
             self.processRequest(request)
@@ -399,7 +398,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
                 self.req_id_manager.clearOpenReqID(request['req_id'])
             self.cancelHistoricalData(request['req_id'])
         elif req_type == 'reqHeadTimeStamp':
-            self.reqHeadTimeStamp(request['req_id'], request['contract'], request['data_type'], request['use_rth'], request['format_date'])
+            self.reqHeadTimeStamp(request['req_id'], request['contract'], "TRADES", 1,1)
             self.req_id_manager.addOpenReq(request['req_id'])
         elif req_type == 'reqOpenOrders':
             self.reqOpenOrders()
@@ -456,7 +455,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
     def stopActiveRequests(self, owner_id):
         if self._active_price_req_id is not None:
             self.makeRequest({'type': 'cancelMktData', 'req_id': self._active_price_req_id})
-            self.clearPriceReqID(self._active_price_req_id)
+            self.req_id_manager.clearPriceReqID(self._active_price_req_id)
             self._active_price_req_id = None
 
 

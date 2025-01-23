@@ -63,7 +63,7 @@ class MoversList(MoversWindow):
 
     def __init__(self, history_manager, processor_thread):
         super().__init__(self.bar_types)
-
+        print(f"We initiate MoversList from: {int(QThread.currentThreadId())}")
         file_name, _ = self.stock_lists[0]
         self.stock_list = readStockList(file_name)
         self.attemptIndexLoading(self.findIndexList())
@@ -79,8 +79,7 @@ class MoversList(MoversWindow):
 
 
     def setupProcessor(self, history_manager, processor_thread):
-        #print(f"MoversList.setupProcessor {int(QThread.currentThreadId())}")
-        
+        #print(f"MoversList
         self.data_processor = MoversProcessor(history_manager, DT_BAR_TYPES, self.stock_list) #, self.index_list)
         self.table_data = self.data_processor.getDataObject()
         self.processor_thread = processor_thread
@@ -94,7 +93,6 @@ class MoversList(MoversWindow):
 
 
     def connectSignalToSlots(self):
-        #print(f"MoversList.connectSignalToSlots {int(QThread.currentThreadId())}")
         self.fetch_latest_signal.connect(self.data_processor.buffered_manager.fetchLatestStockData, Qt.ConnectionType.QueuedConnection)
         self.set_stock_list_signal.connect(self.data_processor.setStockList, Qt.ConnectionType.QueuedConnection)
         self.cancel_update_signal.connect(self.data_processor.buffered_manager.cancelUpdates, Qt.ConnectionType.QueuedConnection)
@@ -186,7 +184,7 @@ class MoversList(MoversWindow):
 
 ############## Callbacks
 
-
+    @pyqtSlot(str)
     def processingUpdate(self, signal):
         if signal == Constants.ALL_DATA_LOADED:
             self.setHistoryEnabled(True)

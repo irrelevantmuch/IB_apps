@@ -54,12 +54,12 @@ class ListManager(ListManagerWindow):
         self.history_manager = history_manager
         self.fetch_earliest_date.connect(self.history_manager.fetchEarliestDate)
 
-        self.option_manager.api_updater.connect(self.apiUpdate)
-        self.buffered_manager.history_manager.api_updater.connect(self.apiUpdate)
+        self.option_manager.api_updater.connect(self.apiUpdate, Qt.ConnectionType.DirectConnection)
+        self.buffered_manager.history_manager.api_updater.connect(self.apiUpdate, Qt.ConnectionType.DirectConnection)
         self.buffered_manager.history_manager.mostRecentFirst = True
         
         self.buffered_manager.setStockList(self.stock_list)
-        self.fetch_stock_contracts.connect(self.option_manager.makeStockSelection, type=Qt.ConnectionType.DirectConnection)
+        self.fetch_stock_contracts.connect(self.option_manager.makeStockSelection, Qt.ConnectionType.DirectConnection)
         self.symbol_manager.api_updater.connect(self.contractUpdate, Qt.ConnectionType.QueuedConnection)
 
 
