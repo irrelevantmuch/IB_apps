@@ -16,7 +16,7 @@
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-from PyQt5.QtCore import QObject, QReadWriteLock, pyqtSignal
+from PyQt6.QtCore import QObject, QReadWriteLock, pyqtSignal, QThread
 from dataHandling.Constants import Constants
 
 class MoversFrame(QObject):

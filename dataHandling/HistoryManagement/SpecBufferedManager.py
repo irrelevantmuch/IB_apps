@@ -20,7 +20,7 @@ from datetime import datetime
 from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
 from dataHandling.HistoryManagement.FinazonBufferedManager import FinazonBufferedDataManager
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread
+from PyQt6.QtCore import pyqtSignal, pyqtSlot, QThread
 
 
 class SpecBufferedDataManager:

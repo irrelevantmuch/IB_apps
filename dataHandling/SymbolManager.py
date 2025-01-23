@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from PyQt5.QtCore import Qt, pyqtSlot, QObject
+from PyQt6.QtCore import Qt, pyqtSlot, QObject
 from ibapi.contract import Contract
 
 from .DataStructures import DetailObject

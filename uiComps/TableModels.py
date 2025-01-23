@@ -13,11 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import Qt, QAbstractTableModel, pyqtSignal, QSize, QTimer, pyqtSlot
-from PyQt5 import QtCore
+from PyQt6.QtCore import Qt, QThread, QAbstractTableModel, pyqtSignal, QSize, QTimer, pyqtSlot
+
+from PyQt6 import QtCore
 from dataHandling.Constants import Constants
 from math import isnan
-from PyQt5.QtGui import QBrush, QColor
+from PyQt6.QtGui import QBrush, QColor
 
 
 class PandasDataModel(QAbstractTableModel):
@@ -28,10 +29,11 @@ class PandasDataModel(QAbstractTableModel):
 
     def __init__(self, table_data, mapping, header_labels=None, output_functions=None, **kwargs):
         super(PandasDataModel, self).__init__(**kwargs)
+        print(f"We start the data model on {int(QThread.currentThreadId())}")
         self._table_data = table_data
         self._mapping = mapping
 
-        self._table_data.processing_updater.connect(self.tableDataUpdate, Qt.QueuedConnection)
+        self._table_data.processing_updater.connect(self.tableDataUpdate, Qt.ConnectionType.QueuedConnection)
 
         if header_labels is not None:
             self.header_labels = header_labels
@@ -44,15 +46,15 @@ class PandasDataModel(QAbstractTableModel):
             self.output_functions = [str] * self.columnCount()
 
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if orientation == Qt.Vertical:
-            if role == Qt.DisplayRole:
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if orientation == Qt.Orientation.Vertical:
+            if role == Qt.ItemDataRole.DisplayRole:
                 return self._table_data.getValueForColRow(Constants.SYMBOL, section)
-            elif role == Qt.BackgroundRole:
+            elif role == Qt.ItemDataRole.BackgroundRole:
                 return QBrush(QColor(255, 255, 230))
-            elif role == Qt.ForegroundRole:
+            elif role == Qt.ItemDataRole.ForegroundRole:
                 return QBrush(QColor(0, 0, 100))    
-        elif role == Qt.DisplayRole and orientation == Qt.Horizontal:
+        elif role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
             return self.header_labels[section]
         
         return QAbstractTableModel.headerData(self, section, orientation, role)
@@ -73,18 +75,19 @@ class PandasDataModel(QAbstractTableModel):
         return len(self._mapping.keys())     #len(self.datatable.columns.values) 
 
 
-    def data(self, index, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole:
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
             if index.column() in self._mapping:
                 column_name = self._mapping[index.column()]
                 row = index.row()
                 if column_name == '__INDEX__':
                     return self.output_functions[index.column()](self._table_data.getIndexForRow(row))
                 else:
+                    print("TableModels.data")
                     return self.output_functions[index.column()](self._table_data.getValueForColRow(column_name,row))
-        elif role == Qt.TextAlignmentRole:
+        elif role == Qt.ItemDataRole.TextAlignmentRole:
             # if self._mapping[index.column()] == Constants.PRICE:
-            return Qt.AlignRight | Qt.AlignVCenter
+            return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
 
     def setDataFrame(self, newframe):
@@ -97,12 +100,12 @@ class PandasDataModel(QAbstractTableModel):
         return self._table_data.getValueForColRow(Constants.SYMBOL,row), self._table_data.getIndexForRow(row)
 
 
-    def sort(self, col, order=Qt.AscendingOrder):
+    def sort(self, col, order=Qt.SortOrder.AscendingOrder):
         self.layoutAboutToBeChanged.emit()
         if self._mapping[col] == '__INDEX__':
-            self._table_data.sortIndex(ascending=(order==Qt.AscendingOrder))
+            self._table_data.sortIndex(ascending=(order==Qt.SortOrder.AscendingOrder))
         else:
-            self._table_data.sortValuesForColumn(self._mapping[col]) #, ascending=(order==Qt.AscendingOrder))
+            self._table_data.sortValuesForColumn(self._mapping[col]) #, ascending=(order==Qt.SortOrder.AscendingOrder))
         self.layoutChanged.emit()
 
 
@@ -146,13 +149,13 @@ class PandasDataModel(QAbstractTableModel):
 
 class PandasStaleModel(PandasDataModel):
 
-    def data(self, index, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole:
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
             if index.column() in self._mapping:
                 column_name = self._mapping[index.column()]
                 row = index.row()
                 return self.output_functions[index.column()](self._table_data.getValueForColRow(column_name, row))
-        elif role == Qt.BackgroundRole:
+        elif role == Qt.ItemDataRole.BackgroundRole:
             if self._table_data.getValueForColRow(Constants.STALE, index.row()) and self.greyout_stale:
                 return QBrush(QColor(230, 230, 230))
         else:
@@ -188,20 +191,20 @@ class PandasStaleModel(PandasDataModel):
 #         return change
 
 
-#     def sort(self, col, order=Qt.AscendingOrder):
+#     def sort(self, col, order=Qt.SortOrder.AscendingOrder):
 #         self.tableDataUpdate(Constants.DATA_STRUCTURE_CHANGED, dict())
 #         super().sort(col, order=order)
 
 
 class OverviewModel(PandasStaleModel):
 
-    def data(self, index, role=Qt.DisplayRole):
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         row = index.row()
 
         if index.column() in self._mapping:
             column_name = self._mapping[index.column()]
 
-            # if role == Qt.BackgroundRole:
+            # if role == Qt.ItemDataRole.BackgroundRole:
             #     changed = self.updateValue(row, index.column(), self._table_data.getValueForColRow(column_name, row))
         
             #     if changed:
@@ -211,14 +214,14 @@ class OverviewModel(PandasStaleModel):
             if column_name.endswith('_FROM'):
                 if isnan(self._table_data.getValueForColRow(column_name,row)): return super().data(index, role)
                 
-                if role == Qt.BackgroundRole and not(self._table_data.getValueForColRow(Constants.STALE, row) and self.greyout_stale):
+                if role == Qt.ItemDataRole.BackgroundRole and not(self._table_data.getValueForColRow(Constants.STALE, row) and self.greyout_stale):
                     move = self._table_data.getValueForColRow(column_name,row)
                     intensity = int(move*2)
                     return QBrush(QColor(255, 255, max(255-intensity,0)))
             elif column_name.endswith('_MOVE'):
                 if isnan(self._table_data.getValueForColRow(column_name,row)): return super().data(index, role)
 
-                if role == Qt.BackgroundRole and not(self._table_data.getValueForColRow(Constants.STALE, row) and self.greyout_stale):
+                if role == Qt.ItemDataRole.BackgroundRole and not(self._table_data.getValueForColRow(Constants.STALE, row) and self.greyout_stale):
                     intensity = int(self._table_data.getValueForColRow(column_name,row)*10)
                     if intensity > 0:
                         return QBrush(QColor(max(0, 255-intensity), 255, max(0, 255-intensity)))
@@ -231,12 +234,12 @@ class OverviewModel(PandasStaleModel):
 
 class LevelModel(PandasStaleModel):
 
-    def data(self, index, role=Qt.DisplayRole):
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         row = index.row()
         
         column_name = self._mapping[index.column()]
         if column_name.endswith('_Low') or column_name.endswith('_High'):
-            if role == Qt.BackgroundRole and not(self._table_data.getValueForColRow(Constants.STALE,row) and self.greyout_stale):
+            if role == Qt.ItemDataRole.BackgroundRole and not(self._table_data.getValueForColRow(Constants.STALE,row) and self.greyout_stale):
                 value = self._table_data.getValueForColRow(column_name,row)
 
                 if isnan(value): return super().data(index, role)
@@ -246,7 +249,7 @@ class LevelModel(PandasStaleModel):
                 perc_move = 100*diff/price
                 blue_intensity = max(255-int(20/max(perc_move,0.001)), 0)
                 return QBrush(QColor(255, 255, blue_intensity))
-            elif role == Qt.DisplayRole:
+            elif role == Qt.ItemDataRole.DisplayRole:
                 value = self._table_data.getValueForColRow(column_name,row)
                 diff = self._table_data.getValueForColRow(column_name + '_Diff',row)
                 return f"{value:.2f} - {diff:.2f}"
@@ -254,12 +257,12 @@ class LevelModel(PandasStaleModel):
         return super().data(index, role)
 
 
-    def sort(self, col, order=Qt.AscendingOrder):
+    def sort(self, col, order=Qt.SortOrder.AscendingOrder):
 
         column_name = self._mapping[col]
         if column_name.endswith('_Low') or column_name.endswith('_High'):
             # self.model_updater.emit(Constants.DATA_WILL_CHANGE, dict())
-            self._table_data.sortValuesForColumn(column_name + '_Diff', ascending=(order==Qt.AscendingOrder))
+            self._table_data.sortValuesForColumn(column_name + '_Diff', ascending=(order==Qt.SortOrder.AscendingOrder))
             # self.model_updater.emit(Constants.DATA_DID_CHANGE, dict())
         else:
             super().sort(col, order)
@@ -268,7 +271,7 @@ class LevelModel(PandasStaleModel):
 class StepModel(PandasStaleModel):
 
 
-    def data(self, index, role=Qt.DisplayRole):
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         row = index.row()
 
         if index.column() in self._mapping:
@@ -277,7 +280,7 @@ class StepModel(PandasStaleModel):
             if column_name.endswith('Steps'):
                 if isnan(self._table_data.getValueForColRow(column_name,row)): return super().data(index, role)
                 
-                if role == Qt.BackgroundRole and not self._table_data.getValueForColRow(Constants.STALE,row):
+                if role == Qt.ItemDataRole.BackgroundRole and not self._table_data.getValueForColRow(Constants.STALE,row):
                     
                     # changed = self.isChanged(index)
                     # if changed:
@@ -291,12 +294,12 @@ class StepModel(PandasStaleModel):
                     if isnan(steps) or isnan(move): return super().data(index, role)
                     intensity = int(5 * (steps + move))
                     return QBrush(QColor(255, 255, max(255-intensity,0)))
-                elif role == Qt.DisplayRole:
+                elif role == Qt.ItemDataRole.DisplayRole:
                     steps = self._table_data.getValueForColRow(column_name,row)
                     if isnan(steps): return super().data(index, role)
                     move = abs(self._table_data.getValueForColRow(column_name + '_Move',row))
                     return f"{steps:.2f} - {move:.2f}%"
-        elif role == Qt.BackgroundRole and not (self._table_data.getValueForColRow(Constants.STALE,row) and self.greyout_stale):
+        elif role == Qt.ItemDataRole.BackgroundRole and not (self._table_data.getValueForColRow(Constants.STALE,row) and self.greyout_stale):
             return QBrush(QColor(170, 170, 255))
         elif role == Qt.SizeHintRole:
             return QSize(5, 0)
@@ -307,11 +310,11 @@ class StepModel(PandasStaleModel):
 class RSIModel(PandasStaleModel):
 
 
-    def data(self, index, role=Qt.DisplayRole):
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         row = index.row()
         column_name = self._mapping[index.column()]
         if column_name.endswith('_RSI'):
-            if role == Qt.BackgroundRole and not (self._table_data.getValueForColRow(Constants.STALE, row) and self.greyout_stale):
+            if role == Qt.ItemDataRole.BackgroundRole and not (self._table_data.getValueForColRow(Constants.STALE, row) and self.greyout_stale):
                 changed = self.isChanged(index)
 
                 if changed:
@@ -338,12 +341,12 @@ class RSIModel(PandasStaleModel):
 class CorrModel(PandasStaleModel):
 
 
-    def data(self, index, role=Qt.DisplayRole):
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         row = index.row()
         column_name = self._mapping[index.column()]
         if column_name.endswith('_CORR'):
 
-            if role == Qt.BackgroundRole and not (self._table_data.getValueForColRow(Constants.STALE, row) and self.greyout_stale):
+            if role == Qt.ItemDataRole.BackgroundRole and not (self._table_data.getValueForColRow(Constants.STALE, row) and self.greyout_stale):
                 # changed = self.updateValue(row, index.column(), self._table_data.getValueForColRow(column_name,row))
         
                 # if changed:
@@ -367,26 +370,26 @@ class CorrModel(PandasStaleModel):
 
 class ListCorrModel(CorrModel):
 
-    # def sort(self, col, order=Qt.AscendingOrder):
+    # def sort(self, col, order=Qt.SortOrder.AscendingOrder):
         # self.model_updater.emit(Constants.DATA_WILL_CHANGE, dict())
-        # self._table_data.sort_values("CORR_VALUES", ascending=(order==Qt.AscendingOrder), key=lambda x: x.apply(lambda y: y[col]), inplace=True)
+        # self._table_data.sort_values("CORR_VALUES", ascending=(order==Qt.SortOrder.AscendingOrder), key=lambda x: x.apply(lambda y: y[col]), inplace=True)
         # self.model_updater.emit(Constants.DATA_DID_CHANGE, dict())
 
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole and orientation == Qt.Vertical:
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Vertical:
             return self._table_data.getValueForColRow(Constants.SYMBOL, section)
         return super().headerData(section, orientation, role)
 
 
-    def data(self, index, role=Qt.DisplayRole):
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
 
         row = index.row()
         column = index.column()
     
         corr_list = self._table_data.getValueForColRow("CORR_VALUES",row)
         if not isinstance(corr_list, list) and isnan(corr_list):
-            if role == Qt.DisplayRole:
+            if role == Qt.ItemDataRole.DisplayRole:
                 return "Nan"
             else:
                 return super().data(index, role)
@@ -394,9 +397,9 @@ class ListCorrModel(CorrModel):
         if column < len(corr_list):
             r_coef = corr_list[column]
             
-            if role == Qt.DisplayRole:
+            if role == Qt.ItemDataRole.DisplayRole:
                 return f"{r_coef:.2f}"
-            elif role == Qt.BackgroundRole and not(self._table_data.getValueForColRow(Constants.STALE, row) and self.greyout_stale):
+            elif role == Qt.ItemDataRole.BackgroundRole and not(self._table_data.getValueForColRow(Constants.STALE, row) and self.greyout_stale):
                 # changed = self.updateValue(row, column, r_coef)
         
                 # if changed:

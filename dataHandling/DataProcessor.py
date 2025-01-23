@@ -13,7 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import QThread, QObject, pyqtSlot, Qt
+from PyQt6.QtCore import QThread, QObject, pyqtSlot, Qt
+
 from dataHandling.Constants import Constants
 from datetime import datetime
 import pandas as pd
@@ -31,7 +32,7 @@ class DataProcessor(QObject):
     def __init__(self, stock_list=None, index_list=None):
         super().__init__()
         self.data_buffers = self.buffered_manager.data_buffers
-        self.data_buffers.buffer_updater.connect(self.bufferUpdate, Qt.QueuedConnection)
+        self.data_buffers.buffer_updater.connect(self.bufferUpdate, Qt.ConnectionType.QueuedConnection)
         self.initial_stock_list = stock_list
         self.initial_index_list = index_list
 

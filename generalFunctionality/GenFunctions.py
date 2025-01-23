@@ -21,7 +21,7 @@ import pandas as pd
 
 from dataHandling.Constants import Constants, MINUTES_PER_BAR
 from dateutil.relativedelta import relativedelta
-from PyQt5.QtCore import QThread
+from PyQt6.QtCore import QThread
 
 def printPriority(thread_priority):
         # Print the priority level
@@ -35,7 +35,7 @@ def printPriority(thread_priority):
         return "Thread priority: NormalPriority"
     elif thread_priority == QThread.HighPriority:
         return "Thread priority: HighPriority"
-    elif thread_priority == QThread.HighestPriority:
+    elif thread_priority == QThread.Priority.HighestPriority:
         return "Thread priority: HighestPriority"
     elif thread_priority == QThread.TimeCriticalPriority:
         return "Thread priority: TimeCriticalPriority"

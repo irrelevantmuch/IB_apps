@@ -13,8 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtGui import QColor, QBrush
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QLabel, QHBoxLayout, QTableWidgetItem
+from PyQt6.QtGui import QColor, QBrush
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QLabel, QHBoxLayout, QTableWidgetItem
 from datetime import datetime
 from dataHandling.Constants import Constants
 

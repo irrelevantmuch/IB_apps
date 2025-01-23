@@ -13,7 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot, Qt
+from PyQt6.QtCore import pyqtSignal, QObject, pyqtSlot, Qt
+
 from dataHandling.Constants import Constants
 from dataHandling.DataStructures import DetailObject
 from dataHandling.HistoryManagement.LiveBufferedManager import LiveDataManager
@@ -39,8 +40,8 @@ class LiveTickerProcessor(QObject):
     def connectSignalsToSlots(self):
         self.buffered_manager.api_updater.connect(self.apiUpdate)
         
-        self.price_request_signal.connect(self.history_manager.requestMarketData, Qt.QueuedConnection)
-        self.buffered_manager.data_buffers.buffer_updater.connect(self.bufferUpdate, Qt.QueuedConnection)
+        self.price_request_signal.connect(self.history_manager.requestMarketData, Qt.ConnectionType.QueuedConnection)
+        self.buffered_manager.data_buffers.buffer_updater.connect(self.bufferUpdate, Qt.ConnectionType.QueuedConnection)
         
     def moveToThread(self, thread):
         self.buffered_manager.moveToThread(thread)

@@ -14,7 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from PyQt5.QtCore import Qt, QThread, QObject, pyqtSignal, pyqtSlot, QTimer
+from PyQt6.QtCore import Qt, QThread, QObject, pyqtSignal, pyqtSlot, QTimer
+
 
 from .DataStructures import DetailObject
 from .Constants import Constants
@@ -265,7 +266,7 @@ class IBConnectivity(EClient, EWrapper, QObject):
         
         self.queue_timer = QTimer()
         self.queue_timer.timeout.connect(self.processQueue)
-        self.restart_timer_signal.connect(self.startProcessingQueue, Qt.QueuedConnection)
+        self.restart_timer_signal.connect(self.startProcessingQueue, Qt.ConnectionType.QueuedConnection)
 
         self.tws_thread = Thread(target=target, daemon=True)
         self.tws_thread.start()

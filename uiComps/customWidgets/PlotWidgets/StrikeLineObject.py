@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5 import QtCore
+from PyQt6.QtCore import Qt
 import pyqtgraph as pg
 
 from generalFunctionality.GenFunctions import findNearest
@@ -29,7 +29,7 @@ class StrikeLineObject:
         self.delegate = delegate
         self.plotItem = plotItem
 
-        self.strike_line = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(0,170,0),width=5, style=QtCore.Qt.DashLine),movable=True)
+        self.strike_line = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(0,170,0),width=5, style=Qt.PenStyle.DashLine),movable=True)
         self.proxy_strike_line_changed = pg.SignalProxy(self.strike_line.sigPositionChanged, rateLimit=5, slot=self.strikeLineDragging)
         self.proxy_strike_line_finished = pg.SignalProxy(self.strike_line.sigPositionChangeFinished, slot=self.strikeLineDraggingEnded)
         plotItem.addItem(self.strike_line)

@@ -13,12 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 
 def findRowForValue(table, value, column):
     for row in range(table.rowCount()):
 
-        if table.item(row, column).data(QtCore.Qt.DisplayRole) == value:
+        if table.item(row, column).data(QtCore.Qt.ItemDataRole.DisplayRole) == value:
             return row
 
     return -1
@@ -44,7 +44,7 @@ def maskAccountString(unm_str):
 
 def getNumericItem(float_value):
     item = QtWidgets.QTableWidgetItem()
-    item.setData(QtCore.Qt.DisplayRole, float(float_value))
+    item.setData(QtCore.Qt.ItemDataRole.DisplayRole, float(float_value))
     return item
     
 
@@ -52,13 +52,13 @@ class AlignDelegate(QtWidgets.QStyledItemDelegate):
 
     def initStyleOption(self, option, index):
         super(AlignDelegate, self).initStyleOption(option, index)
-        option.displayAlignment = QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+        option.displayAlignment = QtCore.Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
 class PercAlignDelegate(QtWidgets.QStyledItemDelegate):
 
     def initStyleOption(self, option, index):
         super(PercAlignDelegate, self).initStyleOption(option, index)
-        option.displayAlignment = QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+        option.displayAlignment = QtCore.Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
     def displayText(self, text, locale):
         """
@@ -75,7 +75,7 @@ class PriceAlignDelegate(QtWidgets.QStyledItemDelegate):
 
     def initStyleOption(self, option, index):
         super(PriceAlignDelegate, self).initStyleOption(option, index)
-        option.displayAlignment = QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+        option.displayAlignment = QtCore.Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
     def displayText(self, text, locale):
         """
@@ -92,7 +92,7 @@ class BigNumberAlignDelegate(QtWidgets.QStyledItemDelegate):
 
     def initStyleOption(self, option, index):
         super(BigNumberAlignDelegate, self).initStyleOption(option, index)
-        option.displayAlignment = QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+        option.displayAlignment = QtCore.Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
     def displayText(self, text, locale):
         """

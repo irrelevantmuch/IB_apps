@@ -21,7 +21,7 @@ from numpy import int64
 from datetime import datetime, timedelta
 from pytz import utc
 from zoneinfo import ZoneInfo
-from PyQt5.QtCore import pyqtSignal, QThread, QReadWriteLock, QObject
+from PyQt6.QtCore import pyqtSignal, QThread, QReadWriteLock, QObject
 
 
 class DataBuffers(QObject):

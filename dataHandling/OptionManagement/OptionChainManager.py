@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import QTimer, Qt, QThread, pyqtSlot, pyqtSignal, QObject
+from PyQt6.QtCore import QTimer, Qt, QThread, pyqtSlot, pyqtSignal, QObject
 
 from ibapi.contract import Contract, ComboLeg
 from ibapi.ticktype import TickTypeEnum

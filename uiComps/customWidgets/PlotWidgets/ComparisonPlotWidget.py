@@ -13,8 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5 import QtCore
-from PyQt5.QtCore import pyqtSlot, Qt, QReadWriteLock
+from PyQt6 import QtCore
+from PyQt6.QtCore import pyqtSlot, Qt, QReadWriteLock
+
 import pyqtgraph as pg
 from pyqtgraph import exporters, DateAxisItem
 
@@ -121,10 +122,10 @@ class ComparisonPlotWidget(pg.PlotWidget):
 
 
     def addCrossHair(self):
-        self.addItem(pg.InfiniteLine(pos=0.0, angle=0, pen=pg.mkPen(color=(170,170,170), width=2, style=QtCore.Qt.DashLine), movable=False))
-        self.hLine = pg.InfiniteLine(pos=0.0, angle=0, pen=pg.mkPen(color=(170,170,170), width=2, style=QtCore.Qt.DashLine), movable=False)
+        self.addItem(pg.InfiniteLine(pos=0.0, angle=0, pen=pg.mkPen(color=(170,170,170), width=2, style=Qt.PenStyle.DashLine), movable=False))
+        self.hLine = pg.InfiniteLine(pos=0.0, angle=0, pen=pg.mkPen(color=(170,170,170), width=2, style=Qt.PenStyle.DashLine), movable=False)
         self.addItem(self.hLine,ignoreBounds=True)
-        self.vLine = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(170,170,170), width=2, style=QtCore.Qt.DashLine), movable=False)
+        self.vLine = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(170,170,170), width=2, style=Qt.PenStyle.DashLine), movable=False)
         self.addItem(self.vLine,ignoreBounds=True)
 
 
@@ -272,7 +273,7 @@ class ComparisonPlotWidget(pg.PlotWidget):
 
     def setDataObject(self, data_object):
         self.data_object = data_object
-        self.data_object.processing_updater.connect(self.dataUpdate, Qt.QueuedConnection)
+        self.data_object.processing_updater.connect(self.dataUpdate, Qt.ConnectionType.QueuedConnection)
 
         if self.data_object.has_data:
             self.initialPlotting()

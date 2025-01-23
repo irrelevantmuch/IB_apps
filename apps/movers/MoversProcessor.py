@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import itertools
 
-from PyQt5.QtCore import pyqtSlot, QThread
+from PyQt6.QtCore import pyqtSlot, QThread
 
 import time
 from datetime import datetime, timedelta

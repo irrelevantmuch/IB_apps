@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import QObject, QReadWriteLock, pyqtSignal
+from PyQt6.QtCore import QObject, QReadWriteLock, pyqtSignal
 from dataHandling.Constants import Constants
 
 class ComparisonDataWrapper(QObject):

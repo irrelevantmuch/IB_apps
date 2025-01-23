@@ -20,7 +20,8 @@ from pytz import timezone
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
 
-from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot, QThread, Qt
+from PyQt6.QtCore import pyqtSignal, QObject, pyqtSlot, QThread, Qt
+
 
 
 class LiveDataManager(QObject):
@@ -53,11 +54,11 @@ class LiveDataManager(QObject):
 
 
     def connectSignalsToSlots(self):
-        self.stop_tracking_signal.connect(self.history_manager.stopTracking, Qt.QueuedConnection)
-        self.create_request_signal.connect(self.history_manager.createRequestsForContract, Qt.QueuedConnection)
-        self.request_update_signal.connect(self.history_manager.requestUpdates, Qt.QueuedConnection)
-        self.group_request_signal.connect(self.history_manager.groupCurrentRequests, Qt.QueuedConnection)
-        self.execute_request_signal.connect(self.history_manager.iterateHistoryRequests, Qt.QueuedConnection)
+        self.stop_tracking_signal.connect(self.history_manager.stopTracking, Qt.ConnectionType.QueuedConnection)
+        self.create_request_signal.connect(self.history_manager.createRequestsForContract, Qt.ConnectionType.QueuedConnection)
+        self.request_update_signal.connect(self.history_manager.requestUpdates, Qt.ConnectionType.QueuedConnection)
+        self.group_request_signal.connect(self.history_manager.groupCurrentRequests, Qt.ConnectionType.QueuedConnection)
+        self.execute_request_signal.connect(self.history_manager.iterateHistoryRequests, Qt.ConnectionType.QueuedConnection)
 
     
     def deregister(self):

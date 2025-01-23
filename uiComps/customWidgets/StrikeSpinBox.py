@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5 import QtWidgets
+from PyQt6 import QtWidgets
 import numpy as np
 
 class StrikeSpinBox(QtWidgets.QSpinBox):
@@ -57,10 +57,10 @@ class StrikeSpinBox(QtWidgets.QSpinBox):
 
 
 #  importing libraries
-# from PyQt5.QtWidgets import * 
-# from PyQt5 import QtCore, QtGui
-# from PyQt5.QtGui import * 
-# from PyQt5.QtCore import * 
+# from PyQt6.QtWidgets import * 
+# from PyQt6 import QtCore, QtGui
+# from PyQt6.QtGui import * 
+# from PyQt6.QtCore import * 
 # import sys
   
 # # custom class for String Spin Box

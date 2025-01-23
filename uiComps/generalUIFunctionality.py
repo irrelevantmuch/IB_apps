@@ -13,8 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtWidgets import QMainWindow
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt6.QtWidgets import QMainWindow
+from PyQt6.QtCore import pyqtSignal, Qt
 from dataHandling.Constants import Constants
 
 
@@ -34,9 +34,9 @@ def addCheckableTickersTo(ticker_box, stock_list, check_list):
         item = ticker_box.model().item(index, 0)
         
         if check_list[key]:
-            item.setCheckState(Qt.Checked)
+            item.setCheckState(Qt.CheckState.Checked)
         else:
-            item.setCheckState(Qt.Unchecked)
+            item.setCheckState(Qt.CheckState.Unchecked)
 
     ticker_box.blockSignals(False)
 

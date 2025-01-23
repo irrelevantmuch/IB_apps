@@ -13,8 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QReadWriteLock, QAbstractTableModel, QSize, QObject
-from PyQt5 import QtCore
+from PyQt6.QtCore import pyqtSlot, pyqtSignal, Qt, QReadWriteLock, QAbstractTableModel, QSize, QObject
+
+from PyQt6 import QtCore
 from ibapi.contract import Contract
 
 from dataHandling.Constants import Constants
@@ -39,7 +40,7 @@ class PositionDataManager(IBConnectivity):
         super().__init__(*args, **kwargs)
 
         self.data_object = PositionObject()
-        self.account_updater.connect(self.data_object.accountUpdate, Qt.QueuedConnection)
+        self.account_updater.connect(self.data_object.accountUpdate, Qt.ConnectionType.QueuedConnection)
         self.makeRequest({'type': 'reqAccountSummary'})
 
 
@@ -233,8 +234,8 @@ class PositionDataModel(QAbstractTableModel):
 
 
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole and orientation == Qt.Horizontal:
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
             return self._headers[section]
         
         return QAbstractTableModel.headerData(self, section, orientation, role)
@@ -249,8 +250,8 @@ class PositionDataModel(QAbstractTableModel):
         return len(self._headers)
 
 
-    def data(self, index, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole:
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
             column_index = index.column()
             column_name = self._headers[column_index]
             if column_name == 'EST MKT VALUE':
@@ -279,9 +280,9 @@ class PositionDataModel(QAbstractTableModel):
                 self.layoutChanged.emit()
 
 
-    def sort(self, col, order=Qt.AscendingOrder):
+    def sort(self, col, order=Qt.SortOrder.AscendingOrder):
         self.layoutAboutToBeChanged.emit()
         column_name = self._headers[col]
-        self._table_data.sortByColumn(column_name, ascending=(order==Qt.AscendingOrder))
+        self._table_data.sortByColumn(column_name, ascending=(order==Qt.SortOrder.AscendingOrder))
         self.layoutChanged.emit()
 

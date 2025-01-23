@@ -13,8 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import Qt, pyqtSlot
-from PyQt5.QtWidgets import QMenu, QAction
+from PyQt6.QtCore import Qt, pyqtSlot
+
+from PyQt6.QtWidgets import QMenu
+from PyQt6.QtGui import QAction
 
 import pyqtgraph as pg
 
@@ -174,7 +176,7 @@ class OptionAllPlotWidget(pg.PlotWidget):
 
     def setPriceLine(self, price):
         # if self.price_line is None:
-        self.price_line = pg.InfiniteLine(pos=price, angle=90, pen=pg.mkPen(color=(160,160,160), width=2, style=Qt.DashLine),movable=True)
+        self.price_line = pg.InfiniteLine(pos=price, angle=90, pen=pg.mkPen(color=(160,160,160), width=2, style=Qt.PenStyle.DashLine),movable=True)
         self.price_line.sigPositionChanged.connect(self.lineMoved)
         self.price_line.sigPositionChangeFinished.connect(self.enableMouseMovedSignal)
 
@@ -199,8 +201,8 @@ class OptionAllPlotWidget(pg.PlotWidget):
 
 
     def addCrossHair(self):
-        self.vLine = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(170,170,170), width=2, style=Qt.DashLine), movable=False)
-        self.hLine = pg.InfiniteLine(pos=0.0, angle=0, pen=pg.mkPen(color=(170,170,170), width=2, style=Qt.DashLine), movable=False)
+        self.vLine = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(170,170,170), width=2, style=Qt.PenStyle.DashLine), movable=False)
+        self.hLine = pg.InfiniteLine(pos=0.0, angle=0, pen=pg.mkPen(color=(170,170,170), width=2, style=Qt.PenStyle.DashLine), movable=False)
         self.addItem(self.vLine,ignoreBounds=True)
         self.addItem(self.hLine,ignoreBounds=True)
         
@@ -212,7 +214,7 @@ class OptionAllPlotWidget(pg.PlotWidget):
         self.addCrossHair()
         self.setPriceLine(option_frame.getUnderlyingPrice())
         self.option_frame = option_frame
-        self.option_frame.frame_updater.connect(self.dataChange, Qt.QueuedConnection)
+        self.option_frame.frame_updater.connect(self.dataChange, Qt.ConnectionType.QueuedConnection)
         self.initialPlot()
 
 

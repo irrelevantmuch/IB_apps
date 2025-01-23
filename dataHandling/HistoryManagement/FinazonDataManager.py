@@ -13,7 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import QTimer, QThread, pyqtSlot, QObject, Qt, pyqtSignal
+from PyQt6.QtCore import QTimer, QThread, pyqtSlot, QObject, Qt, pyqtSignal
+
 
 import pandas as pd
 
@@ -193,7 +194,7 @@ class FinazonDataManager(QObject):
             end_index = min(len(tickers),end_index)
 
             self.ws_managers.insert(socket_count, WebsocketManager(tickers[start_index:end_index], channel="sip_non_pro", freq_type=self.freq_type))
-            self.ws_managers[socket_index].message_received.connect(self.updatedBars, Qt.QueuedConnection)
+            self.ws_managers[socket_index].message_received.connect(self.updatedBars, Qt.ConnectionType.QueuedConnection)
             self.close_signal.connect(self.ws_managers[socket_index].close)
             self.ws_threads.insert(socket_count, QThread())
             self.ws_managers[socket_index].moveToThread(self.ws_threads[socket_index])
@@ -205,7 +206,7 @@ class FinazonDataManager(QObject):
         
 
     def addNewListener(self, controller, listener_function):
-        self.api_updater.connect(listener_function, Qt.QueuedConnection)
+        self.api_updater.connect(listener_function, Qt.ConnectionType.QueuedConnection)
         self.controller = controller
         #self.cancelActiveRequests(controller)
 

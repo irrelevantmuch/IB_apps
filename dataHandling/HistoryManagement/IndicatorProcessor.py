@@ -15,7 +15,8 @@
 
 from dataHandling.Constants import Constants, DT_BAR_TYPES
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, Qt, QThread
+from PyQt6.QtCore import pyqtSignal, pyqtSlot, QObject, Qt, QThread
+
 import itertools
 from generalFunctionality.GenFunctions import addRSIsEMAs, getLowsHighsCount, addEMAColumns
 
@@ -49,7 +50,7 @@ class IndicatorProcessor(QObject):
         self.indicators.update(indicators)
 
     def run(self):
-        self.data_buffers.buffer_updater.connect(self.bufferUpdate, Qt.QueuedConnection)
+        self.data_buffers.buffer_updater.connect(self.bufferUpdate, Qt.ConnectionType.QueuedConnection)
 
 
     @pyqtSlot(dict)

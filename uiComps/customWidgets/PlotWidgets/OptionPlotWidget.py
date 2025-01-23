@@ -13,8 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5 import QtCore
-from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt6 import QtCore
+from PyQt6.QtCore import Qt, pyqtSlot
+
 import pyqtgraph as pg
 import numpy as np
 from generalFunctionality.GenFunctions import findNearest
@@ -95,7 +96,7 @@ class OptionPlotWidget(pg.PlotWidget):
 
     def setDataObject(self, comp_frame):
         self.comp_frame = comp_frame
-        self.comp_frame.frame_updater.connect(self.updatePlot, Qt.QueuedConnection)
+        self.comp_frame.frame_updater.connect(self.updatePlot, Qt.ConnectionType.QueuedConnection)
         self.updatePlot("", dict())
 
 
@@ -149,7 +150,7 @@ class PremiumPlotWidget(OptionPlotWidget):
 
 
     def addPriceLine(self):
-        self.price_line = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(200,200,200), width=3, style=QtCore.Qt.DashLine),movable=False)
+        self.price_line = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(200,200,200), width=3, style=Qt.PenStyle.DashLine),movable=False)
         self.addItem(self.price_line)
 
 

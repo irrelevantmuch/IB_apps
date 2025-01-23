@@ -13,20 +13,20 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import Qt
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from PyQt5.QtWidgets import QCompleter
+from PyQt6.QtCore import Qt
+from PyQt6 import QtCore, QtGui
+from PyQt6.QtGui import QStandardItemModel, QStandardItem
+from PyQt6.QtWidgets import QCompleter
 
 
 class SymbolCompleter(QCompleter):
 
-    ConcatenationRole = Qt.UserRole + 1
+    ConcatenationRole = Qt.ItemDataRole.UserRole + 1
         
     def __init__(self, delegate, parent=None):
         super().__init__(parent)
         self.delegate = delegate
-        self.setCompletionMode(QCompleter.PopupCompletion)
+        self.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
         self.refreshModel()
 
         self.highlighted[QtCore.QModelIndex].connect(self.highlightedCompletion)
@@ -51,5 +51,5 @@ class SymbolCompleter(QCompleter):
 
 class Validator(QtGui.QValidator):
     def validate(self, string, pos):
-        return QtGui.QValidator.Acceptable, string.upper(), pos
+        return QtGui.QValidator.State.Acceptable, string.upper(), pos
 

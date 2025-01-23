@@ -24,7 +24,7 @@ from pytz import timezone
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from PyQt6.QtCore import pyqtSignal, pyqtSlot
 
 
 class FinazonBufferedDataManager(BufferedDataManager):

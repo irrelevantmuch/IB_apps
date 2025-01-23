@@ -13,8 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtWidgets import QComboBox
-from PyQt5 import QtCore, QtGui
+from PyQt6.QtWidgets import QComboBox
+from PyQt6 import QtCore, QtGui
+from PyQt6.QtCore import Qt 
 
 
 class CheckableComboBox(QComboBox):
@@ -29,10 +30,10 @@ class CheckableComboBox(QComboBox):
 
     def handleItemPressed(self, index):
         item = self.model().itemFromIndex(index)
-        if item.checkState() == QtCore.Qt.Checked:
-            item.setCheckState(QtCore.Qt.Unchecked)
+        if item.checkState() == Qt.CheckState.Checked:
+            item.setCheckState(Qt.CheckState.Unchecked)
         else:
-            item.setCheckState(QtCore.Qt.Checked)
+            item.setCheckState(Qt.CheckState.Checked)
 
         self._changed = True
 
@@ -40,7 +41,7 @@ class CheckableComboBox(QComboBox):
     def itemState(self, index):
         item = self.model().item(index, 0)
         if item is not None:
-            return (item.checkState() == QtCore.Qt.Checked)
+            return (item.checkState() == Qt.CheckState.Checked)
         else:
             return False
 
@@ -58,25 +59,25 @@ class CheckableComboBox(QComboBox):
 
     def deselectAll(self):
         for index in range(self.count()):
-            self.model().item(index, 0).setCheckState(QtCore.Qt.Unchecked)
+            self.model().item(index, 0).setCheckState(Qt.CheckState.Unchecked)
         
 
     def selectAll(self):
 
         for index in range(self.count()):
-            self.model().item(index, 0).setCheckState(QtCore.Qt.Checked)
+            self.model().item(index, 0).setCheckState(Qt.CheckState.Checked)
         
 
     def noItemsSelected(self):
         for index in range(self.count()):
-            if self.model().item(index, 0).checkState() == QtCore.Qt.Checked:
+            if self.model().item(index, 0).checkState() == Qt.CheckState.Checked:
                 return False
         return True
         
 
     def allItemsSelected(self):
         for index in range(self.count()):
-            if self.model().item(index, 0).checkState() == QtCore.Qt.Unchecked:
+            if self.model().item(index, 0).checkState() == Qt.CheckState.Unchecked:
                 return False
         return True
 
@@ -99,8 +100,8 @@ class CheckableComboBox(QComboBox):
 
     def setSelectionByList(self, selection_list):
         for index, key in self.key_list.items():
-            if selection_list[key]: item_state = QtCore.Qt.Checked
-            else: item_state = QtCore.Qt.Unchecked
+            if selection_list[key]: item_state = Qt.CheckState.Checked
+            else: item_state = Qt.CheckState.Unchecked
             self.model().item(index, 0).setCheckState(item_state)
 
 

@@ -13,7 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot, Qt
+from PyQt6.QtCore import pyqtSignal, QObject, pyqtSlot, Qt
+
 from dataHandling.Constants import Constants, DT_BAR_TYPES
 from dataHandling.HistoryManagement.BufferedManager import BufferedDataManager
 from dataHandling.UserDataManagement import readStockList
@@ -36,12 +37,12 @@ class AlertProcessor(QObject):
         super().__init__()
         
         self.buffered_manager = BufferedDataManager(history_manager)
-        self.buffered_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
+        self.buffered_manager.api_updater.connect(self.apiUpdate, Qt.ConnectionType.QueuedConnection)
 
         self.data_buffers = self.buffered_manager.data_buffers
         self.indicator_processor = indicator_processor
-        self.indicator_processor.indicator_updater.connect(self.indicatorUpdate, Qt.QueuedConnection)
-        self.update_stock_selection.connect(self.indicator_processor.setTrackingList, Qt.QueuedConnection)
+        self.indicator_processor.indicator_updater.connect(self.indicatorUpdate, Qt.ConnectionType.QueuedConnection)
+        self.update_stock_selection.connect(self.indicator_processor.setTrackingList, Qt.ConnectionType.QueuedConnection)
         self.stock_lists = []
         self.full_stock_list = dict()
         self.initializeSelectionLists()

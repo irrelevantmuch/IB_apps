@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import QTimer
+from PyQt6.QtCore import QTimer
 import pyqtgraph as pg
 from pyqtgraph import DateAxisItem
 from pyqtgraph import QtCore, QtGui
@@ -159,8 +159,8 @@ class CandlePlotWidget(pg.PlotWidget):
         self.dt_axis.utcOffset = -utc_offset
         
     # def addCrossHair(self):
-    #     self.vLine = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(170,170,170), width=2, style=Qt.DashLine), movable=False)
-    #     self.hLine = pg.InfiniteLine(pos=0.0, angle=0, pen=pg.mkPen(color=(170,170,170), width=2, style=Qt.DashLine), movable=False)
+    #     self.vLine = pg.InfiniteLine(pos=0.0, angle=90, pen=pg.mkPen(color=(170,170,170), width=2, style=Qt.PenStyle.DashLine), movable=False)
+    #     self.hLine = pg.InfiniteLine(pos=0.0, angle=0, pen=pg.mkPen(color=(170,170,170), width=2, style=Qt.PenStyle.DashLine), movable=False)
     #     self.addItem(self.vLine,ignoreBounds=True)
     #     self.addItem(self.hLine,ignoreBounds=True)
 

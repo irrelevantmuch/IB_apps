@@ -15,8 +15,8 @@
 
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSlider
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSlider
+from PyQt6.QtCore import Qt
 
 class RotatedAxisItem(pg.AxisItem):
     def drawPicture(self, p, axisSpec, tickSpecs, textSpecs):
@@ -99,12 +99,12 @@ class HeatMapWidget(QWidget):
         self.plot.setMouseEnabled(x=True, y=False)
 
         # Add QSlider
-        self.h_slider = QSlider(Qt.Horizontal)
+        self.h_slider = QSlider(Qt.Orientation.Horizontal)
         self.h_slider.setMinimum(0)
         self.h_slider.valueChanged.connect(self.hSliderChanged)
 
         # Add QSlider
-        self.v_slider = QSlider(Qt.Vertical)
+        self.v_slider = QSlider(Qt.Orientation.Vertical)
         self.v_slider.setMinimum(0)
         self.v_slider.valueChanged.connect(self.vSliderChanged)
         self.h_layout.addWidget(self.v_slider)

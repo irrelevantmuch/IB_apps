@@ -13,9 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5 import QtWidgets
-from PyQt5.QtCore import QLocale
-from PyQt5.QtCore import Qt 
+from PyQt6 import QtWidgets
+from PyQt6.QtCore import QLocale
+from PyQt6.QtCore import Qt 
 from ibapi.order import Order
 
 class OrderDialog(QtWidgets.QDialog):
@@ -51,39 +51,39 @@ class OrderDialog(QtWidgets.QDialog):
         self.count_field = QtWidgets.QSpinBox(self)
         self.count_field.setRange(1,10_000)
         self.count_field.setSingleStep(1)
-        self.count_field.setAlignment(Qt.AlignRight)
+        self.count_field.setAlignment(Qt.AlignmentFlag.AlignRight)
         
         self.limit_field = QtWidgets.QDoubleSpinBox(self)
         self.limit_field.setLocale(locale)
         self.limit_field.setRange(0.01,10_000)
         self.limit_field.setSingleStep(0.01)
-        self.limit_field.setAlignment(Qt.AlignRight)
+        self.limit_field.setAlignment(Qt.AlignmentFlag.AlignRight)
         
         self.stop_trigger_field = QtWidgets.QDoubleSpinBox(self)
         self.stop_trigger_field.setLocale(locale)
         self.stop_trigger_field.setRange(0.01,10_000)
         self.stop_trigger_field.setSingleStep(0.01)
-        self.stop_trigger_field.setAlignment(Qt.AlignRight)
+        self.stop_trigger_field.setAlignment(Qt.AlignmentFlag.AlignRight)
         
         self.stop_limit_field = QtWidgets.QDoubleSpinBox(self)
         self.stop_limit_field.setLocale(locale)
         self.stop_limit_field.setRange(0.01,10_000)
         self.stop_limit_field.setSingleStep(0.01)
-        self.stop_limit_field.setAlignment(Qt.AlignRight)
+        self.stop_limit_field.setAlignment(Qt.AlignmentFlag.AlignRight)
         
         self.profit_take_field = QtWidgets.QDoubleSpinBox(self)
         self.profit_take_field.setLocale(locale)
         self.profit_take_field.setRange(0.01,10_000)
         self.profit_take_field.setSingleStep(0.01)
-        self.profit_take_field.setAlignment(Qt.AlignRight)
+        self.profit_take_field.setAlignment(Qt.AlignmentFlag.AlignRight)
         
         buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, self);
         
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
         layout = QtWidgets.QFormLayout(self)
-        layout.setLabelAlignment(Qt.AlignLeft)
-        layout.setFormAlignment(Qt.AlignRight|Qt.AlignBottom)
+        layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+        layout.setFormAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignBottom)
         order_type = "Buy" if long_order else "Sell"
         layout.addRow(f"{order_type} limit", self.limit_field)
         layout.addRow("Count", self.count_field)
@@ -128,42 +128,42 @@ class StepOrderDialog(QtWidgets.QDialog):
         self.count_field = QtWidgets.QSpinBox(self)
         self.count_field.setRange(1,10_000)
         self.count_field.setSingleStep(1)
-        self.count_field.setAlignment(Qt.AlignRight)
+        self.count_field.setAlignment(Qt.AlignmentFlag.AlignRight)
         
         self.entry_trigger_margin_field = QtWidgets.QDoubleSpinBox(self)
         self.entry_trigger_margin_field.setLocale(locale)
         self.entry_trigger_margin_field.setRange(0.01,10_000)
         self.entry_trigger_margin_field.setSingleStep(0.01)
-        self.entry_trigger_margin_field.setAlignment(Qt.AlignRight)
+        self.entry_trigger_margin_field.setAlignment(Qt.AlignmentFlag.AlignRight)
         
         self.entry_limit_margin_field = QtWidgets.QDoubleSpinBox(self)
         self.entry_limit_margin_field.setLocale(locale)
         self.entry_limit_margin_field.setRange(0.01,10_000)
         self.entry_limit_margin_field.setSingleStep(0.01)
         self.entry_limit_margin_field.setValue(0.1)
-        self.entry_limit_margin_field.setAlignment(Qt.AlignRight)
+        self.entry_limit_margin_field.setAlignment(Qt.AlignmentFlag.AlignRight)
         
         self.stop_trigger_margin_field = QtWidgets.QDoubleSpinBox(self)
         self.stop_trigger_margin_field.setLocale(locale)
         self.stop_trigger_margin_field.setRange(0.01,10_000)
         self.stop_trigger_margin_field.setSingleStep(0.01)
 
-        self.stop_trigger_margin_field.setAlignment(Qt.AlignRight)
+        self.stop_trigger_margin_field.setAlignment(Qt.AlignmentFlag.AlignRight)
 
         self.stop_limit_margin_field = QtWidgets.QDoubleSpinBox(self)
         self.stop_limit_margin_field.setLocale(locale)
         self.stop_limit_margin_field.setRange(0.01,10_000)
         self.stop_limit_margin_field.setValue(0.1)
         self.stop_limit_margin_field.setSingleStep(0.01)
-        self.stop_limit_margin_field.setAlignment(Qt.AlignRight)
+        self.stop_limit_margin_field.setAlignment(Qt.AlignmentFlag.AlignRight)
         
         buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, self);
         buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setText("Submit")
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
         layout = QtWidgets.QFormLayout(self)
-        layout.setLabelAlignment(Qt.AlignLeft)
-        layout.setFormAlignment(Qt.AlignRight|Qt.AlignBottom)
+        layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+        layout.setFormAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignBottom)
         
         layout.addRow("Count", self.count_field)
         layout.addRow("Entry Trigger Margin", self.entry_trigger_margin_field)

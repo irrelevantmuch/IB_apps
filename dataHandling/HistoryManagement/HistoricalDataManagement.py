@@ -29,7 +29,8 @@ from operator import attrgetter
 
 from generalFunctionality.DateTimeFunctions import dateFromString, dateToString, pdDateFromIBString, utcDtFromIBString
 from generalFunctionality.GenFunctions import stringRange
-from PyQt5.QtCore import QThread, QObject, Qt, pyqtSignal, pyqtSlot, QTimer
+from PyQt6.QtCore import QThread, QObject, Qt, pyqtSignal, pyqtSlot, QTimer
+
 
 from dataHandling.HistoryManagement.DataBuffer import DataBuffers
 from dataHandling.DataStructures import DetailObject
@@ -118,12 +119,12 @@ class HistoricalDataManager(IBConnectivity):
         self.timeout_timer.timeout.connect(self.handleTimeout)
 
             #we connect slots to be signalled from callbacks to get on the current thread
-        self.historical_bar_signal.connect(self.processHistoricalBar, Qt.QueuedConnection)
-        self.historial_end_signal.connect(self.processHistoricalDataEnd, Qt.QueuedConnection)
+        self.historical_bar_signal.connect(self.processHistoricalBar, Qt.ConnectionType.QueuedConnection)
+        self.historial_end_signal.connect(self.processHistoricalDataEnd, Qt.ConnectionType.QueuedConnection)
 
 
     def addNewListener(self, controller, listener_function):
-        self.api_updater.connect(listener_function, Qt.QueuedConnection)
+        self.api_updater.connect(listener_function, Qt.ConnectionType.QueuedConnection)
         
         #do something with controller?
 

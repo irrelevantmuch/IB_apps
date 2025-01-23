@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, QReadWriteLock, Qt, QThread, QTimer
+from PyQt6.QtCore import pyqtSignal, pyqtSlot, QObject, QReadWriteLock, Qt, QThread, QTimer
 from dataHandling.Constants import Constants, OptionConstrType
 from generalFunctionality.GenFunctions import getExpirationString, getDaysTillExpiration
 

@@ -14,7 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from PyQt5.QtCore import QThread, QMetaObject, Qt, pyqtSlot
+from PyQt6.QtCore import QThread, QMetaObject, Qt, pyqtSlot
+
 from dataHandling.HistoryManagement.HistoricalDataManagement import HistoricalDataManager
 from dataHandling.HistoryManagement.FinazonDataManager import FinazonDataManager
 from dataHandling.HistoryManagement.IndicatorProcessor import IndicatorProcessor
@@ -50,14 +51,14 @@ class ConnectionThreadManager:
 
     def getNewPositionManager(self):
         position_manager = PositionDataManager(self.local_address, int(self.trading_socket), self.next_id)
-        position_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
+        position_manager.api_updater.connect(self.apiUpdate, Qt.ConnectionType.QueuedConnection)
         self.startWorkerThread('position_manager', position_manager)
         return position_manager
         
 
     def getNewSymbolManager(self, identifier):
         symbol_manager = SymbolManager(self.local_address, int(self.trading_socket), self.next_id, name=identifier)
-        symbol_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
+        symbol_manager.api_updater.connect(self.apiUpdate, Qt.ConnectionType.QueuedConnection)
         self.startWorkerThread(identifier, symbol_manager)
         
         return symbol_manager
@@ -66,7 +67,7 @@ class ConnectionThreadManager:
     def getIndicatorManager(self, indicators, data_object, **kwargs):
         if self.indicator_processor is None:
             self.indicator_processor = IndicatorProcessor(data_object, indicators, **kwargs)
-            self.startWorkerThread('general_indicator', self.indicator_processor, run_function=self.indicator_processor.run, thread_priority=QThread.HighestPriority)
+            self.startWorkerThread('general_indicator', self.indicator_processor, run_function=self.indicator_processor.run, thread_priority=QThread.Priority.HighestPriority)
             
         return self.indicator_processor
 
@@ -83,7 +84,7 @@ class ConnectionThreadManager:
             history_manager = self.history_manager
         else:
             history_manager = HistoricalDataManager(self.local_address, int(self.trading_socket), self.next_id, name="HistoricalDataManager")
-            history_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
+            history_manager.api_updater.connect(self.apiUpdate, Qt.ConnectionType.QueuedConnection)
 
             self.startWorkerThread(identifier, history_manager)
             
@@ -116,7 +117,7 @@ class ConnectionThreadManager:
         else:
             thread.started.connect(run_function)
 
-        worker.finished.connect(lambda: self.cleanupWorkerThread(identifier), Qt.QueuedConnection)
+        worker.finished.connect(lambda: self.cleanupWorkerThread(identifier), Qt.ConnectionType.QueuedConnection)
         self.running_workers[identifier] = (worker, thread)
         thread.start()
         if thread_priority is not None:
@@ -151,7 +152,7 @@ class ConnectionThreadManager:
                 order_manager = OrderManager(self.local_address, int(self.trading_socket), 0)
             else:
                 order_manager = OrderManager(self.local_address, int(self.trading_socket), self.next_id)
-            order_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
+            order_manager.api_updater.connect(self.apiUpdate, Qt.ConnectionType.QueuedConnection)
             self.startWorkerThread(identifier, order_manager)
                 
             if identifier == 'general_order_manager':
@@ -165,13 +166,13 @@ class ConnectionThreadManager:
         self.trading_socket = self.socket_line.text()
         self.connectivty_ver = IBConnectivity(self.local_address, int(self.trading_socket), self.next_id, name="Connectivity.TEST")
         self.ver_id = self.connectivty_ver.registerOwner()
-        self.connectivty_ver.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
+        self.connectivty_ver.api_updater.connect(self.apiUpdate, Qt.ConnectionType.QueuedConnection)
         self.connectivty_ver.startConnection()
         
 
     def getOptionManager(self):
         option_chain_manager = OptionChainManager(self.local_address, int(self.trading_socket), self.next_id)
-        option_chain_manager.api_updater.connect(self.apiUpdate, Qt.QueuedConnection)
+        option_chain_manager.api_updater.connect(self.apiUpdate, Qt.ConnectionType.QueuedConnection)
 
         self.startWorkerThread('option_manager', option_chain_manager)
         

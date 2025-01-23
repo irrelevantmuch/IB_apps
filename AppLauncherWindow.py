@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from PyQt5.QtWidgets import QMainWindow
+from PyQt6.QtWidgets import QMainWindow
 from uiComps.qtGeneration.AppLauncher_UI import Ui_MainWindow as AppLauncher_UI
 from dataHandling.Constants import Constants
 

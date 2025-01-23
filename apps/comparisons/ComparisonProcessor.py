@@ -14,7 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from datetime import datetime, timedelta, date
-from PyQt5.QtCore import pyqtSlot
+from pytz import timezone
+from PyQt6.QtCore import pyqtSlot
 import numpy as np
 import pandas as pd
 

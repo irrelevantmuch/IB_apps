@@ -13,7 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QObject, QReadWriteLock
+from PyQt6.QtCore import pyqtSlot, pyqtSignal, Qt, QObject, QReadWriteLock
+
 
 from ibapi.contract import Contract
 
@@ -200,7 +201,7 @@ class OrderManager(IBConnectivity):
         self.open_orders = OpenOrderBuffer()
         if stair_manager_on:
             self.stair_tracker = StairManager()
-            self.stair_tracker.update_order_signal.connect(self.orderEdit, Qt.QueuedConnection)
+            self.stair_tracker.update_order_signal.connect(self.orderEdit, Qt.ConnectionType.QueuedConnection)
 
         self.connectSignalsToSlots()
         self.trackAndBindOpenOrders()
@@ -219,10 +220,10 @@ class OrderManager(IBConnectivity):
 
 
     def connectSignalsToSlots(self):
-        self.order_update_signal.connect(self.open_orders.orderUpdate, Qt.QueuedConnection)
+        self.order_update_signal.connect(self.open_orders.orderUpdate, Qt.ConnectionType.QueuedConnection)
 
         if self.stair_tracker is not None:
-            self.order_update_signal.connect(self.stair_tracker.orderUpdate, Qt.QueuedConnection)
+            self.order_update_signal.connect(self.stair_tracker.orderUpdate, Qt.ConnectionType.QueuedConnection)
         
 
     def trackAndBindOpenOrders(self):
@@ -412,7 +413,7 @@ class OrderManager(IBConnectivity):
                 
                 order_list[-1].transmit = True
                 self.placeBracketOrder(order_list, contract)
-                self.data_buffers.buffer_updater.connect(self.stair_tracker.bufferUpdate, Qt.QueuedConnection)
+                self.data_buffers.buffer_updater.connect(self.stair_tracker.bufferUpdate, Qt.ConnectionType.QueuedConnection)
 
             else:
                 print("THIS IS NOT A VALID STAIRSTEP")

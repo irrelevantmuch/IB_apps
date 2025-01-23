@@ -12,8 +12,9 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from PyQt5.QtCore import QThread, pyqtSlot, Qt, pyqtSignal
-from PyQt5 import QtWidgets
+from PyQt6.QtCore import QThread, pyqtSlot, Qt, pyqtSignal
+
+from PyQt6 import QtWidgets
 
 import sys, os, time
 
@@ -27,7 +28,7 @@ from dataHandling.ibFTPdata import downloadShortData
 from generalFunctionality.UIFunctions import addAccountsToSelector
 
 from apps.listManaging.listManager import ListManager
-from apps.polygonDownload.dataDownloader import DataDownloader
+# from apps.polygonDownload.dataDownloader import DataDownloader
 from apps.optionPositions.optionsPositionListing import OptionPositions
 from apps.optionVisualization.optionsVisualization import OptionVisualization
 from apps.comparisons.comparisonLists import ComparisonList
@@ -43,8 +44,8 @@ from ConnectionThreadManager import ConnectionThreadManager
 from TelegramBot import TelegramBot
 
 
-QtWidgets.QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-QtWidgets.QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+# QtWidgets.QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+# QSizePolicy.Policy.ExpandingQtWidgets.QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
 
 
@@ -249,7 +250,7 @@ class AppLauncher(AppLauncherWindow, ConnectionThreadManager):
     def setupTelegramBot(self):
                 # Setup the bot logic and thread
         self.telegram_bot = TelegramBot()  # Replace with your actual token
-        self.telegram_signal.connect(self.telegram_bot.sendMessage, Qt.QueuedConnection)
+        self.telegram_signal.connect(self.telegram_bot.sendMessage, Qt.ConnectionType.QueuedConnection)
         self.telegram_bot.run() 
         
 
@@ -267,7 +268,6 @@ if __name__ == "__main__":
     app.aboutToQuit.connect(app.deleteLater)
     window = AppLauncher()
     window.show()
-    app.exec_()
-
+    app.exec()
 
 

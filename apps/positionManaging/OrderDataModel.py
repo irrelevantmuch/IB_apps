@@ -13,9 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import Qt, QAbstractTableModel, pyqtSignal, pyqtSlot, QEvent
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import QDoubleSpinBox, QSpinBox, QPushButton, QStyledItemDelegate
+from PyQt6.QtCore import Qt, QAbstractTableModel, pyqtSignal, pyqtSlot, QEvent
+
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import QDoubleSpinBox, QSpinBox, QPushButton, QStyledItemDelegate
 from dataHandling.Constants import Constants
 
 class SpinBoxDelegate(QStyledItemDelegate):
@@ -34,19 +35,19 @@ class SpinBoxDelegate(QStyledItemDelegate):
             editor = QSpinBox(parent)
             editor.setMinimum(0)
             
-        editor.setAlignment(Qt.AlignRight)
+        editor.setAlignment(Qt.AlignmentFlag.AlignRight)
         
         editor.setMaximum(10000) 
         return editor
 
     
     def setEditorData(self, editor, index):
-        value = index.model().data(index, Qt.EditRole)
+        value = index.model().data(index, Qt.ItemDataRole.EditRole)
         editor.setValue(value)
 
 
     def setModelData(self, editor, model, index):
-        model.setData(index, editor.value(), Qt.EditRole)
+        model.setData(index, editor.value(), Qt.ItemDataRole.EditRole)
 
 
 class ButtonDelegate(QStyledItemDelegate):
@@ -69,7 +70,7 @@ class CheckBoxDelegate(QStyledItemDelegate):
         if event.type() == QEvent.MouseButtonPress:
             # Toggle the state
             currentValue = model.data(index, Qt.CheckStateRole)
-            newState = Qt.Unchecked if currentValue == Qt.Checked else Qt.Checked
+            newState = Qt.CheckState.Unchecked if currentValue == Qt.CheckState.Checked else Qt.CheckState.Checked
             model.setData(index, newState, Qt.CheckStateRole)
             return True  # Indicate the event has been handled
         return False  # For other events, return False
@@ -83,7 +84,7 @@ class OrderDataModel(QAbstractTableModel):
         super().__init__(**kwargs)
         
         self._order_data = order_data
-        self._order_data.order_buffer_signal.connect(self.tableDataUpdate, Qt.QueuedConnection)
+        self._order_data.order_buffer_signal.connect(self.tableDataUpdate, Qt.ConnectionType.QueuedConnection)
         self._header_labels = colummn_headers
         
 
@@ -121,9 +122,9 @@ class OrderDataModel(QAbstractTableModel):
         return len(self._header_labels) + 1
 
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         
-        if (role == Qt.DisplayRole) and (orientation == Qt.Horizontal):
+        if (role == Qt.ItemDataRole.DisplayRole) and (orientation == Qt.Orientation.Horizontal):
             if section < len(self._header_labels):
                 return self._header_labels[section]
             else:
@@ -134,24 +135,24 @@ class OrderDataModel(QAbstractTableModel):
 
     def flags(self, index):
         if self.isEditableColumn(index.column()):
-            return super().flags(index) | Qt.ItemIsEditable
+            return super().flags(index) | Qt.ItemFlag.ItemIsEditable
         else:
             return super().flags(index)
 
 
-    def data(self, index, role=Qt.DisplayRole):
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         
         if index.column() < len(self._header_labels):
             column_name = self._header_labels[index.column()]
-            if role == Qt.DisplayRole:
+            if role == Qt.ItemDataRole.DisplayRole:
                 
                 # if column_name == 'Limit':
                     # return self._order_data.loc[index.row(), column_name]
                 return str(self._order_data.getDataForColumn(index.row(), column_name))
-            elif role == Qt.EditRole:
+            elif role == Qt.ItemDataRole.EditRole:
                 return self._order_data.getDataForColumn(index.row(), column_name)
-            elif role == Qt.TextAlignmentRole:
-                return Qt.AlignRight | Qt.AlignVCenter
+            elif role == Qt.ItemDataRole.TextAlignmentRole:
+                return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
 
         return None
@@ -159,9 +160,9 @@ class OrderDataModel(QAbstractTableModel):
             #     return super().data(index, role)
 
 
-    def setData(self, index, value, role=Qt.EditRole):
+    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
         column_name = self._header_labels[index.column()]
-        if role == Qt.EditRole:
+        if role == Qt.ItemDataRole.EditRole:
             prop_type = self._order_data.getPropTypeForColumn(column_name)
             self.order_edit_update.emit(self._order_data.getOrderId(index.row()), {prop_type: value})
             return True
@@ -176,7 +177,7 @@ class StairDataModel(QAbstractTableModel):
     def __init__(self, stair_tracker, headers, **kwargs):
         super().__init__(**kwargs)
         self._stair_tracker = stair_tracker
-        self._stair_tracker.stair_buffer_signal.connect(self.tableDataUpdate, Qt.QueuedConnection)
+        self._stair_tracker.stair_buffer_signal.connect(self.tableDataUpdate, Qt.ConnectionType.QueuedConnection)
         self._header_labels = headers
         self.check_states = {}  # Store checkbox states for each index
 
@@ -210,8 +211,8 @@ class StairDataModel(QAbstractTableModel):
         return len(self._header_labels)
 
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
-        if (role == Qt.DisplayRole) and (orientation == Qt.Horizontal):
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if (role == Qt.ItemDataRole.DisplayRole) and (orientation == Qt.Orientation.Horizontal):
             return self._header_labels[section]
         return super().headerData(section, orientation, role)
 
@@ -221,7 +222,7 @@ class StairDataModel(QAbstractTableModel):
         if index.column() == 0 and (index.row() % 3 == 1 or index.row() % 3 == 2):
             flags |= Qt.ItemIsUserCheckable
         elif self.isEditableColumn(index.column()):
-            flags |= Qt.ItemIsEditable
+            flags |= Qt.ItemFlag.ItemIsEditable
 
         return flags
 
@@ -231,10 +232,10 @@ class StairDataModel(QAbstractTableModel):
         return column_index in editable_columns
 
 
-    def data(self, index, role=Qt.DisplayRole):
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
 
         if role == Qt.CheckStateRole and index.column() == 0 and (index.row() % 3 == 1 or index.row() % 3 == 2):
-            return self.check_states.get(index, Qt.Unchecked)
+            return self.check_states.get(index, Qt.CheckState.Unchecked)
         elif index.column() <= 4:
             if index.column() == 0:
                 value = self._stair_tracker.getNameForRow(index.row())
@@ -248,20 +249,20 @@ class StairDataModel(QAbstractTableModel):
                 value = self._stair_tracker.getLimitOffsetForRow(index.row())
 
 
-            if role == Qt.DisplayRole:
+            if role == Qt.ItemDataRole.DisplayRole:
                 return str(value)
-            elif role == Qt.EditRole:
+            elif role == Qt.ItemDataRole.EditRole:
                 return value
         
         return None
 
 
-    def setData(self, index, value, role=Qt.EditRole):
+    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
         column_name = self._header_labels[index.column()]
         row = index.row()
         property_type = self._stair_tracker.getPropertyFor(column_name, row)
 
-        if role == Qt.EditRole:
+        if role == Qt.ItemDataRole.EditRole:
             key, _ = self._stair_tracker.getKeyAndTypeForRow(row)
             self.stair_edit_update.emit(key, {property_type: value})
             return True

@@ -22,7 +22,8 @@ from pytz import utc
 from generalFunctionality.GenFunctions import standardBeginDateFor
 from generalFunctionality.DateTimeFunctions import getCurrentUtcTime
 
-from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot, QThread, Qt, QEventLoop
+from PyQt6.QtCore import pyqtSignal, QObject, pyqtSlot, QThread, Qt, QEventLoop
+
 
 
 class BufferedDataManager(QObject):
@@ -65,11 +66,11 @@ class BufferedDataManager(QObject):
         
 
     def connectSignalsToSlots(self):
-        self.reset_signal.connect(self.history_manager.cancelActiveRequests, Qt.QueuedConnection)
-        self.create_request_signal.connect(self.history_manager.createRequestsForContract, Qt.QueuedConnection)
-        self.request_update_signal.connect(self.history_manager.requestUpdates, Qt.QueuedConnection)
-        self.group_request_signal.connect(self.history_manager.groupCurrentRequests, Qt.QueuedConnection)
-        self.execute_request_signal.connect(self.history_manager.iterateHistoryRequests, Qt.QueuedConnection)
+        self.reset_signal.connect(self.history_manager.cancelActiveRequests, Qt.ConnectionType.QueuedConnection)
+        self.create_request_signal.connect(self.history_manager.createRequestsForContract, Qt.ConnectionType.QueuedConnection)
+        self.request_update_signal.connect(self.history_manager.requestUpdates, Qt.ConnectionType.QueuedConnection)
+        self.group_request_signal.connect(self.history_manager.groupCurrentRequests, Qt.ConnectionType.QueuedConnection)
+        self.execute_request_signal.connect(self.history_manager.iterateHistoryRequests, Qt.ConnectionType.QueuedConnection)
         
 
     
@@ -97,7 +98,7 @@ class BufferedDataManager(QObject):
     ################ CREATING AND TRIGGERING HISTORIC REQUESTS
 
     def fetchLatestStockDataWithCancelation(self):
-        self.history_manager.cleanup_done_signal.connect(lambda: self.fetchLatestStockData(False, True), Qt.QueuedConnection)
+        self.history_manager.cleanup_done_signal.connect(lambda: self.fetchLatestStockData(False, True), Qt.ConnectionType.QueuedConnection)
         self.reset_signal.emit(self.hist_id)
         
 
